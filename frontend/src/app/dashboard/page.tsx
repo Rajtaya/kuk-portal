@@ -21,7 +21,7 @@ interface ChartData {
   postTypeDesignation: Record<string, any>[];
   genderDesignation: { gender: string; total: number; designations: { name: string; value: number }[] }[];
   sanctionVsPresent: Record<string, any>[];
-  universities: { id: string; name: string }[];
+  universities: { id: string; name: string; code: string }[];
   designations: string[];
   subjects: string[];
 }
@@ -60,6 +60,14 @@ const SANCTION_COLORS: Record<string, string> = {
 };
 
 const PT_LABELS: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'Self Financed', CONTRACTUAL: 'Contractual' };
+
+const UNI_LOGOS: Record<string, string> = {
+  KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
+  CRSU: '/logos/CRSU.png', CBLU: '/logos/CBLU.png', GU: '/logos/GU.jpg',
+  MVSU: '/logos/MVSU.png', IGU: '/logos/IGU.jpg', BPSMV: '/logos/BPSMV.png',
+  DBRANLU: '/logos/DBRANLU.png', GJU: '/logos/GJU.png', CCSHAU: '/logos/CCSHAU.png',
+  DCRUST: '/logos/DCRUST.png', SVSU: '/logos/SVSU.png',
+};
 
 function getDesigColor(name: string, index: number) {
   return DESIG_COLORS[name] || RING_COLORS[index % RING_COLORS.length];
@@ -258,6 +266,10 @@ export default function DashboardPage() {
     return data?.hierarchy.find((h) => h.universityId === selectedUni)?.universityName || '';
   }, [data, selectedUni]);
 
+  const selectedUniCode = useMemo(() => {
+    return data?.universities.find((u) => u.id === selectedUni)?.code || '';
+  }, [data, selectedUni]);
+
   // Subjects available for the selected university
   const uniSubjects = useMemo(() => {
     const uniData = data?.hierarchy.find((h) => h.universityId === selectedUni);
@@ -416,13 +428,18 @@ export default function DashboardPage() {
             ) : (
               <div className="flex justify-center overflow-hidden">
                 <PieChart width={620} height={620}>
-                  {/* Center label */}
-                  <text x={310} y={305} textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight={700} fill="#1F2937">
-                    {selectedUniName.length > 25 ? selectedUniName.substring(0, 22) + '...' : selectedUniName}
-                  </text>
-                  <text x={310} y={320} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="#6B7280">
-                    University
-                  </text>
+                  {/* Center logo */}
+                  {UNI_LOGOS[selectedUniCode] ? (
+                    <foreignObject x={270} y={270} width={80} height={80}>
+                      <div style={{ width: 80, height: 80, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+                        <img src={UNI_LOGOS[selectedUniCode]} alt={selectedUniCode} style={{ width: 70, height: 70, objectFit: 'contain' }} />
+                      </div>
+                    </foreignObject>
+                  ) : (
+                    <text x={310} y={310} textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight={700} fill="#1F2937">
+                      {selectedUniCode}
+                    </text>
+                  )}
                   {/* Ring 1: Subjects */}
                   <Pie data={sunburstData.ring1} cx={310} cy={310} innerRadius={85} outerRadius={150} dataKey="value" label={renderPieLabel} labelLine={false}>
                     {sunburstData.ring1.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} />)}

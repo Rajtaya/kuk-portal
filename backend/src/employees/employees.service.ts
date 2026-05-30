@@ -193,7 +193,7 @@ export class EmployeesService {
           gender: true,
         },
       }),
-      this.prisma.university.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+      this.prisma.university.findMany({ select: { id: true, name: true, code: true }, orderBy: { name: 'asc' } }),
       this.prisma.subject.count(),
       this.prisma.designation.count(),
       this.prisma.sanctionedPost.findMany({
