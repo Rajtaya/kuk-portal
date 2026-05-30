@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -21,26 +22,72 @@ const roleLinks = {
   UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned', 'reports'],
 };
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: { collapsed?: boolean; onToggle?: () => void } = {}) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+
+  const isControlled = controlledCollapsed !== undefined;
+  const collapsed = isControlled ? controlledCollapsed : internalCollapsed;
+
+  useEffect(() => {
+    if (!isControlled) {
+      const saved = localStorage.getItem('sidebar-collapsed');
+      if (saved === 'true') setInternalCollapsed(true);
+    }
+  }, [isControlled]);
+
+  const toggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalCollapsed((c) => {
+        localStorage.setItem('sidebar-collapsed', String(!c));
+        return !c;
+      });
+    }
+  };
 
   const links = (roleLinks[user?.role || 'UNIVERSITY_ADMIN'] || []).map((k) => navItems[k as keyof typeof navItems]);
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-primary-700">UEMS</h1>
-        <p className="text-xs text-gray-500 mt-1">University Employees Management</p>
+    <aside className={clsx(
+      'bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0 transition-all duration-300',
+      collapsed ? 'w-16' : 'w-64'
+    )}>
+      {/* Header with toggle */}
+      <div className={clsx('border-b border-gray-200 flex items-center', collapsed ? 'p-3 justify-center' : 'p-4 justify-between')}>
+        {!collapsed && (
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-primary-700">UEMS</h1>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">University Employees Management</p>
+          </div>
+        )}
+        <button
+          onClick={toggle}
+          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors shrink-0"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            {collapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
+            )}
+          </svg>
+        </button>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 p-2 space-y-1">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
+            title={collapsed ? link.label : undefined}
             className={clsx(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              'flex items-center gap-3 rounded-lg text-sm font-medium transition-colors',
+              collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
               pathname.startsWith(link.href)
                 ? 'bg-primary-50 text-primary-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -49,30 +96,45 @@ export default function Sidebar() {
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
             </svg>
-            {link.label}
+            {!collapsed && <span className="truncate">{link.label}</span>}
           </Link>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="mb-3">
-          <p className="text-sm font-medium truncate">{user?.name}</p>
-          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            {user?.university && (
-              <span className="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs rounded-full">{user.university.code}</span>
-            )}
-            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-              {user?.role?.replace(/_/g, ' ')}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={logout}
-          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          Sign Out
-        </button>
+      {/* User info */}
+      <div className={clsx('border-t border-gray-200', collapsed ? 'p-2' : 'p-3')}>
+        {collapsed ? (
+          <button
+            onClick={logout}
+            title="Sign Out"
+            className="w-full flex justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        ) : (
+          <>
+            <div className="mb-3">
+              <p className="text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <div className="flex items-center gap-2 mt-1">
+                {user?.university && (
+                  <span className="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs rounded-full">{user.university.code}</span>
+                )}
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  {user?.role?.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+          </>
+        )}
       </div>
     </aside>
   );
