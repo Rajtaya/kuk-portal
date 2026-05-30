@@ -19,6 +19,7 @@ export default function EmployeeDetailPage() {
   }
 
   const fields = [
+    ['Employee ID', employee.employeeId],
     ['Employee Name', employee.name],
     ['Gender', employee.gender],
     ['University', employee.university?.name],
@@ -26,10 +27,15 @@ export default function EmployeeDetailPage() {
     ['Subject', employee.subject],
     ['Category', employee.category],
     ['Category (Selection)', employee.categorySelection],
-    ['Type', employee.type],
+    ['Post Type', employee.postType],
+    ['Employee Type', employee.employeeClassification?.replace('_', ' ')],
     ['Designation (Appointment)', employee.designationAppointed],
     ['Designation (Present)', employee.designationPresent],
+    ['Date of Joining', employee.dateOfJoining ? new Date(employee.dateOfJoining).toLocaleDateString('en-IN') : '-'],
     ['Retirement Date', employee.retirementDate ? new Date(employee.retirementDate).toLocaleDateString('en-IN') : '-'],
+    ['Employment Status', employee.employmentStatus],
+    ['Mobile Number', employee.mobileNumber],
+    ['Email', employee.email],
   ];
 
   return (
