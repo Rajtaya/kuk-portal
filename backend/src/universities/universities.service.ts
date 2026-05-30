@@ -33,11 +33,10 @@ export class UniversitiesService {
     const now = new Date();
     const yearEnd = new Date(now.getFullYear(), 11, 31);
 
-    const [total, teaching, nonTeaching, budgeted, sfs, contractual, male, female, retiringThisYear, sanctioned] =
+    const [total, teaching, budgeted, sfs, contractual, male, female, retiringThisYear, sanctioned] =
       await Promise.all([
         this.prisma.employee.count({ where: activeWhere }),
         this.prisma.employee.count({ where: { ...activeWhere, employeeClassification: 'TEACHING' } }),
-        this.prisma.employee.count({ where: { ...activeWhere, employeeClassification: 'NON_TEACHING' } }),
         this.prisma.employee.count({ where: { ...activeWhere, postType: 'BUDGETED' } }),
         this.prisma.employee.count({ where: { ...activeWhere, postType: 'SFS' } }),
         this.prisma.employee.count({ where: { ...activeWhere, postType: 'CONTRACTUAL' } }),
@@ -53,6 +52,6 @@ export class UniversitiesService {
       ]);
 
     const sanct = sanctioned._sum.sanctionedCount || 0;
-    return { total, teaching, nonTeaching, budgeted, sfs, contractual, male, female, retiringThisYear, sanctioned: sanct, vacancies: sanct - total };
+    return { total, teaching, budgeted, sfs, contractual, male, female, retiringThisYear, sanctioned: sanct, vacancies: sanct - total };
   }
 }

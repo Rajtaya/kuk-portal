@@ -18,7 +18,8 @@ export class ReportsService {
       total: u._count.employees,
       active: u.employees.length,
       teaching: u.employees.filter((e) => e.employeeClassification === 'TEACHING').length,
-      nonTeaching: u.employees.filter((e) => e.employeeClassification === 'NON_TEACHING').length,
+
+
       budgeted: u.employees.filter((e) => e.postType === 'BUDGETED').length,
       sfs: u.employees.filter((e) => e.postType === 'SFS').length,
       contractual: u.employees.filter((e) => e.postType === 'CONTRACTUAL').length,
@@ -42,7 +43,8 @@ export class ReportsService {
       university: d.university.code, department: d.name,
       total: d._count.employees,
       teaching: d.employees.filter((e) => e.employeeClassification === 'TEACHING').length,
-      nonTeaching: d.employees.filter((e) => e.employeeClassification === 'NON_TEACHING').length,
+
+
       budgeted: d.employees.filter((e) => e.postType === 'BUDGETED').length,
       sfs: d.employees.filter((e) => e.postType === 'SFS').length,
       contractual: d.employees.filter((e) => e.postType === 'CONTRACTUAL').length,
@@ -149,21 +151,8 @@ export class ReportsService {
     });
   }
 
-  async nonTeachingStaffReport(universityId?: string) {
-    const where: any = { employmentStatus: 'ACTIVE', employeeClassification: 'NON_TEACHING' };
-    if (universityId) where.universityId = universityId;
 
-    return this.prisma.employee.findMany({
-      where,
-      select: {
-        employeeId: true, name: true, designationPresent: true, category: true, postType: true, gender: true,
-        department: { select: { name: true } },
-        university: { select: { code: true } },
-        retirementDate: true,
-      },
-      orderBy: [{ university: { name: 'asc' } }, { name: 'asc' }],
-    });
-  }
+
 
   async retirementDueReport(months: number = 12, universityId?: string) {
     const futureDate = new Date();

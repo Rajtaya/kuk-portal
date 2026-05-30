@@ -37,6 +37,12 @@ export class EmployeesController {
     return this.employeesService.getDashboardStats(universityId);
   }
 
+  @Get('dashboard-charts')
+  getDashboardCharts(@CurrentUser() user: any) {
+    const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : undefined;
+    return this.employeesService.getDashboardCharts(universityId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.employeesService.findOne(id);

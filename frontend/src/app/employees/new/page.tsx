@@ -104,7 +104,7 @@ export default function NewEmployeePage() {
             <div><label className={lbl}>Designation (Present)</label><input className={inp} value={form.designationPresent} onChange={(e) => update('designationPresent', e.target.value)} /></div>
             <div><label className={lbl}>Employee Type</label>
               <select className={inp} value={form.employeeClassification} onChange={(e) => update('employeeClassification', e.target.value)}>
-                <option value="TEACHING">Teaching</option><option value="NON_TEACHING">Non-Teaching</option>
+                <option value="TEACHING">Teaching</option>
               </select>
             </div>
             <div><label className={lbl}>Post Type</label>

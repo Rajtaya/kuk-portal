@@ -41,7 +41,6 @@ enum PostType {
 
 enum EmployeeClassification {
   TEACHING
-  NON_TEACHING
 }
 
 enum EmploymentStatus {

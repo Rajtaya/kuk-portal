@@ -133,7 +133,7 @@ async function main() {
   // ─── Designations (Master) ─────────────────────────────
   const designationNames = [
     'Professor', 'Associate Professor', 'Assistant Professor',
-    'Other Teaching Posts', 'Non-Teaching Posts',
+    'Other Teaching Posts',
   ];
   for (const name of designationNames) {
     await prisma.designation.upsert({ where: { name }, update: {}, create: { name } });
@@ -160,11 +160,11 @@ async function main() {
       employmentStatus: EmploymentStatus.ACTIVE,
     },
     {
-      employeeId: 'KUK-003', name: 'Sh. Rampal Singh', gender: Gender.MALE,
+      employeeId: 'KUK-003', name: 'Dr. Rampal Singh', gender: Gender.MALE,
       universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id,
       subject: 'Computer Science', category: Category.GENERAL, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.NON_TEACHING,
-      designationAppointed: 'Non-Teaching Posts', designationPresent: 'Non-Teaching Posts',
+      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
+      designationAppointed: 'Assistant Professor', designationPresent: 'Assistant Professor',
       retirementDate: new Date('2035-12-31'), dateOfJoining: new Date('2012-06-01'),
       employmentStatus: EmploymentStatus.ACTIVE,
     },

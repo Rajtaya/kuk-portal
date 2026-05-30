@@ -42,7 +42,7 @@ const staticFilters = [
     { value: 'BUDGETED', label: 'Budgeted' }, { value: 'SFS', label: 'SFS' }, { value: 'CONTRACTUAL', label: 'Contractual' },
   ]},
   { key: 'employeeClassification', label: 'Emp Type', options: [
-    { value: 'TEACHING', label: 'Teaching' }, { value: 'NON_TEACHING', label: 'Non-Teaching' },
+    { value: 'TEACHING', label: 'Teaching' },
   ]},
   { key: 'employmentStatus', label: 'Status', options: [
     { value: 'ACTIVE', label: 'Active' }, { value: 'RETIRED', label: 'Retired' },

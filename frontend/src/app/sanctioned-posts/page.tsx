@@ -31,7 +31,7 @@ interface VacancyRow {
 }
 
 const categories = ['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'];
-const designations = ['Professor','Associate Professor','Assistant Professor','Other Teaching Posts','Non-Teaching Posts'];
+const designations = ['Professor','Associate Professor','Assistant Professor','Other Teaching Posts'];
 
 export default function SanctionedPostsPage() {
   const { user } = useAuth();

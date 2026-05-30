@@ -55,10 +55,8 @@ export class ReportsController {
     return this.reportsService.teachingStaffReport(this.resolveUniversityId(user, universityId));
   }
 
-  @Get('non-teaching-staff')
-  nonTeachingStaffReport(@Query('universityId') universityId: string, @CurrentUser() user: any) {
-    return this.reportsService.nonTeachingStaffReport(this.resolveUniversityId(user, universityId));
-  }
+
+
 
   @Get('retirement-due')
   retirementDueReport(@Query('months') months: number, @Query('universityId') universityId: string, @CurrentUser() user: any) {

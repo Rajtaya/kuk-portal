@@ -25,7 +25,6 @@ const commonReports: ReportDef[] = [
   { key: 'category-wise', label: 'Category-wise Report', description: 'Employee count by reservation category' },
   { key: 'gender-wise', label: 'Gender-wise Report', description: 'Gender distribution with classification breakdown' },
   { key: 'teaching-staff', label: 'Teaching Staff Report', description: 'All active teaching employees' },
-  { key: 'non-teaching-staff', label: 'Non-Teaching Staff Report', description: 'All active non-teaching employees' },
   { key: 'retirement-due', label: 'Retirement Due Report', description: 'Employees retiring within next 12 months' },
   { key: 'employee-directory', label: 'Employee Directory', description: 'Contact directory of active employees' },
 ];

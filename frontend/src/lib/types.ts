@@ -2,7 +2,7 @@ export type Role = 'SUPER_ADMIN' | 'STATE_USER' | 'UNIVERSITY_ADMIN';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type Category = 'GENERAL' | 'SC' | 'ST' | 'OBC' | 'EWS' | 'BCA' | 'BCB' | 'PWD' | 'ESM';
 export type PostType = 'BUDGETED' | 'SFS' | 'CONTRACTUAL';
-export type EmployeeClassification = 'TEACHING' | 'NON_TEACHING';
+export type EmployeeClassification = 'TEACHING';
 export type EmploymentStatus = 'ACTIVE' | 'RETIRED' | 'RESIGNED' | 'TERMINATED' | 'SUSPENDED';
 
 export interface User {
@@ -67,7 +67,8 @@ export interface DashboardStats {
   total: number;
   active: number;
   teaching: number;
-  nonTeaching: number;
+
+
   budgeted: number;
   sfs: number;
   contractual: number;
