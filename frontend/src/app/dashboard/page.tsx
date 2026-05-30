@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import {
@@ -83,11 +83,120 @@ function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'v
   );
 }
 
-function ChartCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
+function ChartCard({ title, children, className = '', tableData }: {
+  title: string; children: React.ReactNode; className?: string;
+  tableData?: { headers: string[]; rows: (string | number)[][] };
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showTable, setShowTable] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const downloadCSV = useCallback(() => {
+    if (!tableData) return;
+    const csv = [tableData.headers.join(','), ...tableData.rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = title.replace(/\s+/g, '_') + '.csv'; a.click();
+    setMenuOpen(false);
+  }, [tableData, title]);
+
+  const downloadImage = useCallback((format: 'png' | 'jpeg' | 'svg') => {
+    const svg = chartRef.current?.querySelector('svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    if (format === 'svg') {
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = title.replace(/\s+/g, '_') + '.svg'; a.click();
+    } else {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width * 2; canvas.height = img.height * 2;
+        ctx!.fillStyle = '#fff'; ctx!.fillRect(0, 0, canvas.width, canvas.height);
+        ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        a.download = title.replace(/\s+/g, '_') + '.' + format; a.click();
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    }
+    setMenuOpen(false);
+  }, [title]);
+
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`}>
-      <h3 className="font-bold text-gray-800 text-center mb-4">{title}</h3>
+    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`} ref={chartRef}>
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <h3 className="font-bold text-gray-800">{title}</h3>
+        <div className="relative" ref={menuRef}>
+          <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth={2} strokeLinecap="round" fill="none" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1 w-48">
+              <button onClick={() => { chartRef.current?.requestFullscreen?.(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">View Fullscreen</button>
+              <button onClick={() => { window.print(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Print Chart</button>
+              <hr className="my-1" />
+              <button onClick={() => downloadImage('png')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PNG</button>
+              <button onClick={() => downloadImage('jpeg')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download JPEG</button>
+              <button onClick={() => downloadImage('svg')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download SVG</button>
+              <hr className="my-1" />
+              {tableData && <button onClick={() => downloadCSV()} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download CSV</button>}
+              {tableData && (
+                <button onClick={() => { setShowTable(!showTable); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  {showTable ? 'Hide data table' : 'View data table'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       {children}
+      {showTable && tableData && (
+        <div className="mt-4 rounded-lg overflow-hidden border border-gray-700">
+          <div className="flex items-center justify-between bg-gray-900 px-4 py-3">
+            <h4 className="text-white font-semibold text-sm">{title}</h4>
+            <button onClick={() => setShowTable(false)} className="text-gray-400 hover:text-white">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-800">
+                  {tableData.headers.map((h, i) => (
+                    <th key={i} className="px-4 py-2.5 text-left text-white font-semibold">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.rows.map((row, ri) => (
+                  <tr key={ri} className={ri % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800'}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} className="px-4 py-2 text-gray-200">{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -234,7 +343,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Employee Distribution by Designation Across Universities */}
-      <ChartCard title="Employee Distribution by Designation Across Universities">
+      <ChartCard
+        title="Employee Distribution by Designation Across Universities"
+        tableData={{
+          headers: ['Category', ...desigList],
+          rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]),
+        }}
+      >
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data.designationByUniversity} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -370,7 +485,13 @@ export default function DashboardPage() {
 
       {/* Category-wise & Employment Type charts side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Category-wise Designation Distribution">
+        <ChartCard
+          title="Category-wise Designation Distribution"
+          tableData={{
+            headers: ['Category', ...desigList],
+            rows: data.categoryDesignation.map(row => [row.category, ...desigList.map(d => row[d] || 0)]),
+          }}
+        >
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={data.categoryDesignation} margin={{ top: 20, right: 20, left: 10, bottom: 30 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -385,7 +506,13 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Employment Type &rarr; Designation Distribution">
+        <ChartCard
+          title="Employment Type → Designation Distribution"
+          tableData={{
+            headers: ['Employment Type', ...desigList],
+            rows: data.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...desigList.map(d => row[d] || 0)]),
+          }}
+        >
           <ResponsiveContainer width="100%" height={350}>
             <BarChart
               data={data.postTypeDesignation.map((row) => ({
@@ -409,7 +536,17 @@ export default function DashboardPage() {
 
       {/* Gender & Designation + Sanction vs Present */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Gender & Designation Distribution">
+        <ChartCard
+          title="Gender & Designation Distribution"
+          tableData={{
+            headers: ['Gender', ...desigList, 'Total'],
+            rows: data.genderDesignation.map(g => [
+              g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
+              ...desigList.map(d => g.designations.find(x => x.name === d)?.value || 0),
+              g.total,
+            ]),
+          }}
+        >
           {(() => {
             const innerData = data.genderDesignation.map((g) => ({
               name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
@@ -441,7 +578,13 @@ export default function DashboardPage() {
           })()}
         </ChartCard>
 
-        <ChartCard title="Sanction vs Present (Designation-wise)">
+        <ChartCard
+          title="Sanction vs Present (Designation-wise)"
+          tableData={{
+            headers: ['Subject', ...sanctionKeys],
+            rows: data.sanctionVsPresent.map(row => [row.subject, ...sanctionKeys.map(k => row[k] || 0)]),
+          }}
+        >
           <ResponsiveContainer width="100%" height={380}>
             <BarChart data={data.sanctionVsPresent} margin={{ top: 20, right: 20, left: 10, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" />
