@@ -93,7 +93,7 @@ function ChartCard({ title, children, className = '' }: { title: string; childre
 }
 
 const renderBarLabel = ({ x, y, width, value }: any) => {
-  if (!value) return null;
+  if (!value) return <text />;
   return <text x={x + width / 2} y={y - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill="#374151">{value}</text>;
 };
 
