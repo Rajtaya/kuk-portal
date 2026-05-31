@@ -929,7 +929,7 @@ export default function DashboardPage() {
                 // Custom tooltip
                 const SanctionTooltip = ({ active, payload, label }: any) => {
                   if (!active || !payload?.length) return null;
-                  const row = chartData.find(r => r.subject === label);
+                  const row = chartData.find((r: any) => r.subject === label);
                   if (!row) return null;
                   const sTotal = row._sTotal; const pTotal = row._pTotal;
                   return (
