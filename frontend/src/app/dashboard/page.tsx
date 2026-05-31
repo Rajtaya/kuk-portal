@@ -217,6 +217,7 @@ const renderBarLabel = ({ x, y, width, value }: any) => {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<ChartData | null>(null);
+  const [uniData, setUniData] = useState<ChartData | null>(null);
   const [selectedUni, setSelectedUni] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
@@ -227,6 +228,12 @@ export default function DashboardPage() {
       if (d.hierarchy.length > 0) setSelectedUni(d.hierarchy[0].universityId);
     });
   }, []);
+
+  // Fetch university-specific data for bottom charts
+  useEffect(() => {
+    if (!selectedUni) return;
+    api.get<ChartData>(`/employees/dashboard-charts?universityId=${selectedUni}`).then(setUniData);
+  }, [selectedUni]);
 
   const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
 
@@ -500,122 +507,146 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Category-wise & Employment Type charts side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Category-wise Designation Distribution"
-          tableData={{
-            headers: ['Category', ...desigList],
-            rows: data.categoryDesignation.map(row => [row.category, ...desigList.map(d => row[d] || 0)]),
-          }}
-        >
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={data.categoryDesignation} margin={{ top: 20, right: 20, left: 10, bottom: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="category" fontSize={11} />
-              <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              {desigList.map((d, i) => (
-                <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} label={i === desigList.length - 1 ? renderBarLabel : undefined} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      {/* University-specific charts section */}
+      {uniData && (() => {
+        const ud = uniData;
+        const udDesigs = ud.designations || [];
+        const udSanctionKeys = [...new Set(ud.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
 
-        <ChartCard
-          title="Employment Type → Designation Distribution"
-          tableData={{
-            headers: ['Employment Type', ...desigList],
-            rows: data.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...desigList.map(d => row[d] || 0)]),
-          }}
-        >
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart
-              data={data.postTypeDesignation.map((row) => ({
-                ...row,
-                postType: PT_LABELS[row.postType] || row.postType,
-              }))}
-              margin={{ top: 20, right: 20, left: 10, bottom: 30 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="postType" fontSize={11} />
-              <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              {desigList.map((d, i) => (
-                <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} label={i === desigList.length - 1 ? renderBarLabel : undefined} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
+        return (
+          <>
+            {/* Section header */}
+            <div className="flex items-center gap-3 mt-2">
+              <div className="h-px flex-1 bg-gray-200" />
+              <span className="text-sm font-semibold text-gray-500 px-3">
+                {selectedUniName} — Detailed Analysis
+              </span>
+              <div className="h-px flex-1 bg-gray-200" />
+            </div>
 
-      {/* Gender & Designation + Sanction vs Present */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Gender & Designation Distribution"
-          tableData={{
-            headers: ['Gender', ...desigList, 'Total'],
-            rows: data.genderDesignation.map(g => [
-              g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-              ...desigList.map(d => g.designations.find(x => x.name === d)?.value || 0),
-              g.total,
-            ]),
-          }}
-        >
-          {(() => {
-            const innerData = data.genderDesignation.map((g) => ({
-              name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-              value: g.total,
-            }));
-            const outerData = data.genderDesignation.flatMap((g) =>
-              g.designations.map((d) => ({ name: d.name, value: d.value, gender: g.gender }))
-            );
-            const genderColors: Record<string, string> = { MALE: '#3B82F6', FEMALE: '#8B5CF6', OTHER: '#10B981' };
-            return (
-              <div className="flex justify-center">
-                <PieChart width={400} height={380}>
-                  {/* Inner ring: Gender */}
-                  <Pie data={innerData} cx={200} cy={180} innerRadius={50} outerRadius={90} dataKey="value" label={({ name }) => name} labelLine>
-                    {innerData.map((e, i) => (
-                      <Cell key={i} fill={genderColors[data.genderDesignation[i]?.gender] || '#94A3B8'} />
+            {/* Category-wise & Employment Type */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartCard
+                title="Category-wise Designation Distribution"
+                tableData={{
+                  headers: ['Category', ...udDesigs],
+                  rows: ud.categoryDesignation.map(row => [row.category, ...udDesigs.map(d => row[d] || 0)]),
+                }}
+              >
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={ud.categoryDesignation} margin={{ top: 20, right: 20, left: 10, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" fontSize={11} />
+                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    {udDesigs.map((d, i) => (
+                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
                     ))}
-                  </Pie>
-                  {/* Outer ring: Designation per gender */}
-                  <Pie data={outerData} cx={200} cy={180} innerRadius={100} outerRadius={150} dataKey="value" label={({ name, percent }) => percent > 0.05 ? name : ''} labelLine>
-                    {outerData.map((e, i) => (
-                      <Cell key={i} fill={getDesigColor(e.name, i)} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </div>
-            );
-          })()}
-        </ChartCard>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
 
-        <ChartCard
-          title="Sanction vs Present (Designation-wise)"
-          tableData={{
-            headers: ['Subject', ...sanctionKeys],
-            rows: data.sanctionVsPresent.map(row => [row.subject, ...sanctionKeys.map(k => row[k] || 0)]),
-          }}
-        >
-          <ResponsiveContainer width="100%" height={380}>
-            <BarChart data={data.sanctionVsPresent} margin={{ top: 20, right: 20, left: 10, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="subject" angle={-30} textAnchor="end" fontSize={9} interval={0} height={70} />
-              <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
-              {sanctionKeys.map((k, i) => (
-                <Bar key={k} dataKey={k} fill={SANCTION_COLORS[k] || RING_COLORS[i % RING_COLORS.length]} label={renderBarLabel} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
+              <ChartCard
+                title="Employment Type &rarr; Designation Distribution"
+                tableData={{
+                  headers: ['Employment Type', ...udDesigs],
+                  rows: ud.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...udDesigs.map(d => row[d] || 0)]),
+                }}
+              >
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart
+                    data={ud.postTypeDesignation.map((row) => ({ ...row, postType: PT_LABELS[row.postType] || row.postType }))}
+                    margin={{ top: 20, right: 20, left: 10, bottom: 30 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="postType" fontSize={11} />
+                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    {udDesigs.map((d, i) => (
+                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </div>
+
+            {/* Gender & Sanction */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartCard
+                title="Gender & Designation Distribution"
+                tableData={{
+                  headers: ['Gender', ...udDesigs, 'Total'],
+                  rows: ud.genderDesignation.map(g => [
+                    g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
+                    ...udDesigs.map(d => g.designations.find(x => x.name === d)?.value || 0),
+                    g.total,
+                  ]),
+                }}
+              >
+                {(() => {
+                  const innerData = ud.genderDesignation.map((g) => ({
+                    name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
+                    value: g.total,
+                  }));
+                  const outerData = ud.genderDesignation.flatMap((g) =>
+                    g.designations.map((d) => ({ name: d.name, value: d.value, gender: g.gender }))
+                  );
+                  const genderColors: Record<string, string> = { MALE: '#3B82F6', FEMALE: '#8B5CF6', OTHER: '#10B981' };
+                  return (
+                    <div className="flex justify-center">
+                      <PieChart width={450} height={380}>
+                        <Pie data={innerData} cx={225} cy={180} innerRadius={50} outerRadius={90} dataKey="value" label={({ name }) => name} labelLine>
+                          {innerData.map((e, i) => (
+                            <Cell key={i} fill={genderColors[ud.genderDesignation[i]?.gender] || '#94A3B8'} />
+                          ))}
+                        </Pie>
+                        <Pie data={outerData} cx={225} cy={180} innerRadius={100} outerRadius={155} dataKey="value"
+                          label={({ cx, cy, midAngle, outerRadius: or, name, percent }) => {
+                            if (percent < 0.06) return <text />;
+                            const R = Math.PI / 180;
+                            const x = cx + (or + 18) * Math.cos(-midAngle * R);
+                            const y = cy + (or + 18) * Math.sin(-midAngle * R);
+                            return <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fill="#374151">{name}</text>;
+                          }}
+                          labelLine
+                        >
+                          {outerData.map((e, i) => (
+                            <Cell key={i} fill={getDesigColor(e.name, i)} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </div>
+                  );
+                })()}
+              </ChartCard>
+
+              <ChartCard
+                title="Sanction vs Present (Designation-wise)"
+                tableData={{
+                  headers: ['Subject', ...udSanctionKeys],
+                  rows: ud.sanctionVsPresent.map(row => [row.subject, ...udSanctionKeys.map(k => row[k] || 0)]),
+                }}
+              >
+                <ResponsiveContainer width="100%" height={380}>
+                  <BarChart data={ud.sanctionVsPresent} margin={{ top: 20, right: 20, left: 10, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="subject" angle={-30} textAnchor="end" fontSize={9} interval={0} height={70} />
+                    <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
+                    {udSanctionKeys.map((k, i) => (
+                      <Bar key={k} dataKey={k} fill={SANCTION_COLORS[k] || RING_COLORS[i % RING_COLORS.length]} label={renderBarLabel} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
