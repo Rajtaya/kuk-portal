@@ -52,7 +52,7 @@ export default function Sidebar({ collapsed: controlledCollapsed, onToggle }: { 
 
   return (
     <aside className={clsx(
-      'bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0 transition-all duration-300',
+      'bg-white border-r border-gray-200 h-screen flex flex-col shrink-0 transition-all duration-300 sticky top-0 overflow-y-auto',
       collapsed ? 'w-16' : 'w-64'
     )}>
       {/* Header with toggle */}
