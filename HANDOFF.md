@@ -55,7 +55,7 @@
 | **Universities** | 12 |
 | **Total employees** | 1,328 |
 | **Total sanction posts** | 431 |
-| **Chart library** | Recharts (ECharts installed, migration pending) |
+| **Chart library** | ECharts (`echarts-for-react`) — migrated from Recharts |
 | **PWA** | Enabled (manifest + service worker) |
 
 ---
@@ -82,18 +82,20 @@
 
 ---
 
-## Next up: ECharts migration
+## Completed: ECharts migration (Session 5 — 2026-06-01)
 
-ECharts + `echarts-for-react` already installed (`npm install echarts echarts-for-react`). Migration will replace all 7 Recharts chart sections:
-1. Employee Distribution (stacked bar)
-2. Sunburst (native ECharts sunburst — biggest improvement)
-3. Summary bar chart
-4. Category-wise bar chart
-5. Employment Type bar chart
-6. Gender donut (nested pie)
-7. Sanction vs Present (grouped-stacked bar)
+Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
+1. Employee Distribution (stacked bar) — ECharts with emphasis highlight, total labels
+2. Sunburst — **native ECharts sunburst** with built-in drill-down (`nodeClick: 'rootToNode'`), replaced 3-ring Pie hack + manual drill state
+3. Summary bar chart — ECharts stacked bar with dataZoom for many subjects
+4. Category-wise bar chart — ECharts stacked bar
+5. Employment Type bar chart — ECharts stacked bar
+6. Gender donut (nested pie) — ECharts with `dispatchAction` highlight from custom legend
+7. Sanction vs Present (grouped-stacked bar) — two stack groups with total labels
 
-Benefits: native sunburst, smart label collision avoidance, smooth animations, better tooltips
+**Key improvements:** ~40% less code (1115→~520 lines), removed all manual hover state management (`hoveredKey`, `genderHover`, `genderMouse`, `legendHover`), removed `BarWithTopStroke`/`HoverOnlyTooltip`/`makePieLabel` components, replaced manual drill-down state with native sunburst drill-down, smooth animations, canvas-based image export
+
+**Note:** Recharts is still in package.json but unused — can be removed with `npm uninstall recharts`
 
 ---
 
@@ -105,7 +107,6 @@ Benefits: native sunburst, smart label collision avoidance, smooth animations, b
 ### High Priority pending
 | Item | Details |
 |------|---------|
-| **ECharts migration** | Replace Recharts with ECharts for all 7 dashboard charts |
 | Employee edit page | Currently only detail view — no edit form at /employees/[id]/edit |
 | Excel template download | Provide downloadable .xlsx template matching expected columns |
 | Preview before import | Show parsed rows before committing to DB |

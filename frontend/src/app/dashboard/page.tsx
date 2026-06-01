@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, PieChart, Pie, Cell,
-} from 'recharts';
+
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 interface HierarchyNode {
   name: string;
@@ -32,8 +31,6 @@ const DESIG_COLORS: Record<string, string> = {
   'Assistant Professor': '#F59E0B',
   'Senior Professor': '#3B82F6',
   'Other Teaching': '#EC4899',
-
-
 };
 
 const PT_COLORS: Record<string, string> = {
@@ -48,29 +45,31 @@ const RING_COLORS = [
   '#0EA5E9', '#D946EF', '#84CC16', '#E11D48', '#0891B2', '#7C3AED',
 ];
 
-const SANCTION_COLORS: Record<string, string> = {
-  'Sanction - Professor': '#10B981',
-  'Sanction - Associate Professor': '#8B5CF6',
-  'Sanction - Assistant Professor': '#F59E0B',
-  'Sanction - Senior Professor': '#3B82F6',
-  'Present - Professor': '#6EE7B7',
-  'Present - Associate Professor': '#C4B5FD',
-  'Present - Assistant Professor': '#FDE68A',
-  'Present - Senior Professor': '#93C5FD',
-};
-
 const PT_LABELS: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'Self Financed', CONTRACTUAL: 'Contractual' };
 
 const UNI_LOGOS: Record<string, string> = {
   KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
   CRSU: '/logos/CRSU.png', CBLU: '/logos/CBLU.png', GU: '/logos/GU.jpg',
   MVSU: '/logos/MVSU.png', IGU: '/logos/IGU.jpg', BPSMV: '/logos/BPSMV.png',
-  DBRANLU: '/logos/DBRANLU.png', GJU: '/logos/GJU.png', CCSHAU: '/logos/CCSHAU.png',
-  DCRUST: '/logos/DCRUST.png', SVSU: '/logos/SVSU.png',
+  GJU: '/logos/GJU.png', CCSHAU: '/logos/CCSHAU.png', DCRUST: '/logos/DCRUST.png',
 };
 
 function getDesigColor(name: string, index: number) {
   return DESIG_COLORS[name] || RING_COLORS[index % RING_COLORS.length];
+}
+
+const TOOLTIP_BASE: any = {
+  backgroundColor: '#fff',
+  borderColor: '#E5E7EB',
+  borderWidth: 1,
+  borderRadius: 8,
+  padding: [8, 12],
+  textStyle: { fontSize: 12, color: '#374151' },
+};
+
+function barTooltipFormatter(params: any) {
+  const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${params.color};margin-right:6px"></span>`;
+  return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${params.name}</p><div style="display:flex;align-items:center">${dot}${params.seriesName}: <b>${params.value}</b></div></div>`;
 }
 
 function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'vacant' | 'designations' }) {
@@ -117,28 +116,13 @@ function ChartCard({ title, children, className = '', tableData }: {
     setMenuOpen(false);
   }, [tableData, title]);
 
-  const downloadImage = useCallback((format: 'png' | 'jpeg' | 'svg') => {
-    const svg = chartRef.current?.querySelector('svg');
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    if (format === 'svg') {
-      const blob = new Blob([svgData], { type: 'image/svg+xml' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = title.replace(/\s+/g, '_') + '.svg'; a.click();
-    } else {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width * 2; canvas.height = img.height * 2;
-        ctx!.fillStyle = '#fff'; ctx!.fillRect(0, 0, canvas.width, canvas.height);
-        ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
-        a.download = title.replace(/\s+/g, '_') + '.' + format; a.click();
-      };
-      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-    }
+  const downloadImage = useCallback((format: 'png' | 'jpeg') => {
+    const canvas = chartRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+    a.download = `${title.replace(/\s+/g, '_')}.${format}`;
+    a.click();
     setMenuOpen(false);
   }, [title]);
 
@@ -160,7 +144,6 @@ function ChartCard({ title, children, className = '', tableData }: {
               <hr className="my-1" />
               <button onClick={() => downloadImage('png')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PNG</button>
               <button onClick={() => downloadImage('jpeg')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download JPEG</button>
-              <button onClick={() => downloadImage('svg')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download SVG</button>
               <hr className="my-1" />
               {tableData && <button onClick={() => downloadCSV()} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download CSV</button>}
               {tableData && (
@@ -209,39 +192,6 @@ function ChartCard({ title, children, className = '', tableData }: {
   );
 }
 
-// Custom bar shape — white separator on top edge only, not on sides/bottom
-const BarWithTopStroke = (props: any) => {
-  const { x, y, width, height, fill, fillOpacity } = props;
-  if (!height || height <= 0) return <g />;
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={fillOpacity ?? 1} />
-      <line x1={x} y1={y} x2={x + width} y2={y} stroke="#fff" strokeWidth={2} />
-    </g>
-  );
-};
-
-const renderBarLabel = ({ x, y, width, value }: any) => {
-  if (!value) return <text />;
-  return <text x={x + width / 2} y={y - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill="#374151">{value}</text>;
-};
-
-// Compact tooltip — label + colored dot + designation: count
-function HoverOnlyTooltip({ active, payload, label, hoveredKey }: any) {
-  if (!active || !payload?.length) return null;
-  const item = hoveredKey ? payload.find((p: any) => p.dataKey === hoveredKey) : payload[0];
-  if (!item) return null;
-  return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ background: item.fill || item.color }} />
-        <span>{item.dataKey}: <strong>{item.value}</strong></span>
-      </div>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<ChartData | null>(null);
@@ -249,16 +199,7 @@ export default function DashboardPage() {
   const [selectedUni, setSelectedUni] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [genderHover, setGenderHover] = useState<string | null>(null);
-  const [genderMouse, setGenderMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const legendHover = useRef(false);
-  const chartMouseMove = (e: any) => { if (!legendHover.current && !e?.activePayload?.length) { if (hoveredKey) setHoveredKey(null); } };
-  const onLegendEnter = (e: any) => { legendHover.current = true; setHoveredKey(e.dataKey || e); };
-  const onLegendLeave = () => { legendHover.current = false; setHoveredKey(null); };
-  // Drill-down state: null = all subjects, string = drilled into a subject, [subj, desig] = drilled into designation
-  const [drillSubject, setDrillSubject] = useState<string | null>(null);
-  const [drillDesig, setDrillDesig] = useState<string | null>(null);
+  const genderInstance = useRef<any>(null);
 
   useEffect(() => {
     api.get<ChartData>('/employees/dashboard-charts').then((d) => {
@@ -268,19 +209,15 @@ export default function DashboardPage() {
     });
   }, []);
 
-  // Fetch university-specific data for bottom charts
   useEffect(() => {
     if (!selectedUni || selectedUni === 'all') { setUniData(null); return; }
     api.get<ChartData>(`/employees/dashboard-charts?universityId=${selectedUni}`).then(setUniData);
   }, [selectedUni]);
 
   const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
-
   const desigList = useMemo(() => data?.designations || [], [data]);
-
   const isAllUni = selectedUni === 'all';
 
-  // Merge hierarchy children across all universities (aggregate same-named subjects)
   const allSubjectsMerged = useMemo(() => {
     if (!data) return [];
     const map = new Map<string, HierarchyNode>();
@@ -308,7 +245,6 @@ export default function DashboardPage() {
     return [...map.values()];
   }, [data]);
 
-  // Subjects for chart computation (all or single university)
   const activeSubjects = useMemo(() => {
     if (!data) return [];
     if (isAllUni) return allSubjectsMerged;
@@ -316,77 +252,344 @@ export default function DashboardPage() {
     return uni?.children || [];
   }, [data, isAllUni, selectedUni, allSubjectsMerged]);
 
-  // Sunburst data for selected university (or all)
-  const sunburstData = useMemo(() => {
-    if (!data) return { ring1: [], ring2: [], ring3: [] };
-    let subjects = activeSubjects;
-    if (subjectFilter) subjects = subjects.filter((s) => s.name === subjectFilter);
-
-    const ring1: { name: string; value: number; fill: string }[] = [];
-    const ring2: { name: string; value: number; fill: string }[] = [];
-    const ring3: { name: string; value: number; fill: string }[] = [];
-
-    subjects.forEach((subject, si) => {
-      const subTotal = subject.children.reduce((s, d) => s + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0);
-      ring1.push({ name: subject.name, value: subTotal, fill: RING_COLORS[si % RING_COLORS.length] });
-
-      subject.children.forEach((desig) => {
-        const dTotal = desig.children.reduce((s, pt) => s + pt.value, 0);
-        ring2.push({ name: desig.name, value: dTotal, fill: getDesigColor(desig.name, si) });
-
-        desig.children.forEach((pt) => {
-          ring3.push({ name: PT_LABELS[pt.name] || pt.name, value: pt.value, fill: PT_COLORS[pt.name] || '#94A3B8' });
-        });
-      });
-    });
-
-    return { ring1, ring2, ring3 };
-  }, [data, activeSubjects, subjectFilter]);
-
   const selectedUniName = useMemo(() => {
     if (isAllUni) return 'All Universities';
     return data?.hierarchy.find((h) => h.universityId === selectedUni)?.universityName || '';
   }, [data, selectedUni, isAllUni]);
 
-  const selectedUniCode = useMemo(() => {
-    if (isAllUni) return '';
-    return data?.universities.find((u) => u.id === selectedUni)?.code || '';
-  }, [data, selectedUni, isAllUni]);
-
-  // Subjects available for the selected university (or all)
   const uniSubjects = useMemo(() => {
     if (isAllUni) return allSubjectsMerged.map((c) => c.name).sort();
     const uni = data?.hierarchy.find((h) => h.universityId === selectedUni);
     return uni?.children.map((c) => c.name).sort() || [];
   }, [data, selectedUni, isAllUni, allSubjectsMerged]);
 
-  // All unique sanction/present keys for the grouped bar chart
-  const sanctionKeys = useMemo(() => {
-    if (!data) return [];
-    const keys = new Set<string>();
-    data.sanctionVsPresent.forEach((row) => {
-      Object.keys(row).forEach((k) => { if (k !== 'subject') keys.add(k); });
-    });
-    return [...keys].sort();
-  }, [data]);
-
-  const makePieLabel = (minPercent: number, maxChars: number, size: number) =>
-    ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
-      if (percent < minPercent) return null;
-      const RADIAN = Math.PI / 180;
-      const radius = innerRadius + (outerRadius - innerRadius) / 2;
-      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-      const display = name.length > maxChars ? name.substring(0, maxChars - 2) + '..' : name;
-      return (
-        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={size} fontWeight={600}>
-          {display}
-        </text>
-      );
+  // --- Chart 1: Employee Distribution by Designation ---
+  const employeeDistOption = useMemo(() => {
+    if (!data) return {};
+    const rows = data.designationByUniversity;
+    const categories = rows.map(r => r.university);
+    const totals = rows.map(r => desigList.reduce((s, d) => s + (Number(r[d]) || 0), 0));
+    return {
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      grid: { top: 30, right: 20, bottom: 80, left: 20, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { rotate: -40, fontSize: 11, interval: 0, color: '#374151', fontWeight: 500, width: 100, overflow: 'truncate' as const },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      yAxis: {
+        type: 'value' as const,
+        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      series: desigList.map((d, i) => ({
+        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        data: rows.map(r => Number(r[d]) || 0),
+        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
+        emphasis: { focus: 'series' as const },
+        ...(i === desigList.length - 1 ? {
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+            formatter: (p: any) => totals[p.dataIndex] || '' },
+        } : {}),
+      })),
     };
-  const labelRing1 = makePieLabel(0.03, 12, 9);   // Subjects: show if >= 3%
-  const labelRing2 = makePieLabel(0.015, 10, 8);   // Designations: show if >= 1.5%
-  const labelRing3 = makePieLabel(0.01, 9, 7);     // Post Types: show if >= 1%
+  }, [data, desigList]);
+
+  // --- Chart 2: Sunburst data ---
+  const sunburstEchartsData = useMemo(() => {
+    let subjects = activeSubjects;
+    if (subjectFilter) subjects = subjects.filter(s => s.name === subjectFilter);
+    if (!subjects.length) return [];
+    return [{
+      name: selectedUniName,
+      itemStyle: { color: '#2563EB' },
+      children: subjects.map((subj, si) => ({
+        name: subj.name,
+        itemStyle: { color: RING_COLORS[si % RING_COLORS.length] },
+        children: subj.children.map((desig) => ({
+          name: desig.name,
+          itemStyle: { color: getDesigColor(desig.name, si) },
+          children: desig.children.map(pt => ({
+            name: PT_LABELS[pt.name] || pt.name,
+            value: pt.value,
+            itemStyle: { color: PT_COLORS[pt.name] || '#94A3B8' },
+          })),
+        })),
+      })),
+    }];
+  }, [activeSubjects, subjectFilter, selectedUniName]);
+
+  const sunburstOption = useMemo(() => ({
+    tooltip: {
+      ...TOOLTIP_BASE, trigger: 'item' as const,
+      formatter: (params: any) => {
+        const path = params.treePathInfo?.slice(1).map((n: any) => n.name).join(' → ');
+        return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${path || ''}</p><b>${params.name}</b>: ${params.value ?? ''}</div>`;
+      },
+    },
+    series: [{
+      type: 'sunburst' as const,
+      data: sunburstEchartsData,
+      radius: ['0%', '92%'],
+      sort: undefined,
+      nodeClick: 'rootToNode' as const,
+      emphasis: { focus: 'ancestor' as const },
+      levels: [
+        {},
+        { r0: '0%', r: '24%', label: { fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 100 }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+        { r0: '24%', r: '48%', label: { fontSize: 10, rotate: 'tangential' as const, minAngle: 5, overflow: 'truncate' as const, ellipsis: '..', width: 70 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
+        { r0: '48%', r: '70%', label: { show: false }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '70%', r: '92%', label: { show: false }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+      ],
+    }],
+  }), [sunburstEchartsData]);
+
+  // --- Chart 3: Summary bar chart ---
+  const summaryOption = useMemo(() => {
+    let subjects = activeSubjects;
+    if (subjectFilter) subjects = subjects.filter(s => s.name === subjectFilter);
+    if (!subjects.length) return null;
+    const desigs = [...new Set(subjects.flatMap(s => s.children.map(d => d.name)))];
+    const categories = subjects.map(s => s.name);
+    const totals = subjects.map(s => s.children.reduce((sum, d) => sum + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0));
+    return {
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      grid: { top: 30, right: 20, bottom: 100, left: 20, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { rotate: -35, fontSize: isAllUni ? 10 : 11, interval: 0, color: '#374151', fontWeight: 500 },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      yAxis: {
+        type: 'value' as const,
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      ...(isAllUni && subjects.length > 15 ? {
+        dataZoom: [
+          { type: 'slider' as const, start: 0, end: Math.min(100, (15 / subjects.length) * 100), bottom: 35 },
+          { type: 'inside' as const, start: 0, end: Math.min(100, (15 / subjects.length) * 100) },
+        ],
+      } : {}),
+      series: desigs.map((d, i) => ({
+        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        data: subjects.map(s => {
+          const desig = s.children.find(c => c.name === d);
+          return desig ? desig.children.reduce((sum, pt) => sum + pt.value, 0) : 0;
+        }),
+        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
+        emphasis: { focus: 'series' as const },
+        ...(i === desigs.length - 1 ? {
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+            formatter: (p: any) => totals[p.dataIndex] || '' },
+        } : {}),
+      })),
+    };
+  }, [activeSubjects, subjectFilter, isAllUni]);
+
+  // --- Charts 4 & 5: Category-wise and Employment Type (university-specific) ---
+  const categoryOption = useMemo(() => {
+    if (!uniData) return null;
+    const rows = uniData.categoryDesignation;
+    const udDesigs = uniData.designations || [];
+    const categories = rows.map(r => r.category);
+    const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
+    return {
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      grid: { top: 30, right: 20, bottom: 70, left: 20, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { fontSize: 13, fontWeight: 600, color: '#374151' },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+        name: 'Category', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
+      },
+      yAxis: {
+        type: 'value' as const,
+        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      series: udDesigs.map((d, i) => ({
+        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        data: rows.map(r => Number(r[d]) || 0),
+        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
+        emphasis: { focus: 'series' as const },
+        ...(i === udDesigs.length - 1 ? {
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+            formatter: (p: any) => totals[p.dataIndex] || '' },
+        } : {}),
+      })),
+    };
+  }, [uniData]);
+
+  const employmentTypeOption = useMemo(() => {
+    if (!uniData) return null;
+    const udDesigs = uniData.designations || [];
+    const rows = uniData.postTypeDesignation.map(r => ({ ...r, postType: PT_LABELS[r.postType] || r.postType }));
+    const categories = rows.map(r => r.postType);
+    const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
+    return {
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      grid: { top: 30, right: 20, bottom: 70, left: 20, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { fontSize: 13, fontWeight: 600, color: '#374151' },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+        name: 'Employment Type', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
+      },
+      yAxis: {
+        type: 'value' as const,
+        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      series: udDesigs.map((d, i) => ({
+        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        data: rows.map(r => Number(r[d]) || 0),
+        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
+        emphasis: { focus: 'series' as const },
+        ...(i === udDesigs.length - 1 ? {
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+            formatter: (p: any) => totals[p.dataIndex] || '' },
+        } : {}),
+      })),
+    };
+  }, [uniData]);
+
+  // --- Chart 6: Gender donut ---
+  const genderChartData = useMemo(() => {
+    if (!uniData) return null;
+    const maleColors: Record<string, string> = { 'Assistant Professor': '#3730A3', 'Professor': '#1E3A8A', 'Associate Professor': '#7C3AED', 'Senior Professor': '#1E1B4B' };
+    const femaleColors: Record<string, string> = { 'Assistant Professor': '#2563EB', 'Professor': '#93C5FD', 'Associate Professor': '#C4B5FD', 'Senior Professor': '#BFDBFE' };
+    const genderFill: Record<string, string> = { MALE: '#312E81', FEMALE: '#6366F1' };
+
+    const innerData = uniData.genderDesignation.map(g => ({
+      name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
+      value: g.total,
+      genderKey: g.gender,
+      itemStyle: { color: genderFill[g.gender] || '#94A3B8' },
+    }));
+
+    const outerData = uniData.genderDesignation.flatMap(g =>
+      g.designations.filter(d => d.value > 0).map(d => ({
+        name: `${g.gender === 'MALE' ? 'Male' : 'Female'} - ${d.name}`,
+        value: d.value,
+        gender: g.gender,
+        desigName: d.name,
+        itemStyle: { color: g.gender === 'MALE' ? (maleColors[d.name] || '#1E3A8A') : (femaleColors[d.name] || '#93C5FD') },
+      }))
+    );
+
+    const totalAll = innerData.reduce((s, g) => s + g.value, 0);
+    return { innerData, outerData, totalAll, maleColors, femaleColors };
+  }, [uniData]);
+
+  const genderOption = useMemo(() => {
+    if (!genderChartData) return {};
+    return {
+      tooltip: {
+        ...TOOLTIP_BASE, trigger: 'item' as const,
+        formatter: (p: any) => `<div style="font-size:12px"><div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color}"></span>${p.name}: <b>${p.value}</b> (${p.percent}%)</div></div>`,
+      },
+      series: [
+        {
+          name: 'Gender', type: 'pie' as const, radius: ['25%', '45%'],
+          data: genderChartData.innerData,
+          label: { show: true, position: 'inside' as const, fontSize: 14, fontWeight: 'bold', color: '#fff' },
+          emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+          blur: { itemStyle: { opacity: 0.15 } },
+        },
+        {
+          name: 'Designation', type: 'pie' as const, radius: ['55%', '75%'],
+          data: genderChartData.outerData,
+          label: { show: false },
+          emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+          blur: { itemStyle: { opacity: 0.15 } },
+        },
+      ],
+    };
+  }, [genderChartData]);
+
+  const onGenderHover = useCallback((gender: string, desigName?: string) => {
+    const inst = genderInstance.current;
+    if (!inst) return;
+    inst.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+    inst.dispatchAction({ type: 'downplay', seriesIndex: 1 });
+    const gLabel = gender === 'MALE' ? 'Male' : 'Female';
+    inst.dispatchAction({ type: 'highlight', seriesIndex: 0, name: gLabel });
+    if (desigName) {
+      inst.dispatchAction({ type: 'highlight', seriesIndex: 1, name: `${gLabel} - ${desigName}` });
+    } else {
+      genderChartData?.outerData.filter(d => d.gender === gender).forEach(d => {
+        inst.dispatchAction({ type: 'highlight', seriesIndex: 1, name: d.name });
+      });
+    }
+  }, [genderChartData]);
+
+  const onGenderLeave = useCallback(() => {
+    const inst = genderInstance.current;
+    if (!inst) return;
+    inst.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+    inst.dispatchAction({ type: 'downplay', seriesIndex: 1 });
+  }, []);
+
+  // --- Chart 7: Sanction vs Present ---
+  const sanctionOption = useMemo(() => {
+    if (!uniData) return null;
+    const rows = uniData.sanctionVsPresent;
+    const allKeys = [...new Set(rows.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
+    const sanctionKeys = allKeys.filter(k => k.startsWith('Sanction'));
+    const presentKeys = allKeys.filter(k => k.startsWith('Present'));
+    const categories = rows.map(r => r.subject);
+    const sanctionTotals = rows.map(r => sanctionKeys.reduce((s, k) => s + (Number(r[k]) || 0), 0));
+    const presentTotals = rows.map(r => presentKeys.reduce((s, k) => s + (Number(r[k]) || 0), 0));
+
+    const allColors: Record<string, string> = {
+      'Sanction - Senior Professor': '#1E3A8A', 'Sanction - Associate Professor': '#6D28D9',
+      'Sanction - Professor': '#166534', 'Sanction - Assistant Professor': '#92400E',
+      'Present - Senior Professor': '#93C5FD', 'Present - Associate Professor': '#DDD6FE',
+      'Present - Professor': '#BBF7D0', 'Present - Assistant Professor': '#FDE68A',
+    };
+
+    return {
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10, color: '#374151' }, itemGap: 12 },
+      grid: { top: 30, right: 15, bottom: 90, left: 15, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { rotate: -40, fontSize: 10, fontWeight: 500, interval: 0, color: '#374151' },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      yAxis: {
+        type: 'value' as const,
+        name: 'Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      series: [
+        ...sanctionKeys.map((k, i) => ({
+          name: k, type: 'bar' as const, stack: 'sanction', barWidth: 20, barGap: '10%',
+          data: rows.map(r => Number(r[k]) || 0),
+          itemStyle: { color: allColors[k] || RING_COLORS[i], borderColor: '#fff', borderWidth: 1 },
+          emphasis: { focus: 'series' as const },
+          ...(i === sanctionKeys.length - 1 ? {
+            label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 700, color: '#1E3A8A',
+              formatter: (p: any) => sanctionTotals[p.dataIndex] || '' },
+          } : {}),
+        })),
+        ...presentKeys.map((k, i) => ({
+          name: k, type: 'bar' as const, stack: 'present', barWidth: 20,
+          data: rows.map(r => Number(r[k]) || 0),
+          itemStyle: { color: allColors[k] || RING_COLORS[(i + 4)], borderColor: '#fff', borderWidth: 1 },
+          emphasis: { focus: 'series' as const },
+          ...(i === presentKeys.length - 1 ? {
+            label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 700, color: '#6B7280',
+              formatter: (p: any) => presentTotals[p.dataIndex] || '' },
+          } : {}),
+        })),
+      ],
+    };
+  }, [uniData]);
 
   if (!data) {
     return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading dashboard...</p></div>;
@@ -405,123 +608,58 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {!isUniAdmin && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Universities</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.universityCount}</p>
-            </div>
+            <div><p className="text-sm text-gray-500">Universities</p><p className="text-3xl font-bold text-gray-900">{stats.universityCount}</p></div>
             <StatIcon type="university" />
           </div>
         )}
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">Employees</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.employeeCount.toLocaleString()}</p>
-          </div>
+          <div><p className="text-sm text-gray-500">Employees</p><p className="text-3xl font-bold text-gray-900">{stats.employeeCount.toLocaleString()}</p></div>
           <StatIcon type="employees" />
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">Subjects</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.subjectCount}</p>
-          </div>
+          <div><p className="text-sm text-gray-500">Subjects</p><p className="text-3xl font-bold text-gray-900">{stats.subjectCount}</p></div>
           <StatIcon type="subjects" />
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">Total Vacant Seats</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.vacantSeats.toLocaleString()}</p>
-          </div>
+          <div><p className="text-sm text-gray-500">Total Vacant Seats</p><p className="text-3xl font-bold text-gray-900">{stats.vacantSeats.toLocaleString()}</p></div>
           <StatIcon type="vacant" />
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">Designations</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.designationCount}</p>
-          </div>
+          <div><p className="text-sm text-gray-500">Designations</p><p className="text-3xl font-bold text-gray-900">{stats.designationCount}</p></div>
           <StatIcon type="designations" />
         </div>
       </div>
 
-      {/* Employee Distribution by Designation Across Universities */}
+      {/* 1. Employee Distribution by Designation */}
       <ChartCard
         title="Employee Distribution by Designation Across Universities"
-        tableData={{
-          headers: ['Category', ...desigList],
-          rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]),
-        }}
+        tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
       >
-        {(() => {
-          // Custom tick that wraps long university names into multiple lines at an angle
-          const WrappedTick = ({ x, y, payload }: any) => {
-            const name: string = payload.value || '';
-            const words = name.split(' ');
-            const lines: string[] = [];
-            let cur = '';
-            for (const w of words) {
-              if ((cur + ' ' + w).trim().length > 14) { lines.push(cur.trim()); cur = w; }
-              else cur = (cur + ' ' + w).trim();
-            }
-            if (cur) lines.push(cur);
-            return (
-              <g transform={`translate(${x},${y + 6})`}>
-                <text transform="rotate(-40)" textAnchor="end" fontSize={11} fill="#374151">
-                  {lines.map((line, i) => (
-                    <tspan key={i} x={0} dy={i === 0 ? 0 : 13}>{line}</tspan>
-                  ))}
-                </text>
-              </g>
-            );
-          };
-          return (
-            <ResponsiveContainer width="100%" height={460}>
-              <BarChart data={data.designationByUniversity} margin={{ top: 20, right: 30, left: 20, bottom: 10 }} barSize={65} barCategoryGap="15%" onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
-                <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                <XAxis dataKey="university" interval={0} height={140} tick={<WrappedTick />} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
-                <Legend
-                  iconType="circle" iconSize={10}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
-                  formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
-                  onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
-                />
-                {desigList.map((d, i) => (
-                  <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === desigList.length - 1 ? renderBarLabel : undefined} />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          );
-        })()}
+        <ReactECharts option={employeeDistOption} style={{ height: '460px' }} notMerge={true} lazyUpdate={true} />
       </ChartCard>
 
-      {/* Hierarchy View / Summary Chart */}
+      {/* 2 & 3. Hierarchy View / Summary Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex gap-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('hierarchy')}
               className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'hierarchy' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Hierarchy View
-            </button>
+            >Hierarchy View</button>
             <button
               onClick={() => setActiveTab('summary')}
               className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Summary Chart
-            </button>
+            >Summary Chart</button>
           </div>
           <div className="flex gap-3">
             {!isUniAdmin && (
               <select
                 value={selectedUni}
-                onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); setDrillSubject(null); setDrillDesig(null); }}
+                onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
                 className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
               >
                 <option value="all">All Universities</option>
-                {data.universities.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
+                {data.universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             )}
             <select
@@ -530,586 +668,150 @@ export default function DashboardPage() {
               className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
             >
               <option value="">Filter Subjects</option>
-              {uniSubjects.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+              {uniSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
 
         {activeTab === 'hierarchy' ? (
-          <div style={{ clipPath: 'inset(0)' }}>
-            {/* Remove focus outlines from SVG pie segments */}
-            <style>{`.recharts-sector, .recharts-pie-sector path, .recharts-surface path { outline: none !important; } .recharts-sector:focus, .recharts-pie-sector:focus { outline: none !important; }`}</style>
-            <h4 className="font-bold text-gray-800 text-center mb-2">
-              Employee Breakdown - {selectedUniName}
-            </h4>
-
-            {/* Drill-down breadcrumb */}
-            <div className="flex items-center gap-1.5 text-sm mb-3 ml-2 flex-wrap">
-              <button onClick={() => { setDrillSubject(null); setDrillDesig(null); }} className={`font-medium ${!drillSubject ? 'text-gray-800' : 'text-blue-600 hover:underline'}`}>
-                {selectedUniName || 'All'}
-              </button>
-              {drillSubject && (
-                <>
-                  <span className="text-gray-400">/</span>
-                  <button onClick={() => { setDrillDesig(null); }} className={`font-medium ${!drillDesig ? 'text-gray-800' : 'text-blue-600 hover:underline'}`}>
-                    {drillSubject}
-                  </button>
-                </>
-              )}
-              {drillDesig && (
-                <>
-                  <span className="text-gray-400">/</span>
-                  <span className="font-bold text-gray-800">{drillDesig}</span>
-                </>
-              )}
-            </div>
-
-            {(() => {
-              // Build drill-down data based on current level
-              let subjects = activeSubjects;
-              if (subjectFilter) subjects = subjects.filter((s) => s.name === subjectFilter);
-
-              if (!drillSubject) {
-                // Level 0: show all subjects → designations → post types (3 rings)
-                return sunburstData.ring1.length === 0 ? (
-                  <p className="text-center text-gray-400 py-16">No employee data</p>
-                ) : (
-                  <>
-                    <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                        <div style={{ width: 170, height: 170, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{selectedUniName}</span>
-                        </div>
-                      </div>
-                      <PieChart width={680} height={680}>
-                        {/* Ring 1: Subjects — innerRadius smaller than center circle so it hides behind */}
-                        <Pie data={sunburstData.ring1} cx={340} cy={340} innerRadius={70} outerRadius={160} dataKey="value" label={labelRing1} labelLine={false}
-                          onClick={(_: any, idx: number) => { setDrillSubject(sunburstData.ring1[idx]?.name); setDrillDesig(null); }}
-                          style={{ cursor: 'pointer', outline: 'none' }}
-                        >
-                          {sunburstData.ring1.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
-                        </Pie>
-                        {/* Ring 2: Designations — touches Ring 1 */}
-                        <Pie data={sunburstData.ring2} cx={340} cy={340} innerRadius={160} outerRadius={220} dataKey="value" label={labelRing2} labelLine={false} style={{ outline: 'none' }}>
-                          {sunburstData.ring2.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
-                        </Pie>
-                        {/* Ring 3: Post Types — touches Ring 2 */}
-                        <Pie data={sunburstData.ring3} cx={340} cy={340} innerRadius={220} outerRadius={290} dataKey="value" label={labelRing3} labelLine={false} style={{ outline: 'none' }}>
-                          {sunburstData.ring3.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
-                        </Pie>
-                        <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
-                      </PieChart>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
-                      <span className="font-semibold text-gray-600">Center: University</span>
-                      <span className="font-semibold text-gray-600">Ring 1: Subjects</span>
-                      <span className="font-semibold text-gray-600">Ring 2: Designations</span>
-                      <span className="font-semibold text-gray-600">Ring 3: Post Types</span>
-                      <span className="text-gray-400 italic">Click a subject to drill down</span>
-                    </div>
-                  </>
-                );
-              }
-
-              // Find the drilled subject data
-              const subj = subjects.find((s) => s.name === drillSubject);
-              if (!subj) return <p className="text-center text-gray-400 py-16">No data for {drillSubject}</p>;
-
-              if (!drillDesig) {
-                // Level 1: drilled into a subject — show subject center, designations ring, post types ring
-                const centerLabel = drillSubject;
-                const desigData = subj.children.map((d, i) => ({
-                  name: d.name, value: d.children.reduce((s, pt) => s + pt.value, 0), fill: getDesigColor(d.name, i),
-                }));
-                const ptData = subj.children.flatMap((d, di) =>
-                  d.children.map((pt) => ({ name: PT_LABELS[pt.name] || pt.name, value: pt.value, fill: PT_COLORS[pt.name] || RING_COLORS[di] }))
-                );
-                const drillLabel1 = makePieLabel(0.02, 16, 11);
-                const drillLabel2 = makePieLabel(0.02, 12, 10);
-                return (
-                  <>
-                    <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                        <div style={{ width: 170, height: 170, borderRadius: '50%', background: RING_COLORS[subjects.indexOf(subj) % RING_COLORS.length] || '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{centerLabel}</span>
-                        </div>
-                      </div>
-                      <PieChart width={680} height={680}>
-                        <Pie data={desigData} cx={340} cy={340} innerRadius={70} outerRadius={180} dataKey="value" label={drillLabel1} labelLine={false}
-                          onClick={(_: any, idx: number) => setDrillDesig(desigData[idx]?.name)}
-                          style={{ cursor: 'pointer', outline: 'none' }}
-                        >
-                          {desigData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={2} style={{ outline: 'none' }} />)}
-                        </Pie>
-                        <Pie data={ptData} cx={340} cy={340} innerRadius={180} outerRadius={290} dataKey="value" label={drillLabel2} labelLine={false}>
-                          {ptData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} style={{ outline: 'none' }} />)}
-                        </Pie>
-                        <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
-                      </PieChart>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
-                      <span className="font-semibold text-gray-600">Inner: Designations</span>
-                      <span className="font-semibold text-gray-600">Outer: Post Types</span>
-                      <span className="text-gray-400 italic">Click a designation to drill deeper</span>
-                    </div>
-                  </>
-                );
-              }
-
-              // Level 2: drilled into a designation — show designation center, post types ring
-              const desig = subj.children.find((d) => d.name === drillDesig);
-              if (!desig) return <p className="text-center text-gray-400 py-16">No data for {drillDesig}</p>;
-              const ptData = desig.children.map((pt, i) => ({
-                name: PT_LABELS[pt.name] || pt.name, value: pt.value, fill: PT_COLORS[pt.name] || RING_COLORS[i],
-              }));
-              const drillLabel3 = makePieLabel(0.01, 14, 12);
-              return (
-                <>
-                  <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                      <div style={{ width: 170, height: 170, borderRadius: '50%', background: getDesigColor(drillDesig!, 0), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                        <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{drillDesig}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 4 }}>{drillSubject}</span>
-                      </div>
-                    </div>
-                    <PieChart width={680} height={680}>
-                      <Pie data={ptData} cx={340} cy={340} innerRadius={70} outerRadius={290} dataKey="value" label={drillLabel3} labelLine={false}>
-                        {ptData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={2} style={{ outline: 'none' }} />)}
-                      </Pie>
-                      <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
-                    </PieChart>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
-                    <span className="font-semibold text-gray-600">Post Types</span>
-                  </div>
-                </>
-              );
-            })()}
+          <div>
+            <h4 className="font-bold text-gray-800 text-center mb-2">Employee Breakdown - {selectedUniName}</h4>
+            {sunburstEchartsData.length > 0 && sunburstEchartsData[0].children?.length > 0 ? (
+              <>
+                <ReactECharts option={sunburstOption} style={{ height: '680px' }} notMerge={true} lazyUpdate={true} />
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-2 text-xs">
+                  <span className="font-semibold text-gray-600">Center: University</span>
+                  <span className="font-semibold text-gray-600">Ring 1: Subjects</span>
+                  <span className="font-semibold text-gray-600">Ring 2: Designations</span>
+                  <span className="font-semibold text-gray-600">Ring 3: Post Types</span>
+                  <span className="text-gray-400 italic">Click a segment to drill down</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-gray-400 py-16">No employee data</p>
+            )}
           </div>
         ) : (
           <div>
-            <h4 className="font-bold text-gray-800 text-center mb-2">
-              Summary - {selectedUniName}
-            </h4>
-            {(() => {
-              let subjects = activeSubjects;
-              if (subjectFilter) subjects = subjects.filter((s) => s.name === subjectFilter);
-              if (subjects.length === 0) return <p className="text-center text-gray-400 py-16">No data</p>;
-              const barData = subjects.map((s) => {
-                const entry: Record<string, any> = { subject: s.name };
-                s.children.forEach((d) => {
-                  entry[d.name] = d.children.reduce((sum, pt) => sum + pt.value, 0);
-                });
-                return entry;
-              });
-              const desigs = [...new Set(subjects.flatMap((s) => s.children.map((d) => d.name)))];
-              const chartWidth = isAllUni ? Math.max(900, subjects.length * 50) : undefined;
-              return (
-                <div style={{ overflowX: 'auto' }}>
-                  <div style={{ width: chartWidth || '100%', minWidth: '100%' }}>
-                    <ResponsiveContainer width="100%" height={450}>
-                      <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }} barSize={65} onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="subject" angle={-35} textAnchor="end" fontSize={isAllUni ? 10 : 11} fontWeight={500} interval={0} height={100} tick={{ fill: '#374151' }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                        <YAxis tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                        <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
-                        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 30 }} onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave} />
-                        {desigs.map((d, i) => (
-                          <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} />
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              );
-            })()}
+            <h4 className="font-bold text-gray-800 text-center mb-2">Summary - {selectedUniName}</h4>
+            {summaryOption ? (
+              <ReactECharts option={summaryOption} style={{ height: '450px' }} notMerge={true} lazyUpdate={true} />
+            ) : (
+              <p className="text-center text-gray-400 py-16">No data</p>
+            )}
           </div>
         )}
       </div>
 
-      {/* University-specific charts section */}
-      {!isAllUni && uniData && (() => {
-        const ud = uniData;
-        const udDesigs = ud.designations || [];
-        const udSanctionKeys = [...new Set(ud.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
+      {/* University-specific charts */}
+      {!isAllUni && uniData && (
+        <>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-sm font-semibold text-gray-500 px-3">{selectedUniName} — Detailed Analysis</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
 
-        return (
-          <>
-            {/* Section header */}
-            <div className="flex items-center gap-3 mt-2">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="text-sm font-semibold text-gray-500 px-3">
-                {selectedUniName} — Detailed Analysis
-              </span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
-
-            {/* Category-wise & Employment Type */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 4 & 5. Category-wise & Employment Type */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {categoryOption && (
               <ChartCard
                 title="Category-wise Designation Distribution"
-                tableData={{
-                  headers: ['Category', ...udDesigs],
-                  rows: ud.categoryDesignation.map(row => [row.category, ...udDesigs.map(d => row[d] || 0)]),
-                }}
+                tableData={{ headers: ['Category', ...(uniData.designations || [])], rows: uniData.categoryDesignation.map(row => [row.category, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
               >
-                <ResponsiveContainer width="100%" height={420}>
-                  <BarChart data={ud.categoryDesignation} margin={{ top: 10, right: 20, left: 10, bottom: 80 }} barSize={65} onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                    <XAxis dataKey="category" fontSize={13} fontWeight={600} height={50} tick={{ fill: '#374151' }}
-                      axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
-                      label={{ value: 'Category', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
-                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
-                    <Legend
-                      iconType="circle" iconSize={10}
-                      wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
-                      formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
-                      onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
-                    />
-                    {udDesigs.map((d, i) => (
-                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
+                <ReactECharts option={categoryOption} style={{ height: '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
-
+            )}
+            {employmentTypeOption && (
               <ChartCard
                 title="Employment Type &rarr; Designation Distribution"
-                tableData={{
-                  headers: ['Employment Type', ...udDesigs],
-                  rows: ud.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...udDesigs.map(d => row[d] || 0)]),
-                }}
+                tableData={{ headers: ['Employment Type', ...(uniData.designations || [])], rows: uniData.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
               >
-                <ResponsiveContainer width="100%" height={420}>
-                  <BarChart
-                    data={ud.postTypeDesignation.map((row) => ({ ...row, postType: PT_LABELS[row.postType] || row.postType }))}
-                    margin={{ top: 10, right: 20, left: 10, bottom: 80 }}
-                    barSize={65}
-                    onMouseLeave={() => { if (hoveredKey) setHoveredKey(null); }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                    <XAxis dataKey="postType" fontSize={13} fontWeight={600} height={50} tick={{ fill: '#374151' }}
-                      axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
-                      label={{ value: 'Employment Type', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
-                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
-                    <Legend
-                      iconType="circle" iconSize={10}
-                      wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
-                      formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
-                      onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
-                    />
-                    {udDesigs.map((d, i) => (
-                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
+                <ReactECharts option={employmentTypeOption} style={{ height: '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
-            </div>
+            )}
+          </div>
 
-            {/* Gender & Sanction */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" onMouseMove={(e) => {
-              const genderCard = (e.currentTarget.firstElementChild as HTMLElement);
-              if (genderCard && genderHover) {
-                const rect = genderCard.getBoundingClientRect();
-                if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-                  setGenderHover(null);
-                }
-              }
-            }}>
-              <ChartCard
-                title="Gender & Designation Distribution"
-                tableData={{
-                  headers: ['Gender', ...udDesigs, 'Total'],
-                  rows: ud.genderDesignation.map(g => [
-                    g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-                    ...udDesigs.map(d => g.designations.find(x => x.name === d)?.value || 0),
-                    g.total,
-                  ]),
-                }}
-              >
-                {(() => {
-                  const innerData = ud.genderDesignation.map((g) => ({
-                    name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-                    value: g.total, genderKey: g.gender,
-                  }));
-                  const outerData = ud.genderDesignation.flatMap((g) =>
-                    g.designations.map((d) => ({
-                      name: d.name, value: d.value, gender: g.gender,
-                      genderLabel: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-                    }))
-                  ).filter(d => d.value > 0);
+          {/* 6 & 7. Gender & Sanction */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartCard
+              title="Gender & Designation Distribution"
+              tableData={genderChartData ? {
+                headers: ['Gender', ...(uniData.designations || []), 'Total'],
+                rows: uniData.genderDesignation.map(g => [
+                  g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
+                  ...(uniData.designations || []).map(d => g.designations.find(x => x.name === d)?.value || 0),
+                  g.total,
+                ]),
+              } : undefined}
+            >
+              <ReactECharts
+                option={genderOption}
+                style={{ height: '280px' }}
+                notMerge={true}
+                lazyUpdate={true}
+                onChartReady={(instance: any) => { genderInstance.current = instance; }}
+              />
+              {/* Custom gender legend */}
+              {genderChartData && (() => {
+                const { outerData, totalAll } = genderChartData;
+                const maleSegs = outerData.filter(d => d.gender === 'MALE');
+                const femaleSegs = outerData.filter(d => d.gender === 'FEMALE');
+                const maleTotal = genderChartData.innerData.find(d => d.genderKey === 'MALE')?.value || 0;
+                const femaleTotal = genderChartData.innerData.find(d => d.genderKey === 'FEMALE')?.value || 0;
 
-                  const maleColors: Record<string, string> = { 'Assistant Professor': '#3730A3', 'Professor': '#1E3A8A', 'Associate Professor': '#7C3AED', 'Senior Professor': '#1E1B4B' };
-                  const femaleColors: Record<string, string> = { 'Assistant Professor': '#2563EB', 'Professor': '#93C5FD', 'Associate Professor': '#C4B5FD', 'Senior Professor': '#BFDBFE' };
-                  const genderFill: Record<string, string> = { MALE: '#312E81', FEMALE: '#6366F1' };
-                  const getSegColor = (desig: string, gender: string) => gender === 'MALE' ? (maleColors[desig] || '#1E3A8A') : (femaleColors[desig] || '#93C5FD');
-                  const totalAll = innerData.reduce((s, g) => s + g.value, 0);
-
-                  // Hover — per segment key like "MALE:Professor"
-                  const ghk = genderHover || '';
-                  const isSeg = ghk.includes(':');
-                  const isGen = ghk === 'Male' || ghk === 'Female' || ghk === 'Other';
-                  const hG = isSeg ? ghk.split(':')[0] : '';
-                  const hD = isSeg ? ghk.split(':')[1] : '';
-                  const sk = (g: string, d: string) => `${g}:${d}`;
-
-                  const iOp = (label: string, key: string) => {
-                    if (!genderHover) return 1;
-                    if (isGen) return genderHover === label ? 1 : 0.15;
-                    return hG === key ? 0.5 : 0.15;
-                  };
-                  const oOp = (desig: string, gender: string) => {
-                    if (!genderHover) return 1;
-                    if (isSeg) return (hG === gender && hD === desig) ? 1 : 0.15;
-                    if (isGen) { const gl = gender === 'MALE' ? 'Male' : 'Female'; return genderHover === gl ? 1 : 0.15; }
-                    return 1;
-                  };
-                  const lOp = (desig: string, gender: string) => {
-                    if (!genderHover) return 1;
-                    if (isSeg) return (hG === gender && hD === desig) ? 1 : 0.2;
-                    if (isGen) { const gl = gender === 'MALE' ? 'Male' : 'Female'; return genderHover === gl ? 1 : 0.2; }
-                    return 1;
-                  };
-
-                  const maleSegs = outerData.filter(o => o.gender === 'MALE');
-                  const femaleSegs = outerData.filter(o => o.gender === 'FEMALE');
-
-                  // Find tooltip data from genderHover key
-                  const tipEntry = (() => {
-                    if (!genderHover) return null;
-                    if (isSeg) {
-                      const match = outerData.find(d => d.gender === hG && d.name === hD);
-                      return match ? { name: match.name, value: match.value, label: match.genderLabel } : null;
-                    }
-                    if (isGen) {
-                      const match = innerData.find(d => d.name === genderHover);
-                      return match ? { name: match.name, value: match.value, label: match.name } : null;
-                    }
-                    return null;
-                  })();
-
-                  return (
-                    <div
-                      onMouseLeave={() => setGenderHover(null)}
-                      onMouseMove={(e) => { if (genderHover) setGenderMouse({ x: e.clientX, y: e.clientY }); }}
-                    >
-                      {/* Tooltip follows cursor */}
-                      {tipEntry && (
-                        <div style={{
-                          position: 'fixed', left: genderMouse.x + 15, top: genderMouse.y - 10,
-                          zIndex: 9999, pointerEvents: 'none',
-                          background: '#fff', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                          border: '1px solid #E5E7EB', padding: '8px 14px', minWidth: 160,
-                        }}>
-                          <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{tipEntry.label}</p>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '2px 0 0' }}>
-                            {tipEntry.name}: {tipEntry.value} ({totalAll > 0 ? ((tipEntry.value / totalAll) * 100).toFixed(1) : '0'}%)
-                          </p>
-                        </div>
-                      )}
-                      <ResponsiveContainer width="100%" height={280}>
-                        <PieChart onMouseLeave={() => setGenderHover(null)}>
-                          <Pie data={innerData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} dataKey="value"
-                            label={({ cx, cy, midAngle, innerRadius: ir, outerRadius: or, name }) => {
-                              const R = Math.PI / 180, r = ir + (or - ir) / 2;
-                              const gK = name === 'Male' ? 'MALE' : 'FEMALE';
-                              return <text x={cx + r * Math.cos(-midAngle * R)} y={cy + r * Math.sin(-midAngle * R)}
-                                textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={700}
-                                fill="#fff" opacity={iOp(name, gK)} style={{ transition: 'opacity 0.15s' }}>{name}</text>;
-                            }}
-                            labelLine={false}
-                          >
-                            {innerData.map((e, i) => (
-                              <Cell key={i} fill={genderFill[e.genderKey]} fillOpacity={iOp(e.name, e.genderKey)}
-                                stroke="#fff" strokeWidth={3} onMouseEnter={() => setGenderHover(e.name)}
-                                style={{ cursor: 'pointer', outline: 'none', transition: 'fill-opacity 0.15s' }} />
-                            ))}
-                          </Pie>
-                          <Pie data={outerData} cx="50%" cy="50%" innerRadius={72} outerRadius={105} dataKey="value"
-                            label={false} labelLine={false}
-                          >
-                            {outerData.map((e, i) => (
-                              <Cell key={i} fill={getSegColor(e.name, e.gender)} fillOpacity={oOp(e.name, e.gender)}
-                                stroke="#fff" strokeWidth={3} onMouseEnter={() => setGenderHover(sk(e.gender, e.name))}
-                                style={{ cursor: 'pointer', outline: 'none', transition: 'fill-opacity 0.15s' }} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      {/* Interactive legend */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', padding: '0 20px 12px', fontSize: 12.5 }}>
-                        <div>
-                          <p style={{ fontWeight: 700, color: '#312E81', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #312E81', paddingBottom: 4 }}>Male ({innerData.find(d => d.genderKey === 'MALE')?.value || 0})</p>
-                          {maleSegs.map((d, i) => {
-                            const key = sk('MALE', d.name);
-                            const active = !genderHover || ghk === key || ghk === 'Male';
-                            return (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', opacity: active ? 1 : 0.2, transition: 'opacity 0.15s' }}
-                                onMouseEnter={() => setGenderHover(key)} onMouseLeave={() => setGenderHover(null)}>
-                                <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: maleColors[d.name], flexShrink: 0 }} />
-                                <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.name}</span>
-                                <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({(d.value / totalAll * 100).toFixed(1)}%)</span></span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div>
-                          <p style={{ fontWeight: 700, color: '#6366F1', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #6366F1', paddingBottom: 4 }}>Female ({innerData.find(d => d.genderKey === 'FEMALE')?.value || 0})</p>
-                          {femaleSegs.map((d, i) => {
-                            const key = sk('FEMALE', d.name);
-                            const active = !genderHover || ghk === key || ghk === 'Female';
-                            return (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', opacity: active ? 1 : 0.2, transition: 'opacity 0.15s' }}
-                                onMouseEnter={() => setGenderHover(key)} onMouseLeave={() => setGenderHover(null)}>
-                                <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: femaleColors[d.name], flexShrink: 0 }} />
-                                <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.name}</span>
-                                <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({(d.value / totalAll * 100).toFixed(1)}%)</span></span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </ChartCard>
-
-              {(() => {
-                const sanctionBarKeys = udSanctionKeys.filter(k => k.startsWith('Sanction'));
-                const presentBarKeys = udSanctionKeys.filter(k => k.startsWith('Present'));
-                const chartData = ud.sanctionVsPresent.map(row => {
-                  const sTotal = sanctionBarKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0);
-                  const pTotal = presentBarKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0);
-                  return { ...row, _sTotal: sTotal, _pTotal: pTotal };
-                });
-                const allColors: Record<string, string> = {
-                  'Sanction - Senior Professor': '#1E3A8A', 'Sanction - Associate Professor': '#6D28D9',
-                  'Sanction - Professor': '#166534', 'Sanction - Assistant Professor': '#92400E',
-                  'Present - Senior Professor': '#93C5FD', 'Present - Associate Professor': '#DDD6FE',
-                  'Present - Professor': '#BBF7D0', 'Present - Assistant Professor': '#FDE68A',
-                };
-                const getOpacity = (key: string) => !hoveredKey ? 1 : hoveredKey === key ? 1 : 0.15;
-                // Custom label for stack totals
-                const SanctionTotalLabel = ({ x, y, width, index }: any) => {
-                  const val = chartData[index]?._sTotal;
-                  return val ? <text x={x + width / 2} y={y - 4} textAnchor="middle" fontSize={10} fontWeight={700} fill="#1E3A8A">{val}</text> : <text />;
-                };
-                const PresentTotalLabel = ({ x, y, width, index }: any) => {
-                  const val = chartData[index]?._pTotal;
-                  return val ? <text x={x + width / 2} y={y - 4} textAnchor="middle" fontSize={10} fontWeight={700} fill="#6B7280">{val}</text> : <text />;
-                };
-                // Custom tooltip
-                const SanctionTooltip = ({ active, payload, label }: any) => {
-                  if (!active || !payload?.length) return null;
-                  const row = chartData.find((r: any) => r.subject === label);
-                  if (!row) return null;
-                  const sTotal = row._sTotal; const pTotal = row._pTotal;
-                  return (
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 min-w-[200px]">
-                      <p className="font-bold text-lg text-center">{payload[0]?.value}</p>
-                      <p className="text-gray-500 text-center text-sm mb-2">Total: {sTotal + pTotal}</p>
-                      <hr className="mb-2" />
-                      {payload.map((p: any) => (
-                        <div key={p.dataKey} className="flex items-center justify-between gap-4 text-sm py-0.5">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: p.fill }} />
-                            {p.dataKey}
-                          </span>
-                          <span className="font-semibold">{p.value}</span>
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', padding: '0 20px 12px', fontSize: 12.5 }}>
+                    <div>
+                      <p style={{ fontWeight: 700, color: '#312E81', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #312E81', paddingBottom: 4, cursor: 'pointer' }}
+                        onMouseEnter={() => onGenderHover('MALE')} onMouseLeave={onGenderLeave}>
+                        Male ({maleTotal})
+                      </p>
+                      {maleSegs.map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}
+                          onMouseEnter={() => onGenderHover('MALE', d.desigName)} onMouseLeave={onGenderLeave}>
+                          <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: d.itemStyle.color, flexShrink: 0 }} />
+                          <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.desigName}</span>
+                          <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({totalAll > 0 ? (d.value / totalAll * 100).toFixed(1) : '0'}%)</span></span>
                         </div>
                       ))}
                     </div>
-                  );
-                };
-                return (
-                  <ChartCard
-                    title="Sanction vs Present (Designation-wise)"
-                    tableData={{
-                      headers: ['Subject', ...udSanctionKeys],
-                      rows: ud.sanctionVsPresent.map(row => [row.subject, ...udSanctionKeys.map(k => row[k] || 0)]),
-                    }}
-                  >
-                    <ResponsiveContainer width="100%" height={480}>
-                      <BarChart data={chartData} margin={{ top: 25, right: 15, left: 10, bottom: 80 }} barGap={2} barCategoryGap="15%" barSize={20}
-                        onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="subject" angle={-40} textAnchor="end" fontSize={10} fontWeight={500} interval={0} height={90} tick={{ fill: '#374151' }}
-                          axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
-                          label={{ value: 'Subjects', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
-                        <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
-                        <Tooltip content={({ active, payload, label }: any) => {
-                          if (!active || !payload?.length || !hoveredKey) return null;
-                          const item = payload.find((p: any) => p.dataKey === hoveredKey);
-                          if (!item) return null;
-                          return (
-                            <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
-                              <p className="text-xs text-gray-500 mb-1">{label}</p>
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ background: item.fill || item.color }} />
-                                <span>{item.dataKey}: <strong>{item.value}</strong></span>
-                              </div>
-                            </div>
-                          );
-                        }} cursor={false} />
-                        <Legend content={() => {
-                          // Extract unique designation names
-                          const desigNames = [...new Set(sanctionBarKeys.map(k => k.replace('Sanction - ', '')))];
-                          return (
-                            <div className="flex justify-center mt-3">
-                              <div className="grid grid-cols-2 gap-x-10 gap-y-1.5 text-sm">
-                                {desigNames.map((d) => {
-                                  const sKey = `Sanction - ${d}`;
-                                  const pKey = `Present - ${d}`;
-                                  return (
-                                    <React.Fragment key={d}>
-                                      <div className="flex items-center gap-2 cursor-pointer" style={{ opacity: getOpacity(sKey) }}
-                                        onMouseEnter={() => onLegendEnter(sKey)} onMouseLeave={onLegendLeave}>
-                                        <span className="w-3 h-3 rounded-full inline-block shrink-0" style={{ background: allColors[sKey] || '#666' }} />
-                                        <span className="text-gray-700">Sanction - {d}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 cursor-pointer" style={{ opacity: getOpacity(pKey) }}
-                                        onMouseEnter={() => onLegendEnter(pKey)} onMouseLeave={onLegendLeave}>
-                                        <span className="w-3 h-3 rounded-full inline-block shrink-0" style={{ background: allColors[pKey] || '#999' }} />
-                                        <span className="text-gray-700">Present - {d}</span>
-                                      </div>
-                                    </React.Fragment>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        }} />
-                        {sanctionBarKeys.map((k, i) => (
-                          <Bar key={k} dataKey={k} stackId="sanction"
-                            fill={allColors[k] || RING_COLORS[i]}
-                            fillOpacity={getOpacity(k)}
-                            onMouseEnter={() => setHoveredKey(k)}
-                            shape={BarWithTopStroke}
-                            label={i === sanctionBarKeys.length - 1 ? SanctionTotalLabel : undefined}
-                          />
-                        ))}
-                        {presentBarKeys.map((k, i) => (
-                          <Bar key={k} dataKey={k} stackId="present"
-                            fill={allColors[k] || RING_COLORS[(i + 4)]}
-                            fillOpacity={getOpacity(k)}
-                            onMouseEnter={() => setHoveredKey(k)}
-                            shape={BarWithTopStroke}
-                            label={i === presentBarKeys.length - 1 ? PresentTotalLabel : undefined}
-                          />
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
+                    <div>
+                      <p style={{ fontWeight: 700, color: '#6366F1', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #6366F1', paddingBottom: 4, cursor: 'pointer' }}
+                        onMouseEnter={() => onGenderHover('FEMALE')} onMouseLeave={onGenderLeave}>
+                        Female ({femaleTotal})
+                      </p>
+                      {femaleSegs.map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}
+                          onMouseEnter={() => onGenderHover('FEMALE', d.desigName)} onMouseLeave={onGenderLeave}>
+                          <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: d.itemStyle.color, flexShrink: 0 }} />
+                          <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.desigName}</span>
+                          <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({totalAll > 0 ? (d.value / totalAll * 100).toFixed(1) : '0'}%)</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 );
               })()}
-            </div>
-          </>
-        );
-      })()}
+            </ChartCard>
+
+            {sanctionOption && (
+              <ChartCard
+                title="Sanction vs Present (Designation-wise)"
+                tableData={{
+                  headers: ['Subject', ...([...new Set(uniData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort())],
+                  rows: uniData.sanctionVsPresent.map(row => {
+                    const keys = [...new Set(uniData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
+                    return [row.subject, ...keys.map(k => row[k] || 0)];
+                  }),
+                }}
+              >
+                <ReactECharts option={sanctionOption} style={{ height: '480px' }} notMerge={true} lazyUpdate={true} />
+              </ChartCard>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
