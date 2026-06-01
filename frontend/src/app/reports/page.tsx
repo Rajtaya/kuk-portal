@@ -238,14 +238,14 @@ export default function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-800 text-white">
-                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10">#</th>
+                    <th className="text-center align-middle px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10">#</th>
                     {columns.map((key) => (
                       <th
                         key={key}
                         onClick={() => toggleSort(key)}
-                        className={`px-4 py-3.5 font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-right' : 'text-left'}`}
+                        className={`px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-center' : 'text-left'}`}
                       >
-                        <div className={`flex items-center gap-1.5 ${numericCols.has(key) ? 'justify-end' : ''}`}>
+                        <div className={`flex items-center gap-1.5 ${numericCols.has(key) ? 'justify-center' : ''}`}>
                           <span>{formatHeader(key)}</span>
                           {sortCol === key ? (
                             <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -264,7 +264,7 @@ export default function ReportsPage() {
                 <tbody>
                   {sorted.map((row, i) => (
                     <tr key={i} className={`border-b border-gray-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-blue-50/40`}>
-                      <td className="px-4 py-3 text-gray-400 text-xs font-mono">{i + 1}</td>
+                      <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
                       {columns.map((k) => {
                         let val = row[k];
                         if (val && typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
@@ -273,7 +273,7 @@ export default function ReportsPage() {
                         const isNum = numericCols.has(k);
                         const display = String(val ?? '-');
                         return (
-                          <td key={k} className={`px-4 py-3 whitespace-nowrap ${isNum ? 'text-right font-semibold text-gray-900 tabular-nums' : 'text-gray-700'}`}>
+                          <td key={k} className={`px-4 py-3 whitespace-nowrap align-middle ${isNum ? 'text-center font-semibold text-gray-900 tabular-nums' : 'text-gray-700'}`}>
                             {display}
                           </td>
                         );

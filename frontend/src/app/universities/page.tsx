@@ -13,6 +13,21 @@ const UNI_LOGOS: Record<string, string> = {
   GJU: '/logos/GJU.png', CCSHAU: '/logos/CCSHAU.png', DCRUST: '/logos/DCRUST.jpg',
 };
 
+const UNI_WEBSITES: Record<string, string> = {
+  KUK: 'https://www.kuk.ac.in',
+  MDU: 'https://www.mdu.ac.in',
+  CDLU: 'https://www.cdlu.ac.in',
+  CRSU: 'https://www.crsu.ac.in',
+  GJU: 'https://www.gjust.ac.in',
+  BPSMV: 'https://www.bpsmv.ac.in',
+  CBLU: 'https://www.cblu.ac.in',
+  GU: 'https://www.gurugramuniversity.ac.in',
+  MVSU: 'https://www.mvsu.ac.in',
+  IGU: 'https://www.igu.ac.in',
+  CCSHAU: 'https://www.hau.ac.in',
+  DCRUST: 'https://www.dcrustm.ac.in',
+};
+
 const CARD_COLORS = [
   'from-blue-500 to-blue-600',
   'from-emerald-500 to-emerald-600',
@@ -106,9 +121,16 @@ export default function UniversitiesPage() {
           const deptCount = uni._count?.departments || 0;
           const gradient = CARD_COLORS[idx % CARD_COLORS.length];
           const logo = UNI_LOGOS[uni.code];
+          const website = UNI_WEBSITES[uni.code];
 
           return (
-            <div key={uni.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <a
+              key={uni.id}
+              href={website || undefined}
+              target={website ? '_blank' : undefined}
+              rel={website ? 'noopener noreferrer' : undefined}
+              className={`group block bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-300 ${website ? 'hover:shadow-xl hover:-translate-y-1 cursor-pointer' : ''}`}
+            >
               {/* Colored top bar */}
               <div className={`h-2 bg-gradient-to-r ${gradient}`} />
 
@@ -122,8 +144,15 @@ export default function UniversitiesPage() {
                       <span className="text-white font-bold text-sm">{uni.code?.substring(0, 2)}</span>
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900 leading-tight group-hover:text-blue-700 transition-colors">{uni.name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-gray-900 leading-tight group-hover:text-blue-700 transition-colors">{uni.name}</h3>
+                      {website && (
+                        <svg className="w-4 h-4 text-gray-300 group-hover:text-blue-600 transition-colors shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      )}
+                    </div>
                     <span className={`inline-block mt-1.5 px-2.5 py-0.5 bg-gradient-to-r ${gradient} text-white text-xs rounded-full font-semibold shadow-sm`}>
                       {uni.code}
                     </span>
@@ -153,7 +182,7 @@ export default function UniversitiesPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </a>
           );
         })}
       </div>

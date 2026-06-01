@@ -263,7 +263,7 @@ export default function SanctionedPostsPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     {(isSuperAdmin ? ['University'] : []).concat(['Department','Subject','Designation','Category','Sanctioned Posts','Actions']).map((h) => (
-                      <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600">{h}</th>
+                      <th key={h} className={`px-4 py-3 align-middle font-semibold text-gray-600 ${h === 'Sanctioned Posts' ? 'text-center' : 'text-left'}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -278,7 +278,7 @@ export default function SanctionedPostsPage() {
                         <td className="px-4 py-3">{p.subject || '-'}</td>
                         <td className="px-4 py-3">{p.designation}</td>
                         <td className="px-4 py-3">{p.category}</td>
-                        <td className="px-4 py-3 font-bold text-primary-700">{p.sanctionedCount}</td>
+                        <td className="px-4 py-3 text-center align-middle font-bold text-primary-700 tabular-nums">{p.sanctionedCount}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
                             <button onClick={() => openEdit(p)} className="text-xs text-primary-700 hover:underline">Edit</button>

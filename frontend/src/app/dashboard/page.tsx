@@ -171,7 +171,7 @@ function ChartCard({ title, children, className = '', tableData }: {
               <thead>
                 <tr className="bg-gray-800">
                   {tableData.headers.map((h, i) => (
-                    <th key={i} className="px-4 py-2.5 text-left text-white font-semibold">{h}</th>
+                    <th key={i} className={`px-4 py-2.5 align-middle text-white font-semibold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -179,7 +179,7 @@ function ChartCard({ title, children, className = '', tableData }: {
                 {tableData.rows.map((row, ri) => (
                   <tr key={ri} className={ri % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800'}>
                     {row.map((cell, ci) => (
-                      <td key={ci} className="px-4 py-2 text-gray-200">{cell}</td>
+                      <td key={ci} className={`px-4 py-2 align-middle text-gray-200 ${ci === 0 ? 'text-left' : 'text-center tabular-nums'}`}>{cell}</td>
                     ))}
                   </tr>
                 ))}

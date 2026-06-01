@@ -11,11 +11,12 @@ interface ColDef {
   key: string;
   label: string;
   alwaysOn?: boolean;
+  numeric?: boolean;
   render: (emp: Employee, idx: number, page: number) => React.ReactNode;
 }
 
 const ALL_COLUMNS: ColDef[] = [
-  { key: 'srno', label: 'Sr.No.', alwaysOn: true, render: (_e, i, p) => i + 1 + (p - 1) * 20 },
+  { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, render: (_e, i, p) => i + 1 + (p - 1) * 20 },
   { key: 'uniName', label: 'University Name', render: (e) => e.university?.name || '-' },
   { key: 'uniCode', label: 'University Code', render: (e) => e.university?.code || '-' },
   { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
@@ -343,7 +344,7 @@ export default function EmployeesPage() {
             <thead>
               <tr className="bg-blue-600 text-white">
                 {activeCols.map((col) => (
-                  <th key={col.key} className="px-3 py-3 text-left font-semibold whitespace-nowrap text-xs uppercase tracking-wide">{col.label}</th>
+                  <th key={col.key} className={`px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'}`}>{col.label}</th>
                 ))}
                 <th className="px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-blue-600">Action</th>
               </tr>
@@ -357,7 +358,7 @@ export default function EmployeesPage() {
                 data.data.map((emp, i) => (
                   <tr key={emp.id} className={`border-b border-gray-100 hover:bg-blue-50/50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                     {activeCols.map((col) => (
-                      <td key={col.key} className="px-3 py-2.5 text-gray-700 whitespace-nowrap">{col.render(emp, i, data.page)}</td>
+                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''}`}>{col.render(emp, i, data.page)}</td>
                     ))}
                     <td className="px-3 py-2.5 sticky right-0 bg-inherit">
                       <div className="flex items-center justify-center gap-2">
