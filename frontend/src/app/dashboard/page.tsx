@@ -430,7 +430,7 @@ export default function DashboardPage() {
   const employmentTypeOption = useMemo(() => {
     if (!uniData) return null;
     const udDesigs = uniData.designations || [];
-    const rows = uniData.postTypeDesignation.map(r => ({ ...r, postType: PT_LABELS[r.postType] || r.postType }));
+    const rows: Record<string, any>[] = uniData.postTypeDesignation.map((r: Record<string, any>) => ({ ...r, postType: PT_LABELS[r.postType] || r.postType }));
     const categories = rows.map(r => r.postType);
     const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
     return {
