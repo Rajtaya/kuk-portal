@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { University } from '@/lib/types';
+
+type SortKey = 'departments' | 'employees' | 'name';
 
 const UNI_LOGOS: Record<string, string> = {
   KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
@@ -28,28 +30,78 @@ const CARD_COLORS = [
 
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>('departments');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     api.get<University[]>('/universities').then(setUniversities);
   }, []);
 
+  const sorted = useMemo(() => {
+    const arr = [...universities];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'name') {
+        cmp = (a.name || '').localeCompare(b.name || '');
+      } else if (sortKey === 'employees') {
+        cmp = (a._count?.employees || 0) - (b._count?.employees || 0);
+      } else {
+        cmp = (a._count?.departments || 0) - (b._count?.departments || 0);
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [universities, sortKey, sortDir]);
+
+  const sortOptions: { key: SortKey; label: string }[] = [
+    { key: 'departments', label: 'Departments' },
+    { key: 'employees', label: 'Employees' },
+    { key: 'name', label: 'Name' },
+  ];
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Universities</h2>
           <p className="text-sm text-gray-500 mt-1">{universities.length} registered universities across Haryana</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl">
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-          </svg>
-          <span className="text-sm font-semibold text-blue-700">{universities.length} Total</span>
+        <div className="flex items-center gap-2">
+          {/* Sort control */}
+          <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2 py-1.5">
+            <span className="text-xs text-gray-400 font-medium pl-1">Sort by</span>
+            {sortOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSortKey(opt.key)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+                  sortKey === opt.key ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+              className="ml-0.5 p-1 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M3 4h13M3 8h9M3 12h5m4 0l4 4 4-4m-4 4V4' : 'M3 4h13M3 8h9M3 12h9m4 8l4-4-4-4m0 8V4'} />
+              </svg>
+            </button>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+            </svg>
+            <span className="text-sm font-semibold text-blue-700">{universities.length} Total</span>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {universities.map((uni, idx) => {
+        {sorted.map((uni, idx) => {
           const empCount = uni._count?.employees || 0;
           const deptCount = uni._count?.departments || 0;
           const gradient = CARD_COLORS[idx % CARD_COLORS.length];
@@ -80,12 +132,12 @@ export default function UniversitiesPage() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-gray-50 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-gray-900">{empCount}</p>
+                  <div className={`rounded-xl p-3 text-center transition-colors ${sortKey === 'employees' ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-gray-50'}`}>
+                    <p className={`text-2xl font-bold ${sortKey === 'employees' ? 'text-blue-700' : 'text-gray-900'}`}>{empCount}</p>
                     <p className="text-[11px] text-gray-500 font-medium mt-0.5">Employees</p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-gray-900">{deptCount}</p>
+                  <div className={`rounded-xl p-3 text-center transition-colors ${sortKey === 'departments' ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-gray-50'}`}>
+                    <p className={`text-2xl font-bold ${sortKey === 'departments' ? 'text-blue-700' : 'text-gray-900'}`}>{deptCount}</p>
                     <p className="text-[11px] text-gray-500 font-medium mt-0.5">Departments</p>
                   </div>
                 </div>
