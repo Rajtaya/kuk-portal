@@ -341,9 +341,9 @@ export default function DashboardPage() {
       emphasis: { focus: 'ancestor' as const },
       levels: [
         {},
-        { r0: '0%', r: '24%', label: { fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 100 }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-        { r0: '24%', r: '48%', label: { fontSize: 10, rotate: 'tangential' as const, minAngle: 5, overflow: 'truncate' as const, ellipsis: '..', width: 70 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
-        { r0: '48%', r: '70%', label: { show: false }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 120, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+        { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 11, fontWeight: 500, color: '#111', padding: 2, minAngle: 3 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
+        { r0: '46%', r: '70%', label: { show: false }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
         { r0: '70%', r: '92%', label: { show: false }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
       ],
     }],
