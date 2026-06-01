@@ -1,6 +1,38 @@
-# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 4)
+# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 5)
 
-## What was done this session (Session 4 — 2026-06-01)
+## What was done this session (Session 5 — 2026-06-01)
+
+### 18. ECharts migration (major)
+- Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`). ~40% less code (1115→~520 lines), native sunburst with built-in drill-down, removed all manual hover state. See detailed notes further down.
+
+### 19. Chart refinements
+- **Sanction vs Present tooltip**: side-by-side comparison — hovering a bar shows both Sanction and Present values for that designation + total
+- **Sunburst tooltip**: repositioned above cursor (was hidden behind center circle), then simplified to just `name: value` (no path breadcrumb)
+- **Sunburst labels**: center text horizontal (`rotate: 0`), subject ring labels radial for readability, outer rings label-less
+- **Gender chart**: redesigned to match reference — tight nested rings (inner 15-44%, outer 46-72%), 3px white borders, designation labels with pointer lines, wider inner ring so "Female" is fully visible, scale-up emphasis on hover, gentler blur (0.4)
+
+### 20. Data fixes
+- **"Dept." prefix removed** from subjects in employees, sanctioned_posts, departments (both local + Railway DB). Merged duplicate departments
+- **KUK subject renames**: Electronics & Communication → Electronics, Computer Science & Applications → Computer Science, English & Foreign Languages → English (KUK only, both DBs)
+- **All 12 university logos added** — GJU, CCSHAU, DCRUST were missing (from Archive.zip). Removed DBRANLU logo
+
+### 21. UI redesign / beautification
+- **Sidebar**: dark gradient theme (slate-900), colored gradient icon badges per section, active indicator bar, user avatar initial. **3-mode toggle**: expanded → collapsed (icons) → hidden (off-screen, with a floating reveal tab). State persisted in localStorage
+- **Reports page**: gradient icon cards with hover lift, **search filter** across all columns, **sortable columns** (click headers), row numbers, dark header bar, record-count footer, alternating rows
+- **Universities page**: logo cards, gradient code badges, stat boxes, hover lift; **sort by Departments/Employees/Name** (default Departments desc) with direction toggle; **cards are clickable** → open official university website in new tab (all 12 URLs verified)
+- **Numeric columns center-aligned** (H + V) across all data tables: reports, sanctioned posts, dashboard data table, employees
+
+### 22. Repo migration + deployment fixes
+- **New GitHub repo**: `Rajtaya/kuk-portal` (migrated from `Rajtaya/UEMS`). `origin` now points here
+- **ROOT CAUSE of stale deploys found**: `railway up` was being run from `/Users/aarya` (home) instead of the project root — uploading wrong files. Always `cd` to project root first
+- **CDN cache fix**: pages were cached by Railway edge for 1 year (`s-maxage=31536000`). Added `export const dynamic = 'force-dynamic'` to root layout + `Cache-Control: no-cache` headers in next.config.ts
+- **Dockerfile fix**: added `COPY --from=builder /app/public ./public` — logos/icons were 404'ing in production (standalone build doesn't auto-copy public/)
+- **TS build fix**: `postTypeDesignation` row typed as `Record<string, any>[]`
+- **Auto-deploy unavailable** on current Railway plan — must run `railway up -s frontend` / `-s backend` manually after `git push`
+
+---
+
+## What was done in Session 4 — 2026-06-01
 
 ### 15. Dashboard chart polish (major)
 - **Gender chart redesign**: Independent `genderHover` state (no cross-chart interference), mouse-following tooltip using `position: fixed`, interactive two-column legend (Male/Female) with counts and percentages
@@ -49,7 +81,7 @@
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/kuk-portal |
-| **Latest commit** | `5fe0974` on `main` |
+| **Latest commit** | `d4315bc` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
 | **Universities** | 12 |
@@ -101,8 +133,8 @@ Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
 
 ## Known issues / pending
 
-- **2 missing logos**: CCSHAU, DCRUST — need logo files
-- **6 universities with dummy data** — replace with real Excel data when available
+- **All 12 logos present** ✓ (fixed session 5)
+- **6 universities with dummy data** — replace with real Excel data when available (CBLU, GU, MVSU, IGU, CCSHAU, DCRUST)
 
 ### High Priority pending
 | Item | Details |
@@ -136,5 +168,8 @@ Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
 - **Railway monorepo:** Uses `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile` env var. Dockerfiles use `COPY backend/` (project root context)
 - **Next.js cache:** Sometimes needs `.next/` deleted + server restart to pick up changes
 - **Frontend env for Railway:** `NEXT_PUBLIC_API_URL` must be set as Docker build arg (baked at build time, not runtime). Also set in `.env.production`
-- **Deploy frontend:** `railway up -s frontend` from project root. If build fails, check TS errors first
-- **DB sync:** `pg_dump` local → `pg_restore` to Railway. Always use `--clean --if-exists --no-owner --no-acl`
+- **Deploy frontend:** `railway up -s frontend` **from `/Users/aarya/Desktop/KUKPortal/kuk-portal` (project root)**. ⚠️ Running from the wrong cwd uploads stale files and the deploy silently uses old code — this caused hours of "why isn't it updating" confusion in session 5. Always `cd` to project root first. If build fails, check TS errors first
+- **Railway CDN cache:** edge caches pages aggressively. Root layout has `export const dynamic = 'force-dynamic'` + `Cache-Control: no-cache` in next.config.ts to prevent stale pages. Don't remove these
+- **Dockerfile must copy public/:** standalone Next.js build does NOT auto-include `public/`. Dockerfile has `COPY --from=builder /app/public ./public` — without it, logos/icons 404 in production
+- **Auto-deploy unavailable** on current Railway plan — `git push` does NOT trigger a deploy. Must `railway up -s frontend`/`-s backend` manually
+- **DB sync:** `pg_dump` local → `pg_restore` to Railway. Always use `--clean --if-exists --no-owner --no-acl`. Railway DB creds in Current state table above
