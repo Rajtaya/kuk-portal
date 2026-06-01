@@ -323,6 +323,10 @@ export default function DashboardPage() {
   const sunburstOption = useMemo(() => ({
     tooltip: {
       ...TOOLTIP_BASE, trigger: 'item' as const,
+      position: (point: number[], _p: any, _d: any, _r: any, size: any) => [
+        point[0] - size.contentSize[0] / 2,
+        Math.max(10, point[1] - size.contentSize[1] - 20),
+      ],
       formatter: (params: any) => {
         const path = params.treePathInfo?.slice(1).map((n: any) => n.name).join(' → ');
         return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${path || ''}</p><b>${params.name}</b>: ${params.value ?? ''}</div>`;
