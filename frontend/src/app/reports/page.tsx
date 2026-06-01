@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -31,11 +31,22 @@ const commonReports: ReportDef[] = [
   { key: 'employee-directory', label: 'Employee Directory', description: 'Contact directory of active employees', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', color: 'from-teal-500 to-teal-600' },
 ];
 
+function formatHeader(key: string) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (s) => s.toUpperCase())
+    .replace(/\./g, ' ')
+    .replace(/_/g, ' ');
+}
+
 export default function ReportsPage() {
   const { user } = useAuth();
   const [activeReport, setActiveReport] = useState<ReportKey | null>(null);
   const [reportData, setReportData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const isSuperOrState = user?.role === 'SUPER_ADMIN' || user?.role === 'STATE_USER';
   const allReports = [...(isSuperOrState ? stateReports : []), ...commonReports];
@@ -43,6 +54,8 @@ export default function ReportsPage() {
   async function loadReport(key: ReportKey) {
     setLoading(true);
     setActiveReport(key);
+    setSearch('');
+    setSortCol(null);
     try {
       const data = await api.get<any[]>(`/reports/${key}`);
       setReportData(Array.isArray(data) ? data : []);
@@ -85,6 +98,41 @@ export default function ReportsPage() {
   const flatData = reportData.map(flattenRow);
   const columns = flatData.length > 0 ? Object.keys(flatData[0]).filter((k) => !k.endsWith('Id') && k !== 'id' && k !== 'documents') : [];
 
+  // Search filter
+  const filtered = useMemo(() => {
+    if (!search.trim()) return flatData;
+    const q = search.toLowerCase();
+    return flatData.filter(row => columns.some(k => String(row[k] ?? '').toLowerCase().includes(q)));
+  }, [flatData, search, columns]);
+
+  // Sort
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      const av = a[sortCol] ?? '';
+      const bv = b[sortCol] ?? '';
+      const an = Number(av);
+      const bn = Number(bv);
+      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an;
+      return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortCol, sortDir]);
+
+  const toggleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  };
+
+  // Number columns for right-align and highlighting
+  const numericCols = useMemo(() => {
+    if (!flatData.length) return new Set<string>();
+    return new Set(columns.filter(k => flatData.every(r => r[k] === null || r[k] === undefined || r[k] === '' || !isNaN(Number(r[k])))));
+  }, [flatData, columns]);
+
   return (
     <div>
       <div className="mb-8">
@@ -123,63 +171,125 @@ export default function ReportsPage() {
 
       {activeReport && (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+          {/* Header bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center gap-3">
               {(() => {
                 const r = allReports.find((r) => r.key === activeReport);
                 return r ? (
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${r.color} flex items-center justify-center`}>
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${r.color} flex items-center justify-center shadow-sm`}>
+                    <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d={r.icon} />
                     </svg>
                   </div>
                 ) : null;
               })()}
-              <h3 className="font-semibold text-gray-900">{allReports.find((r) => r.key === activeReport)?.label}</h3>
-            </div>
-            <button onClick={exportCSV} disabled={!reportData.length} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export CSV
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="p-16 text-center">
-              <div className="inline-flex items-center gap-3 text-gray-400">
-                <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-                Loading report...
+              <div>
+                <h3 className="font-bold text-gray-900">{allReports.find((r) => r.key === activeReport)?.label}</h3>
+                <p className="text-xs text-gray-500">{sorted.length} records{search ? ` (filtered from ${flatData.length})` : ''}</p>
               </div>
             </div>
-          ) : flatData.length === 0 ? (
-            <div className="p-16 text-center text-gray-400">No data available</div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Search */}
+              <div className="relative flex-1 sm:flex-none">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search in results..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full sm:w-56 pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {/* Export */}
+              <button onClick={exportCSV} disabled={!reportData.length} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="p-20 text-center">
+              <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Loading report...</p>
+            </div>
+          ) : sorted.length === 0 ? (
+            <div className="p-20 text-center">
+              <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-gray-400 text-sm">{search ? 'No matching records found' : 'No data available'}</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
+                  <tr className="bg-slate-800 text-white">
+                    <th className="text-left px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10">#</th>
                     {columns.map((key) => (
-                      <th key={key} className="text-left px-4 py-3.5 font-semibold text-gray-600 whitespace-nowrap text-xs uppercase tracking-wider">
-                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).replace(/\./g, ' ')}
+                      <th
+                        key={key}
+                        onClick={() => toggleSort(key)}
+                        className={`px-4 py-3.5 font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-right' : 'text-left'}`}
+                      >
+                        <div className={`flex items-center gap-1.5 ${numericCols.has(key) ? 'justify-end' : ''}`}>
+                          <span>{formatHeader(key)}</span>
+                          {sortCol === key ? (
+                            <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                          )}
+                        </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {flatData.map((row, i) => (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
+                  {sorted.map((row, i) => (
+                    <tr key={i} className={`border-b border-gray-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-blue-50/40`}>
+                      <td className="px-4 py-3 text-gray-400 text-xs font-mono">{i + 1}</td>
                       {columns.map((k) => {
                         let val = row[k];
                         if (val && typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
                           val = new Date(val).toLocaleDateString('en-IN');
                         }
-                        return <td key={k} className="px-4 py-3 whitespace-nowrap text-gray-700">{String(val ?? '-')}</td>;
+                        const isNum = numericCols.has(k);
+                        const display = String(val ?? '-');
+                        return (
+                          <td key={k} className={`px-4 py-3 whitespace-nowrap ${isNum ? 'text-right font-semibold text-gray-900 tabular-nums' : 'text-gray-700'}`}>
+                            {display}
+                          </td>
+                        );
                       })}
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Footer */}
+          {sorted.length > 0 && (
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-gray-500">
+              <span>Showing {sorted.length} of {flatData.length} records</span>
+              <span>Click column headers to sort</span>
             </div>
           )}
         </div>
