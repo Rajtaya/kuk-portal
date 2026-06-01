@@ -4,6 +4,28 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { University } from '@/lib/types';
 
+const UNI_LOGOS: Record<string, string> = {
+  KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
+  CRSU: '/logos/CRSU.png', CBLU: '/logos/CBLU.png', GU: '/logos/GU.jpg',
+  MVSU: '/logos/MVSU.png', IGU: '/logos/IGU.jpg', BPSMV: '/logos/BPSMV.png',
+  GJU: '/logos/GJU.png', CCSHAU: '/logos/CCSHAU.png', DCRUST: '/logos/DCRUST.png',
+};
+
+const CARD_COLORS = [
+  'from-blue-500 to-blue-600',
+  'from-emerald-500 to-emerald-600',
+  'from-violet-500 to-violet-600',
+  'from-amber-500 to-amber-600',
+  'from-rose-500 to-rose-600',
+  'from-cyan-500 to-cyan-600',
+  'from-indigo-500 to-indigo-600',
+  'from-pink-500 to-pink-600',
+  'from-teal-500 to-teal-600',
+  'from-orange-500 to-orange-600',
+  'from-purple-500 to-purple-600',
+  'from-lime-500 to-lime-600',
+];
+
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<University[]>([]);
 
@@ -13,42 +35,75 @@ export default function UniversitiesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Universities</h2>
-          <p className="text-gray-500 mt-1">{universities.length} registered universities</p>
+          <p className="text-sm text-gray-500 mt-1">{universities.length} registered universities across Haryana</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-xl">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+          </svg>
+          <span className="text-sm font-semibold text-blue-700">{universities.length} Total</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {universities.map((uni) => (
-          <div key={uni.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900">{uni.name}</h3>
-                <span className="inline-block mt-1 px-2 py-0.5 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                  {uni.code}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Employees</span>
-                <span className="font-medium">{uni._count?.employees || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-500">Departments</span>
-                <span className="font-medium">{uni._count?.departments || 0}</span>
-              </div>
-              {uni.city && (
-                <div className="flex justify-between text-sm mt-1">
-                  <span className="text-gray-500">Location</span>
-                  <span className="font-medium">{uni.city}, {uni.state}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {universities.map((uni, idx) => {
+          const empCount = uni._count?.employees || 0;
+          const deptCount = uni._count?.departments || 0;
+          const gradient = CARD_COLORS[idx % CARD_COLORS.length];
+          const logo = UNI_LOGOS[uni.code];
+
+          return (
+            <div key={uni.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              {/* Colored top bar */}
+              <div className={`h-2 bg-gradient-to-r ${gradient}`} />
+
+              <div className="p-6">
+                {/* Header with logo */}
+                <div className="flex items-start gap-4 mb-4">
+                  {logo ? (
+                    <img src={logo} alt={uni.code} className="w-12 h-12 rounded-xl object-contain bg-gray-50 p-1 border border-gray-100 shrink-0" />
+                  ) : (
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-md`}>
+                      <span className="text-white font-bold text-sm">{uni.code?.substring(0, 2)}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-gray-900 leading-tight group-hover:text-blue-700 transition-colors">{uni.name}</h3>
+                    <span className={`inline-block mt-1.5 px-2.5 py-0.5 bg-gradient-to-r ${gradient} text-white text-xs rounded-full font-semibold shadow-sm`}>
+                      {uni.code}
+                    </span>
+                  </div>
                 </div>
-              )}
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-gray-50 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{empCount}</p>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">Employees</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{deptCount}</p>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">Departments</p>
+                  </div>
+                </div>
+
+                {/* Location */}
+                {uni.city && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{uni.city}, {uni.state}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
