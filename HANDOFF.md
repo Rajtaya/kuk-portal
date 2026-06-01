@@ -48,7 +48,7 @@
 | **Live frontend** | https://uems.up.railway.app |
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
-| **Repo** | https://github.com/Rajtaya/UEMS |
+| **Repo** | https://github.com/Rajtaya/kuk-portal |
 | **Latest commit** | `5fe0974` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
