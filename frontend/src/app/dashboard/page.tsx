@@ -514,22 +514,24 @@ export default function DashboardPage() {
       },
       series: [
         {
-          name: 'Gender', type: 'pie' as const, radius: ['25%', '45%'],
+          name: 'Gender', type: 'pie' as const, radius: ['20%', '42%'],
           data: genderChartData.innerData,
-          label: { show: true, position: 'inside' as const, fontSize: 14, fontWeight: 'bold', color: '#fff' },
-          emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
-          blur: { itemStyle: { opacity: 0.35 } },
+          label: { show: true, position: 'inside' as const, fontSize: 15, fontWeight: 'bold', color: '#fff' },
+          itemStyle: { borderColor: '#fff', borderWidth: 3 },
+          emphasis: { scale: true, scaleSize: 5, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' } },
+          blur: { itemStyle: { opacity: 0.4 } },
         },
         {
-          name: 'Designation', type: 'pie' as const, radius: ['55%', '75%'],
+          name: 'Designation', type: 'pie' as const, radius: ['46%', '72%'],
           data: genderChartData.outerData,
           label: {
-            show: true, fontSize: 12, color: '#374151',
+            show: true, fontSize: 12.5, fontWeight: 500, color: '#1F2937',
             formatter: (p: any) => p.data?.desigName || p.name,
           },
-          labelLine: { show: true, length: 15, length2: 10, lineStyle: { color: '#9CA3AF' } },
-          emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
-          blur: { itemStyle: { opacity: 0.35 }, label: { opacity: 0.3 }, labelLine: { lineStyle: { opacity: 0.3 } } },
+          labelLine: { show: true, length: 18, length2: 12, smooth: true, lineStyle: { width: 1.5 } },
+          itemStyle: { borderColor: '#fff', borderWidth: 3 },
+          emphasis: { scale: true, scaleSize: 8, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' } },
+          blur: { itemStyle: { opacity: 0.4 }, label: { opacity: 0.3 }, labelLine: { lineStyle: { opacity: 0.3 } } },
         },
       ],
     };
@@ -800,7 +802,7 @@ export default function DashboardPage() {
             >
               <ReactECharts
                 option={genderOption}
-                style={{ height: '280px' }}
+                style={{ height: '380px' }}
                 notMerge={true}
                 lazyUpdate={true}
                 onChartReady={(instance: any) => { genderInstance.current = instance; }}
