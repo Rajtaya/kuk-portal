@@ -209,29 +209,34 @@ function ChartCard({ title, children, className = '', tableData }: {
   );
 }
 
+// Custom bar shape — white separator on top edge only, not on sides/bottom
+const BarWithTopStroke = (props: any) => {
+  const { x, y, width, height, fill, fillOpacity } = props;
+  if (!height || height <= 0) return null;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={fillOpacity ?? 1} />
+      <line x1={x} y1={y} x2={x + width} y2={y} stroke="#fff" strokeWidth={2} />
+    </g>
+  );
+};
+
 const renderBarLabel = ({ x, y, width, value }: any) => {
   if (!value) return <text />;
   return <text x={x + width / 2} y={y - 5} textAnchor="middle" fontSize={11} fontWeight={600} fill="#374151">{value}</text>;
 };
 
-// Tooltip that only shows the hovered series with large value + total
+// Compact tooltip — label + colored dot + designation: count
 function HoverOnlyTooltip({ active, payload, label, hoveredKey }: any) {
   if (!active || !payload?.length) return null;
   const item = hoveredKey ? payload.find((p: any) => p.dataKey === hoveredKey) : payload[0];
   if (!item) return null;
-  const total = payload.reduce((s: number, p: any) => s + (Number(p.value) || 0), 0);
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-5 py-4 min-w-[200px]">
-      <p className="text-xs text-gray-500 mb-1 font-medium text-center">{label}</p>
-      <p className="text-3xl font-bold text-center text-gray-800">{item.value}</p>
-      <p className="text-sm text-gray-500 text-center mb-3">Total: {total}</p>
-      <hr className="mb-3" />
-      <div className="flex items-center justify-between gap-4 text-sm py-1">
-        <span className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: item.fill || item.color }} />
-          {item.dataKey}
-        </span>
-        <span className="font-semibold">{item.value}</span>
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <div className="flex items-center gap-2 text-sm">
+        <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ background: item.fill || item.color }} />
+        <span>{item.dataKey}: <strong>{item.value}</strong></span>
       </div>
     </div>
   );
@@ -245,8 +250,10 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [genderHover, setGenderHover] = useState<string | null>(null);
+  const [genderMouse, setGenderMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const legendHover = useRef(false);
-  const chartMouseMove = (e: any) => { if (!legendHover.current && !e?.activePayload?.length) setHoveredKey(null); };
+  const chartMouseMove = (e: any) => { if (!legendHover.current && !e?.activePayload?.length) { if (hoveredKey) setHoveredKey(null); } };
   const onLegendEnter = (e: any) => { legendHover.current = true; setHoveredKey(e.dataKey || e); };
   const onLegendLeave = () => { legendHover.current = false; setHoveredKey(null); };
   // Drill-down state: null = all subjects, string = drilled into a subject, [subj, desig] = drilled into designation
@@ -467,19 +474,19 @@ export default function DashboardPage() {
           };
           return (
             <ResponsiveContainer width="100%" height={460}>
-              <BarChart data={data.designationByUniversity} margin={{ top: 20, right: 30, left: 20, bottom: 10 }} barCategoryGap="15%" onMouseLeave={() => { legendHover.current = false; setHoveredKey(null); }} onMouseMove={chartMouseMove}>
+              <BarChart data={data.designationByUniversity} margin={{ top: 20, right: 30, left: 20, bottom: 10 }} barSize={65} barCategoryGap="15%" onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
                 <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                <XAxis dataKey="university" interval={0} height={140} tick={<WrappedTick />} />
-                <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-                <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} />
+                <XAxis dataKey="university" interval={0} height={140} tick={<WrappedTick />} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
                 <Legend
                   iconType="circle" iconSize={10}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
                   formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
                   onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
                 />
                 {desigList.map((d, i) => (
-                  <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} stroke="#fff" strokeWidth={2} radius={i === desigList.length - 1 ? [4, 4, 0, 0] : undefined} label={i === desigList.length - 1 ? renderBarLabel : undefined} />
+                  <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === desigList.length - 1 ? renderBarLabel : undefined} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -571,29 +578,28 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
-                      {/* Center university name overlay */}
                       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                        <div style={{ width: 130, height: 130, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
-                          <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, textAlign: 'center', lineHeight: 1.3 }}>{selectedUniName}</span>
+                        <div style={{ width: 170, height: 170, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+                          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{selectedUniName}</span>
                         </div>
                       </div>
                       <PieChart width={680} height={680}>
-                        {/* Ring 1: Subjects */}
-                        <Pie data={sunburstData.ring1} cx={340} cy={340} innerRadius={80} outerRadius={140} dataKey="value" label={labelRing1} labelLine={false}
+                        {/* Ring 1: Subjects — innerRadius smaller than center circle so it hides behind */}
+                        <Pie data={sunburstData.ring1} cx={340} cy={340} innerRadius={70} outerRadius={160} dataKey="value" label={labelRing1} labelLine={false}
                           onClick={(_: any, idx: number) => { setDrillSubject(sunburstData.ring1[idx]?.name); setDrillDesig(null); }}
                           style={{ cursor: 'pointer', outline: 'none' }}
                         >
-                          {sunburstData.ring1.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} style={{ outline: 'none' }} tabIndex={-1} />)}
+                          {sunburstData.ring1.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
                         </Pie>
-                        {/* Ring 2: Designations */}
-                        <Pie data={sunburstData.ring2} cx={340} cy={340} innerRadius={145} outerRadius={210} dataKey="value" label={labelRing2} labelLine={false} style={{ outline: 'none' }}>
-                          {sunburstData.ring2.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} style={{ outline: 'none' }} tabIndex={-1} />)}
+                        {/* Ring 2: Designations — touches Ring 1 */}
+                        <Pie data={sunburstData.ring2} cx={340} cy={340} innerRadius={160} outerRadius={220} dataKey="value" label={labelRing2} labelLine={false} style={{ outline: 'none' }}>
+                          {sunburstData.ring2.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
                         </Pie>
-                        {/* Ring 3: Post Types */}
-                        <Pie data={sunburstData.ring3} cx={340} cy={340} innerRadius={215} outerRadius={300} dataKey="value" label={labelRing3} labelLine={false} style={{ outline: 'none' }}>
-                          {sunburstData.ring3.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} style={{ outline: 'none' }} tabIndex={-1} />)}
+                        {/* Ring 3: Post Types — touches Ring 2 */}
+                        <Pie data={sunburstData.ring3} cx={340} cy={340} innerRadius={220} outerRadius={290} dataKey="value" label={labelRing3} labelLine={false} style={{ outline: 'none' }}>
+                          {sunburstData.ring3.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1.5} style={{ outline: 'none' }} tabIndex={-1} />)}
                         </Pie>
-                        <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                        <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
                       </PieChart>
                     </div>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
@@ -626,21 +632,21 @@ export default function DashboardPage() {
                   <>
                     <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
                       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                        <div style={{ width: 140, height: 140, borderRadius: '50%', background: RING_COLORS[subjects.indexOf(subj) % RING_COLORS.length] || '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                        <div style={{ width: 170, height: 170, borderRadius: '50%', background: RING_COLORS[subjects.indexOf(subj) % RING_COLORS.length] || '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
                           <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{centerLabel}</span>
                         </div>
                       </div>
                       <PieChart width={680} height={680}>
-                        <Pie data={desigData} cx={340} cy={340} innerRadius={85} outerRadius={190} dataKey="value" label={drillLabel1} labelLine={false}
+                        <Pie data={desigData} cx={340} cy={340} innerRadius={70} outerRadius={180} dataKey="value" label={drillLabel1} labelLine={false}
                           onClick={(_: any, idx: number) => setDrillDesig(desigData[idx]?.name)}
                           style={{ cursor: 'pointer', outline: 'none' }}
                         >
                           {desigData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={2} style={{ outline: 'none' }} />)}
                         </Pie>
-                        <Pie data={ptData} cx={340} cy={340} innerRadius={195} outerRadius={300} dataKey="value" label={drillLabel2} labelLine={false}>
+                        <Pie data={ptData} cx={340} cy={340} innerRadius={180} outerRadius={290} dataKey="value" label={drillLabel2} labelLine={false}>
                           {ptData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={1} style={{ outline: 'none' }} />)}
                         </Pie>
-                        <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                        <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
                       </PieChart>
                     </div>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
@@ -663,16 +669,16 @@ export default function DashboardPage() {
                 <>
                   <div className="flex justify-center overflow-hidden" style={{ position: 'relative' }}>
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10, pointerEvents: 'none' }}>
-                      <div style={{ width: 180, height: 180, borderRadius: '50%', background: getDesigColor(drillDesig!, 0), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 15 }}>
+                      <div style={{ width: 170, height: 170, borderRadius: '50%', background: getDesigColor(drillDesig!, 0), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
                         <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, textAlign: 'center', lineHeight: 1.3 }}>{drillDesig}</span>
                         <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 4 }}>{drillSubject}</span>
                       </div>
                     </div>
                     <PieChart width={680} height={680}>
-                      <Pie data={ptData} cx={340} cy={340} innerRadius={110} outerRadius={300} dataKey="value" label={drillLabel3} labelLine={false}>
+                      <Pie data={ptData} cx={340} cy={340} innerRadius={70} outerRadius={290} dataKey="value" label={drillLabel3} labelLine={false}>
                         {ptData.map((e, i) => <Cell key={i} fill={e.fill} stroke="#fff" strokeWidth={2} style={{ outline: 'none' }} />)}
                       </Pie>
-                      <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                      <Tooltip formatter={(value: number, name: string) => [value, name]} cursor={false} />
                     </PieChart>
                   </div>
                   <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 text-xs">
@@ -704,14 +710,14 @@ export default function DashboardPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <div style={{ width: chartWidth || '100%', minWidth: '100%' }}>
                     <ResponsiveContainer width="100%" height={450}>
-                      <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }} barSize={20} onMouseLeave={() => { legendHover.current = false; setHoveredKey(null); }} onMouseMove={chartMouseMove}>
+                      <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 100 }} barSize={65} onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="subject" angle={-35} textAnchor="end" fontSize={isAllUni ? 9 : 10} interval={0} height={100} />
-                        <YAxis />
-                        <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} />
-                        <Legend onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave} />
+                        <XAxis dataKey="subject" angle={-35} textAnchor="end" fontSize={isAllUni ? 10 : 11} fontWeight={500} interval={0} height={100} tick={{ fill: '#374151' }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                        <YAxis tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                        <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
+                        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 30 }} onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave} />
                         {desigs.map((d, i) => (
-                          <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} stroke="#fff" strokeWidth={1} />
+                          <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} />
                         ))}
                       </BarChart>
                     </ResponsiveContainer>
@@ -749,21 +755,22 @@ export default function DashboardPage() {
                   rows: ud.categoryDesignation.map(row => [row.category, ...udDesigs.map(d => row[d] || 0)]),
                 }}
               >
-                <ResponsiveContainer width="100%" height={380}>
-                  <BarChart data={ud.categoryDesignation} margin={{ top: 10, right: 20, left: 10, bottom: 50 }} barSize={40} onMouseLeave={() => { legendHover.current = false; setHoveredKey(null); }} onMouseMove={chartMouseMove}>
+                <ResponsiveContainer width="100%" height={420}>
+                  <BarChart data={ud.categoryDesignation} margin={{ top: 10, right: 20, left: 10, bottom: 80 }} barSize={65} onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
                     <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                    <XAxis dataKey="category" fontSize={12} fontWeight={500} height={50}
-                      label={{ value: 'Category', position: 'insideBottom', offset: -5, fontSize: 12, fill: '#6B7280' }} />
-                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} />
+                    <XAxis dataKey="category" fontSize={13} fontWeight={600} height={50} tick={{ fill: '#374151' }}
+                      axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
+                      label={{ value: 'Category', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
+                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
                     <Legend
                       iconType="circle" iconSize={10}
-                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
                       formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
                       onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
                     />
                     {udDesigs.map((d, i) => (
-                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} stroke="#fff" strokeWidth={2} radius={i === udDesigs.length - 1 ? [4, 4, 0, 0] : undefined} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
+                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
@@ -776,26 +783,27 @@ export default function DashboardPage() {
                   rows: ud.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...udDesigs.map(d => row[d] || 0)]),
                 }}
               >
-                <ResponsiveContainer width="100%" height={380}>
+                <ResponsiveContainer width="100%" height={420}>
                   <BarChart
                     data={ud.postTypeDesignation.map((row) => ({ ...row, postType: PT_LABELS[row.postType] || row.postType }))}
-                    margin={{ top: 10, right: 20, left: 10, bottom: 50 }}
-                    barSize={40}
-                    onMouseLeave={() => setHoveredKey(null)}
+                    margin={{ top: 10, right: 20, left: 10, bottom: 80 }}
+                    barSize={65}
+                    onMouseLeave={() => { if (hoveredKey) setHoveredKey(null); }}
                   >
                     <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} />
-                    <XAxis dataKey="postType" fontSize={12} fontWeight={500} height={50}
-                      label={{ value: 'Employment Type', position: 'insideBottom', offset: -5, fontSize: 12, fill: '#6B7280' }} />
-                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
-                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} />
+                    <XAxis dataKey="postType" fontSize={13} fontWeight={600} height={50} tick={{ fill: '#374151' }}
+                      axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
+                      label={{ value: 'Employment Type', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
+                    <YAxis label={{ value: 'Employee Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
+                    <Tooltip content={<HoverOnlyTooltip hoveredKey={hoveredKey} />} cursor={false} />
                     <Legend
                       iconType="circle" iconSize={10}
-                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      wrapperStyle={{ fontSize: 11, paddingTop: 30 }}
                       formatter={(value: string) => <span style={{ color: '#374151', opacity: !hoveredKey ? 1 : hoveredKey === value ? 1 : 0.3 }}>{value}</span>}
                       onMouseEnter={(e: any) => onLegendEnter(e)} onMouseLeave={onLegendLeave}
                     />
                     {udDesigs.map((d, i) => (
-                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} stroke="#fff" strokeWidth={2} radius={i === udDesigs.length - 1 ? [4, 4, 0, 0] : undefined} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
+                      <Bar key={d} dataKey={d} stackId="a" fill={getDesigColor(d, i)} fillOpacity={!hoveredKey ? 1 : hoveredKey === d ? 1 : 0.15} onMouseEnter={() => setHoveredKey(d)} shape={BarWithTopStroke} label={i === udDesigs.length - 1 ? renderBarLabel : undefined} />
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
@@ -803,7 +811,15 @@ export default function DashboardPage() {
             </div>
 
             {/* Gender & Sanction */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" onMouseMove={(e) => {
+              const genderCard = (e.currentTarget.firstElementChild as HTMLElement);
+              if (genderCard && genderHover) {
+                const rect = genderCard.getBoundingClientRect();
+                if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+                  setGenderHover(null);
+                }
+              }
+            }}>
               <ChartCard
                 title="Gender & Designation Distribution"
                 tableData={{
@@ -818,86 +834,146 @@ export default function DashboardPage() {
                 {(() => {
                   const innerData = ud.genderDesignation.map((g) => ({
                     name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-                    value: g.total,
-                    genderKey: g.gender,
+                    value: g.total, genderKey: g.gender,
                   }));
                   const outerData = ud.genderDesignation.flatMap((g) =>
                     g.designations.map((d) => ({
                       name: d.name, value: d.value, gender: g.gender,
                       genderLabel: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
                     }))
-                  );
-                  // Monochromatic blue/purple scheme — Male=dark, Female=light
-                  const maleColors: Record<string, string> = { 'Senior Professor': '#1E3A8A', 'Associate Professor': '#4338CA', 'Professor': '#2563EB', 'Assistant Professor': '#3730A3' };
-                  const femaleColors: Record<string, string> = { 'Senior Professor': '#60A5FA', 'Associate Professor': '#A78BFA', 'Professor': '#93C5FD', 'Assistant Professor': '#818CF8' };
+                  ).filter(d => d.value > 0);
+
+                  const maleColors: Record<string, string> = { 'Assistant Professor': '#3730A3', 'Professor': '#1E3A8A', 'Associate Professor': '#7C3AED', 'Senior Professor': '#1E1B4B' };
+                  const femaleColors: Record<string, string> = { 'Assistant Professor': '#2563EB', 'Professor': '#93C5FD', 'Associate Professor': '#C4B5FD', 'Senior Professor': '#BFDBFE' };
                   const genderFill: Record<string, string> = { MALE: '#312E81', FEMALE: '#6366F1' };
                   const getSegColor = (desig: string, gender: string) => gender === 'MALE' ? (maleColors[desig] || '#1E3A8A') : (femaleColors[desig] || '#93C5FD');
                   const totalAll = innerData.reduce((s, g) => s + g.value, 0);
-                  // Hover logic
-                  const isGenderHover = hoveredKey === 'Male' || hoveredKey === 'Female' || hoveredKey === 'Other';
-                  const isDesigHover = hoveredKey && !isGenderHover;
-                  const innerOp = (gLabel: string) => {
-                    if (!hoveredKey) return 1;
-                    if (isGenderHover) return hoveredKey === gLabel ? 1 : 0.2;
-                    return 0.7;
+
+                  // Hover — per segment key like "MALE:Professor"
+                  const ghk = genderHover || '';
+                  const isSeg = ghk.includes(':');
+                  const isGen = ghk === 'Male' || ghk === 'Female' || ghk === 'Other';
+                  const hG = isSeg ? ghk.split(':')[0] : '';
+                  const hD = isSeg ? ghk.split(':')[1] : '';
+                  const sk = (g: string, d: string) => `${g}:${d}`;
+
+                  const iOp = (label: string, key: string) => {
+                    if (!genderHover) return 1;
+                    if (isGen) return genderHover === label ? 1 : 0.15;
+                    return hG === key ? 0.5 : 0.15;
                   };
-                  const outerOp = (desig: string, gLabel: string) => {
-                    if (!hoveredKey) return 1;
-                    if (isGenderHover) return hoveredKey === gLabel ? 1 : 0.12;
-                    return hoveredKey === desig ? 1 : 0.12; // designation hover: highlight SAME desig across BOTH genders
+                  const oOp = (desig: string, gender: string) => {
+                    if (!genderHover) return 1;
+                    if (isSeg) return (hG === gender && hD === desig) ? 1 : 0.15;
+                    if (isGen) { const gl = gender === 'MALE' ? 'Male' : 'Female'; return genderHover === gl ? 1 : 0.15; }
+                    return 1;
                   };
-                  const lblOp = (name: string, isInner: boolean) => {
-                    if (!hoveredKey) return 1;
-                    if (isInner) return isGenderHover ? (hoveredKey === name ? 1 : 0.25) : 0.6;
-                    return isDesigHover ? (hoveredKey === name ? 1 : 0.2) : 0.4;
+                  const lOp = (desig: string, gender: string) => {
+                    if (!genderHover) return 1;
+                    if (isSeg) return (hG === gender && hD === desig) ? 1 : 0.2;
+                    if (isGen) { const gl = gender === 'MALE' ? 'Male' : 'Female'; return genderHover === gl ? 1 : 0.2; }
+                    return 1;
                   };
-                  // Tooltip
-                  const GenderTip = ({ active, payload }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    const pct = totalAll > 0 ? ((d.value / totalAll) * 100).toFixed(1) : '0';
-                    const label = d.genderLabel ? d.name : d.name;
-                    return (
-                      <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500">{d.genderLabel || label}</p>
-                        <p className="text-base font-bold">{label}: {d.value} ({pct}%)</p>
-                      </div>
-                    );
-                  };
+
+                  const maleSegs = outerData.filter(o => o.gender === 'MALE');
+                  const femaleSegs = outerData.filter(o => o.gender === 'FEMALE');
+
+                  // Find tooltip data from genderHover key
+                  const tipEntry = (() => {
+                    if (!genderHover) return null;
+                    if (isSeg) {
+                      const match = outerData.find(d => d.gender === hG && d.name === hD);
+                      return match ? { name: match.name, value: match.value, label: match.genderLabel } : null;
+                    }
+                    if (isGen) {
+                      const match = innerData.find(d => d.name === genderHover);
+                      return match ? { name: match.name, value: match.value, label: match.name } : null;
+                    }
+                    return null;
+                  })();
+
                   return (
-                    <PieChart width={520} height={440} onMouseLeave={() => setHoveredKey(null)} style={{ margin: '0 auto' }}>
-                      {/* Inner: Gender — labels INSIDE */}
-                      <Pie data={innerData} cx={260} cy={210} innerRadius={35} outerRadius={70} dataKey="value"
-                        label={({ cx, cy, midAngle, innerRadius: ir, outerRadius: or, name }) => {
-                          const R = Math.PI / 180;
-                          const radius = ir + (or - ir) / 2;
-                          const x = cx + radius * Math.cos(-midAngle * R);
-                          const y = cy + radius * Math.sin(-midAngle * R);
-                          return <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={15} fontWeight={700} fill="#fff" opacity={lblOp(name, true)}>{name}</text>;
-                        }}
-                        labelLine={false}
-                      >
-                        {innerData.map((e, i) => (
-                          <Cell key={i} fill={genderFill[e.genderKey] || '#6B7280'} fillOpacity={innerOp(e.name)} stroke="#fff" strokeWidth={2} onMouseEnter={() => setHoveredKey(e.name)} style={{ cursor: 'pointer', outline: 'none' }} />
-                        ))}
-                      </Pie>
-                      {/* Outer: Designations — labels outside */}
-                      <Pie data={outerData} cx={260} cy={210} innerRadius={78} outerRadius={130} dataKey="value"
-                        label={({ cx, cy, midAngle, outerRadius: or, name, percent }) => {
-                          if (percent < 0.03) return null;
-                          const R = Math.PI / 180;
-                          const x = cx + (or + 14) * Math.cos(-midAngle * R);
-                          const y = cy + (or + 14) * Math.sin(-midAngle * R);
-                          return <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={12} fontWeight={600} fill="#374151" opacity={lblOp(name, false)}>{name}</text>;
-                        }}
-                        labelLine={{ stroke: '#9CA3AF', strokeWidth: 1 }}
-                      >
-                        {outerData.map((e, i) => (
-                          <Cell key={i} fill={getSegColor(e.name, e.gender)} fillOpacity={outerOp(e.name, e.genderLabel)} stroke="#fff" strokeWidth={2} onMouseEnter={() => setHoveredKey(e.name)} style={{ cursor: 'pointer', outline: 'none' }} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<GenderTip />} />
-                    </PieChart>
+                    <div
+                      onMouseLeave={() => setGenderHover(null)}
+                      onMouseMove={(e) => { if (genderHover) setGenderMouse({ x: e.clientX, y: e.clientY }); }}
+                    >
+                      {/* Tooltip follows cursor */}
+                      {tipEntry && (
+                        <div style={{
+                          position: 'fixed', left: genderMouse.x + 15, top: genderMouse.y - 10,
+                          zIndex: 9999, pointerEvents: 'none',
+                          background: '#fff', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                          border: '1px solid #E5E7EB', padding: '8px 14px', minWidth: 160,
+                        }}>
+                          <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{tipEntry.label}</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '2px 0 0' }}>
+                            {tipEntry.name}: {tipEntry.value} ({totalAll > 0 ? ((tipEntry.value / totalAll) * 100).toFixed(1) : '0'}%)
+                          </p>
+                        </div>
+                      )}
+                      <ResponsiveContainer width="100%" height={280}>
+                        <PieChart onMouseLeave={() => setGenderHover(null)}>
+                          <Pie data={innerData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} dataKey="value"
+                            label={({ cx, cy, midAngle, innerRadius: ir, outerRadius: or, name }) => {
+                              const R = Math.PI / 180, r = ir + (or - ir) / 2;
+                              const gK = name === 'Male' ? 'MALE' : 'FEMALE';
+                              return <text x={cx + r * Math.cos(-midAngle * R)} y={cy + r * Math.sin(-midAngle * R)}
+                                textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={700}
+                                fill="#fff" opacity={iOp(name, gK)} style={{ transition: 'opacity 0.15s' }}>{name}</text>;
+                            }}
+                            labelLine={false}
+                          >
+                            {innerData.map((e, i) => (
+                              <Cell key={i} fill={genderFill[e.genderKey]} fillOpacity={iOp(e.name, e.genderKey)}
+                                stroke="#fff" strokeWidth={3} onMouseEnter={() => setGenderHover(e.name)}
+                                style={{ cursor: 'pointer', outline: 'none', transition: 'fill-opacity 0.15s' }} />
+                            ))}
+                          </Pie>
+                          <Pie data={outerData} cx="50%" cy="50%" innerRadius={72} outerRadius={105} dataKey="value"
+                            label={false} labelLine={false}
+                          >
+                            {outerData.map((e, i) => (
+                              <Cell key={i} fill={getSegColor(e.name, e.gender)} fillOpacity={oOp(e.name, e.gender)}
+                                stroke="#fff" strokeWidth={3} onMouseEnter={() => setGenderHover(sk(e.gender, e.name))}
+                                style={{ cursor: 'pointer', outline: 'none', transition: 'fill-opacity 0.15s' }} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      {/* Interactive legend */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', padding: '0 20px 12px', fontSize: 12.5 }}>
+                        <div>
+                          <p style={{ fontWeight: 700, color: '#312E81', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #312E81', paddingBottom: 4 }}>Male ({innerData.find(d => d.genderKey === 'MALE')?.value || 0})</p>
+                          {maleSegs.map((d, i) => {
+                            const key = sk('MALE', d.name);
+                            const active = !genderHover || ghk === key || ghk === 'Male';
+                            return (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', opacity: active ? 1 : 0.2, transition: 'opacity 0.15s' }}
+                                onMouseEnter={() => setGenderHover(key)} onMouseLeave={() => setGenderHover(null)}>
+                                <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: maleColors[d.name], flexShrink: 0 }} />
+                                <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.name}</span>
+                                <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({(d.value / totalAll * 100).toFixed(1)}%)</span></span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, color: '#6366F1', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #6366F1', paddingBottom: 4 }}>Female ({innerData.find(d => d.genderKey === 'FEMALE')?.value || 0})</p>
+                          {femaleSegs.map((d, i) => {
+                            const key = sk('FEMALE', d.name);
+                            const active = !genderHover || ghk === key || ghk === 'Female';
+                            return (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', opacity: active ? 1 : 0.2, transition: 'opacity 0.15s' }}
+                                onMouseEnter={() => setGenderHover(key)} onMouseLeave={() => setGenderHover(null)}>
+                                <span style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: femaleColors[d.name], flexShrink: 0 }} />
+                                <span style={{ color: '#1F2937', fontWeight: 500 }}>{d.name}</span>
+                                <span style={{ color: '#6B7280', marginLeft: 'auto', fontWeight: 600 }}>{d.value} <span style={{ fontWeight: 400 }}>({(d.value / totalAll * 100).toFixed(1)}%)</span></span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })()}
               </ChartCard>
@@ -959,45 +1035,26 @@ export default function DashboardPage() {
                   >
                     <ResponsiveContainer width="100%" height={480}>
                       <BarChart data={chartData} margin={{ top: 25, right: 15, left: 10, bottom: 80 }} barGap={2} barCategoryGap="15%" barSize={20}
-                        onMouseLeave={() => { legendHover.current = false; setHoveredKey(null); }} onMouseMove={chartMouseMove}>
+                        onMouseLeave={() => { legendHover.current = false; if (hoveredKey) setHoveredKey(null); }} onMouseMove={chartMouseMove}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="subject" angle={-40} textAnchor="end" fontSize={9} interval={0} height={90}
-                          label={{ value: 'Subjects', position: 'insideBottom', offset: -5, fontSize: 12, fill: '#6B7280' }} />
-                        <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                        <XAxis dataKey="subject" angle={-40} textAnchor="end" fontSize={10} fontWeight={500} interval={0} height={90} tick={{ fill: '#374151' }}
+                          axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }}
+                          label={{ value: 'Subjects', position: 'insideBottom', offset: -5, fontSize: 14, fontWeight: 700, fill: '#374151' }} />
+                        <YAxis label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 13, fontWeight: 600, fill: '#374151' }} tick={{ fontSize: 12, fontWeight: 500 }} axisLine={{ stroke: '#374151', strokeWidth: 1.5 }} tickLine={{ stroke: '#374151' }} />
                         <Tooltip content={({ active, payload, label }: any) => {
                           if (!active || !payload?.length || !hoveredKey) return null;
-                          // Extract designation name from hoveredKey (e.g. "Sanction - Assistant Professor" → "Assistant Professor")
-                          const desigName = hoveredKey.replace(/^(Sanction|Present)\s*-\s*/, '');
-                          const sanctionKey = `Sanction - ${desigName}`;
-                          const presentKey = `Present - ${desigName}`;
-                          const sItem = payload.find((p: any) => p.dataKey === sanctionKey);
-                          const pItem = payload.find((p: any) => p.dataKey === presentKey);
-                          const sVal = sItem?.value || 0;
-                          const pVal = pItem?.value || 0;
-                          const total = sVal + pVal;
-                          const hoveredVal = payload.find((p: any) => p.dataKey === hoveredKey)?.value || 0;
+                          const item = payload.find((p: any) => p.dataKey === hoveredKey);
+                          if (!item) return null;
                           return (
-                            <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-5 py-4 min-w-[220px]">
-                              <p className="text-3xl font-bold text-center text-gray-800">{hoveredVal}</p>
-                              <p className="text-sm text-gray-500 text-center mb-3">Total: {total}</p>
-                              <hr className="mb-3" />
-                              <div className="flex items-center justify-between gap-4 text-sm py-1">
-                                <span className="flex items-center gap-2">
-                                  <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: pItem?.fill || allColors[presentKey] || '#FCD34D' }} />
-                                  Present - {desigName}
-                                </span>
-                                <span className="font-semibold">{pVal}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4 text-sm py-1">
-                                <span className="flex items-center gap-2">
-                                  <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: sItem?.fill || allColors[sanctionKey] || '#1E3A8A' }} />
-                                  Sanction - {desigName}
-                                </span>
-                                <span className="font-semibold">{sVal}</span>
+                            <div className="bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
+                              <p className="text-xs text-gray-500 mb-1">{label}</p>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ background: item.fill || item.color }} />
+                                <span>{item.dataKey}: <strong>{item.value}</strong></span>
                               </div>
                             </div>
                           );
-                        }} />
+                        }} cursor={false} />
                         <Legend content={() => {
                           // Extract unique designation names
                           const desigNames = [...new Set(sanctionBarKeys.map(k => k.replace('Sanction - ', '')))];
@@ -1031,7 +1088,7 @@ export default function DashboardPage() {
                             fill={allColors[k] || RING_COLORS[i]}
                             fillOpacity={getOpacity(k)}
                             onMouseEnter={() => setHoveredKey(k)}
-                            stroke="#fff" strokeWidth={1}
+                            shape={BarWithTopStroke}
                             label={i === sanctionBarKeys.length - 1 ? SanctionTotalLabel : undefined}
                           />
                         ))}
@@ -1040,7 +1097,7 @@ export default function DashboardPage() {
                             fill={allColors[k] || RING_COLORS[(i + 4)]}
                             fillOpacity={getOpacity(k)}
                             onMouseEnter={() => setHoveredKey(k)}
-                            stroke="#fff" strokeWidth={1}
+                            shape={BarWithTopStroke}
                             label={i === presentBarKeys.length - 1 ? PresentTotalLabel : undefined}
                           />
                         ))}

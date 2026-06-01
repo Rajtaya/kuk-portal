@@ -5,3 +5,18 @@
 body {
   @apply bg-gray-50 text-gray-900;
 }
+
+/* Remove focus outlines on all SVG chart elements */
+svg path:focus,
+svg g:focus,
+svg circle:focus,
+svg rect:focus,
+.recharts-sector:focus,
+.recharts-pie-sector:focus,
+.recharts-layer:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+svg *:focus {
+  outline: none !important;
+}

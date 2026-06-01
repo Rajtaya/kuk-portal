@@ -1,6 +1,18 @@
-# UEMS Session Handoff — 2026-05-31 (Updated 2026-05-31 session 2)
+# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 3)
 
-## What was done this session (Session 2 — 2026-05-31)
+## What was done this session (Session 3 — 2026-06-01)
+
+### 14. Deployment & CORS fixes
+- **`.env.production`** added to frontend with `NEXT_PUBLIC_API_URL=https://backend-production-7615.up.railway.app/api`
+- **Backend CORS**: Changed to `origin: true` (allow all origins) — fixes "Failed to fetch" on login from `uems.up.railway.app`
+- **Frontend TypeScript fix**: Fixed `SanctionTooltip` spread type error that was failing the Railway build
+- **Full Railway redeploy**: Frontend (`railway up -s frontend`) + Backend (`railway up -s backend`)
+- **Database sync**: Local DB dumped and restored to Railway DB (1,358 employees, 14 universities, 91 sanction posts, 16 users)
+- **Frontend domain**: `uems.up.railway.app` (updated from old `frontend-production-9521.up.railway.app`)
+
+---
+
+## Previous session (Session 2 — 2026-05-31)
 
 ### 9. Dashboard charts — advanced interactivity
 - **All Universities summary view**: Added "All Universities" option to dropdown, aggregates subjects/designations/post-types across all 14 universities for both Hierarchy View (sunburst) and Summary Chart (bar chart)
@@ -115,15 +127,15 @@
 
 | Item | Value |
 |------|-------|
-| **Live frontend** | https://frontend-production-9521.up.railway.app |
+| **Live frontend** | https://uems.up.railway.app |
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/UEMS |
-| **Latest commit** | `c1ab20e` on `main` |
+| **Latest commit** | `9d901fd` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
 | **Universities** | 14 (all with data) |
-| **Total employees** | 1,277 (local + Railway synced) |
+| **Total employees** | 1,358 (local + Railway synced) |
 
 ---
 
