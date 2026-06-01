@@ -491,10 +491,26 @@ export default function DashboardPage() {
 
   const genderOption = useMemo(() => {
     if (!genderChartData) return {};
+    const { totalAll } = genderChartData;
     return {
       tooltip: {
         ...TOOLTIP_BASE, trigger: 'item' as const,
-        formatter: (p: any) => `<div style="font-size:12px"><div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color}"></span>${p.name}: <b>${p.value}</b> (${p.percent}%)</div></div>`,
+        formatter: (p: any) => {
+          const isOuter = p.seriesName === 'Designation';
+          const gender = isOuter ? (p.data?.gender === 'MALE' ? 'Male' : 'Female') : '';
+          const desig = isOuter ? p.data?.desigName : '';
+          const pct = totalAll > 0 ? ((p.value / totalAll) * 100).toFixed(1) : '0';
+          if (isOuter) {
+            return `<div style="font-size:12px;min-width:160px">
+              <p style="color:#9CA3AF;margin:0 0 3px">${gender}</p>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color}"></span>
+                <span>${desig}: <b>${p.value}</b> (${pct}%)</span>
+              </div>
+            </div>`;
+          }
+          return `<div style="font-size:12px"><div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color}"></span>${p.name}: <b>${p.value}</b> (${pct}%)</div></div>`;
+        },
       },
       series: [
         {
@@ -502,14 +518,18 @@ export default function DashboardPage() {
           data: genderChartData.innerData,
           label: { show: true, position: 'inside' as const, fontSize: 14, fontWeight: 'bold', color: '#fff' },
           emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
-          blur: { itemStyle: { opacity: 0.15 } },
+          blur: { itemStyle: { opacity: 0.35 } },
         },
         {
           name: 'Designation', type: 'pie' as const, radius: ['55%', '75%'],
           data: genderChartData.outerData,
-          label: { show: false },
+          label: {
+            show: true, fontSize: 12, color: '#374151',
+            formatter: (p: any) => p.data?.desigName || p.name,
+          },
+          labelLine: { show: true, length: 15, length2: 10, lineStyle: { color: '#9CA3AF' } },
           emphasis: { focus: 'self' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
-          blur: { itemStyle: { opacity: 0.15 } },
+          blur: { itemStyle: { opacity: 0.35 }, label: { opacity: 0.3 }, labelLine: { lineStyle: { opacity: 0.3 } } },
         },
       ],
     };
