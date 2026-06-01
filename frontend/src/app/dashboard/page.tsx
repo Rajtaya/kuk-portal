@@ -514,9 +514,9 @@ export default function DashboardPage() {
       },
       series: [
         {
-          name: 'Gender', type: 'pie' as const, radius: ['20%', '42%'],
+          name: 'Gender', type: 'pie' as const, radius: ['15%', '44%'],
           data: genderChartData.innerData,
-          label: { show: true, position: 'inside' as const, fontSize: 15, fontWeight: 'bold', color: '#fff' },
+          label: { show: true, position: 'inside' as const, fontSize: 16, fontWeight: 'bold', color: '#fff' },
           itemStyle: { borderColor: '#fff', borderWidth: 3 },
           emphasis: { scale: true, scaleSize: 5, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' } },
           blur: { itemStyle: { opacity: 0.4 } },
