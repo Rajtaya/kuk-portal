@@ -1,125 +1,43 @@
-# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 3)
+# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 4)
 
-## What was done this session (Session 3 — 2026-06-01)
+## What was done this session (Session 4 — 2026-06-01)
 
-### 14. Deployment & CORS fixes
-- **`.env.production`** added to frontend with `NEXT_PUBLIC_API_URL=https://backend-production-7615.up.railway.app/api`
-- **Backend CORS**: Changed to `origin: true` (allow all origins) — fixes "Failed to fetch" on login from `uems.up.railway.app`
-- **Frontend TypeScript fix**: Fixed `SanctionTooltip` spread type error that was failing the Railway build
-- **Full Railway redeploy**: Frontend (`railway up -s frontend`) + Backend (`railway up -s backend`)
-- **Database sync**: Local DB dumped and restored to Railway DB (1,358 employees, 14 universities, 91 sanction posts, 16 users)
-- **Frontend domain**: `uems.up.railway.app` (updated from old `frontend-production-9521.up.railway.app`)
+### 15. Dashboard chart polish (major)
+- **Gender chart redesign**: Independent `genderHover` state (no cross-chart interference), mouse-following tooltip using `position: fixed`, interactive two-column legend (Male/Female) with counts and percentages
+- **Sunburst fixes**: Removed white gap between center circle and Ring 1 (center circle 170px overlaps Ring 1 at innerRadius=70), SVG focus outlines removed via globals.css, ring sizes optimized (Ring1: 70→160, Ring2: 160→220, Ring3: 220→290)
+- **Bar chart improvements**: Custom `BarWithTopStroke` shape — white separator between stacked segments only, not on X-axis. `barSize={65}` on all charts except Sanction (20). Visible X/Y axis lines (`#374151`, 1.5px) on all charts
+- **Compact tooltips**: All charts use same small tooltip style — label + colored dot + designation: **count**. No large numbers or totals
+- **Legend spacing**: `paddingTop: 30` on all legends to prevent overlap with X-axis labels
+- **Cursor removed**: `cursor={false}` on all tooltips — no gray vertical highlight bar
 
----
+### 16. Data consistency overhaul
+- **Removed DBRANLU and SVSU** — now 12 universities (was 14)
+- **Sanction posts for ALL universities**: Generated sanction posts per subject/designation (sanction = present + 1-3 vacancies). 431 total sanction posts
+- **Realistic dummy data**: Re-generated employees for 6 dummy universities (CBLU, CCSHAU, GU, IGU, MVSU, DCRUST) with weighted distributions — 50% Asst Prof, 25% Assoc Prof, 15% Prof, 10% Senior Prof; 60/40 M/F; varied categories and post types
+- **Subject name cleanup**: Removed "Department of" / "Dept." prefix from all subject names in employees, sanctioned_posts, and departments tables
 
-## Previous session (Session 2 — 2026-05-31)
-
-### 9. Dashboard charts — advanced interactivity
-- **All Universities summary view**: Added "All Universities" option to dropdown, aggregates subjects/designations/post-types across all 14 universities for both Hierarchy View (sunburst) and Summary Chart (bar chart)
-- **Sunburst 4-ring with drill-down**: Center = university name (blue circle), Ring 1 = subjects (clickable), Ring 2 = designations, Ring 3 = post types. Click subject → drill into that subject. Click designation → drill into that designation. Breadcrumb navigation to go back.
-- **Series-level hover highlight**: Hovering a designation (e.g., "Assistant Professor") highlights that color across ALL bars in the chart, dims everything else to 15% opacity. Works on all 5 bar charts + Gender donut + Sanction chart.
-- **Custom tooltips**: Bar charts show only the hovered series (not all). Sanction chart pairs Sanction + Present values for the same designation. Gender chart shows percentage.
-- **Gender chart**: Monochromatic blue/purple scheme (Male=dark, Female=light). Labels inside inner ring. Designation hover highlights across both genders.
-- **Sanction chart**: Grouped-stacked bars (Sanction dark + Present light side by side). 2-column legend paired by designation. Total labels on each stack.
-- **White stroke markers** between all stacked bar segments across all charts
-- **Consistent bar sizing** (`barSize={40}`) on Category-wise & Employment Type charts
-- **Wrapped university names** on X-axis using custom multi-line SVG tick component (14 chars/line, 40° rotation, 11px font)
-
-### 10. Layout & overflow fixes
-- **Sticky sidebar**: Changed from `min-h-screen` to `h-screen sticky top-0 overflow-y-auto` — stays visible when scrolling
-- **Horizontal overflow fix**: Added `overflow-x-hidden` to `<main>` in all 7 layout files (dashboard, reports, employees, universities, users, sanctioned-posts, settings)
-- **Next.js proxy fix**: Updated `next.config.ts` rewrite destination from port 4000 to 3001
-- **SVG focus outlines removed**: Added CSS to suppress browser focus rectangles on pie segments
-
-### 11. Employees page enhancements
-- **Column show/hide**: "Columns" dropdown button with checkboxes for each column, persisted to localStorage
-- **Filter panel**: Collapsible filter bar with 6 dropdowns (University, Gender, Category, Post Type, Status, Designation), active filter tags with remove buttons, "Clear all" button
-- **Polished breadcrumb**: Home icon, chevron, people icon
-- **Employee count badge**: Shows total in title "Employees (1,277)"
-- **Alternating row colors** and sticky Action column
-- **Readable filter tags**: Shows "University: CDLU" instead of raw database IDs
-
-### 12. Data additions
-- **81 dummy employees for KUK** across 20 departments (total now 86)
-- **88 subject-wise sanction posts for KUK** (4 designations × 22 subjects, sanctioned > present for vacancies)
-- **Removed "Other Teaching Posts"** from BPSMV (84 records reassigned to Assistant Professor)
-- **KUK set as default university** for dashboard
-
-### 13. Chart label fixes
-- **Gender donut labels**: Fixed clipping by reducing radii and adding margins
-- **Sunburst ring labels**: Separate thresholds per ring (3% inner, 1.5% middle, 1% outer)
-- **Bar chart X-axis**: University names wrapped into multiple lines instead of truncated codes
-- **Logo removed** from sunburst center (replaced by university name)
+### 17. Deployment & PWA
+- **CORS fix**: Backend `origin: true` (allow all origins)
+- **Frontend `.env.production`**: `NEXT_PUBLIC_API_URL=https://backend-production-7615.up.railway.app/api`
+- **PWA enabled**: manifest.json, service worker (network-first caching), SVG app icons (192/512px), Apple web app meta tags, auto service worker registration
+- **Railway deploy**: Both frontend + backend deployed, DB synced
 
 ---
 
-## Previous session (Session 1 — 2026-05-31)
+## Previous sessions
 
-### 1. Dashboard overhaul (major)
-- Built new `GET /employees/dashboard-charts` backend endpoint that aggregates all chart data in one query
-- Endpoint accepts optional `?universityId=` query param for per-university filtering
-- Rewrote `frontend/src/app/dashboard/page.tsx` with 7 chart sections using Recharts:
-  - Stat cards (Universities, Employees, Subjects, Vacant Seats, Designations) with colored icons
-  - Stacked bar: Designation distribution across universities (all universities combined)
-  - Sunburst (3-ring nested pie): Subject → Designation → Post Type per university, with university logo in center
-  - Category-wise designation bar chart (per selected university)
-  - Employment type → designation bar chart (per selected university)
-  - Gender & designation nested donut (per selected university)
-  - Sanction vs present grouped bar (per selected university)
-- Bottom 4 charts filter by the selected university (second API call with `?universityId=`)
-- Section divider shows "University Name — Detailed Analysis"
-- Each chart has a hamburger menu (≡) with: View Fullscreen, Print, Download PNG/JPEG/SVG/CSV, View/Hide data table (dark-themed table below chart)
-- Tabs: Hierarchy View (sunburst) / Summary Chart, with university selector + subject filter
+### Session 3 — 2026-06-01 (earlier)
+- Deployment & CORS fixes, TypeScript build fixes, initial Railway redeploy
 
-### 2. Removed non-teaching from entire project
-- Removed `NON_TEACHING` from `EmployeeClassification` enum in Prisma schema
-- Cleaned all backend services, controllers, reports, and frontend pages
-- Zero references to non-teaching remain
+### Session 2 — 2026-05-31
+- Dashboard overhaul: 7 chart sections (Recharts), sunburst with drill-down, series-level hover highlight, custom tooltips, collapsible sidebar, university logos
+- Employees page: column show/hide, 6-filter panel, breadcrumb, alternating rows
+- Layout fixes: sticky sidebar, overflow-x fix, Next.js proxy fix
 
-### 3. Employees page redesign
-- Blue header table matching reference design
-- Columns: Sr.No., University Name, Code, Employee Name, Subject, Category, Selection Category, Designation, Present Designation, Gender, Action
-- Action column: View (gray), Edit (blue), Delete (red) icon buttons per row
-- Search bar + Add Employee + Upload Excel + Download Excel buttons
-
-### 4. Collapsible sidebar
-- Toggle button (`<<` / `>>`) collapses sidebar to 64px icon-only mode
-- Sidebar manages its own state internally — works across all page layouts
-- State persists in localStorage across sessions
-- Works on all pages (Dashboard, Employees, Reports, etc.)
-
-### 5. University logos
-- 10 logos added to `frontend/public/logos/` (KUK, MDU, CDLU, CRSU, CBLU, GU, MVSU, IGU, BPSMV, DBRANLU)
-- Logo shows in sunburst chart center circle; falls back to university code text when no logo
-- Logo map defined in `UNI_LOGOS` constant in dashboard page
-
-### 6. Data imports (real data from Excel files)
-| University | Source File | Records |
-|------------|-----------|---------|
-| CDLU | `CDLU_Department_Wise_Faculty.xlsx` | 20 |
-| MDU | `MDU_Detailed_Faculty_Database.xlsx` | 289 |
-| GJU | `GJU_Faculty_Department_wise.xlsx` | 215 |
-| CRSU | `CRSU.xlsx` | 43 |
-| BPSMV | `BPSMV_Faculty_Department_Wise_2026-27.xlsx` | 338 |
-| KUK | Seed data | 5 |
-| **Subtotal (real)** | | **910** |
-
-### 7. Dummy data for remaining universities
-| University | Records |
-|------------|---------|
-| CBLU | 45 |
-| GU | 55 |
-| MVSU | 30 |
-| IGU | 50 |
-| DBRANLU | 25 |
-| CCSHAU | 60 |
-| DCRUST | 65 |
-| SVSU | 35 |
-| **Subtotal (dummy)** | **365** |
-
-### 8. Added all 14 Haryana universities
-- Created all 14 universities with admin users (password: `admin123`)
-- All universities have data (real or dummy)
+### Session 1 — 2026-05-31
+- Full dashboard backend endpoint, employees page redesign, collapsible sidebar
+- University logos, data imports (MDU, GJU, CRSU, BPSMV, CDLU from Excel)
+- All 14 Haryana universities created, dummy data for remaining
 
 ---
 
@@ -131,49 +49,63 @@
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/UEMS |
-| **Latest commit** | `9d901fd` on `main` |
+| **Latest commit** | `5fe0974` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
-| **Universities** | 14 (all with data) |
-| **Total employees** | 1,358 (local + Railway synced) |
+| **Universities** | 12 |
+| **Total employees** | 1,328 |
+| **Total sanction posts** | 431 |
+| **Chart library** | Recharts (ECharts installed, migration pending) |
+| **PWA** | Enabled (manifest + service worker) |
 
 ---
 
-## All 14 Universities
+## All 12 Universities
 
-| Code | University | City | Admin Login | Employees | Data Type |
-|------|-----------|------|-------------|-----------|-----------|
-| KUK | Kurukshetra University | Kurukshetra | admin@kuk.ac.in | 5 | Seed |
-| MDU | Maharshi Dayanand University | Rohtak | admin@mdu.ac.in | 290 | Real |
-| CDLU | Chaudhary Devi Lal University | Sirsa | admin@cdlu.ac.in | 21 | Real |
-| CRSU | Chaudhary Ranbir Singh University | Jind | admin@crsu.ac.in | 43 | Real |
-| GJU | Guru Jambheshwar University of Science & Technology | Hisar | admin@gju.ac.in | 215 | Real |
-| BPSMV | Bhagat Phool Singh Mahila Vishwavidyalaya | Khanpur Kalan (Sonipat) | admin@bpsmv.ac.in | 338 | Real |
-| CBLU | Chaudhary Bansi Lal University | Bhiwani | admin@cblu.ac.in | 45 | Dummy |
-| GU | Gurugram University | Gurugram | admin@gu.ac.in | 55 | Dummy |
-| MVSU | Maharishi Valmiki Sanskrit University | Kaithal | admin@mvsu.ac.in | 30 | Dummy |
-| IGU | Indira Gandhi University | Meerpur (Rewari) | admin@igu.ac.in | 50 | Dummy |
-| DBRANLU | Dr. B.R. Ambedkar National Law University | Sonipat | admin@dbranlu.ac.in | 25 | Dummy |
-| CCSHAU | Chaudhary Charan Singh Haryana Agricultural University | Hisar | admin@ccshau.ac.in | 60 | Dummy |
-| DCRUST | Deenbandhu Chhotu Ram University of Science & Technology | Murthal (Sonipat) | admin@dcrust.ac.in | 65 | Dummy |
-| SVSU | Shri Vishwakarma Skill University | Palwal | admin@svsu.ac.in | 35 | Dummy |
+| Code | University | City | Admin Login | Employees | Sanction Posts | Data Type |
+|------|-----------|------|-------------|-----------|----------------|-----------|
+| KUK | Kurukshetra University | Kurukshetra | admin@kuk.ac.in | 86 | 75 | Seed+Dummy |
+| MDU | Maharshi Dayanand University | Rohtak | admin@mdu.ac.in | 290 | 103 | Real |
+| CDLU | Chaudhary Devi Lal University | Sirsa | admin@cdlu.ac.in | 21 | 9 | Real |
+| CRSU | Chaudhary Ranbir Singh University | Jind | admin@crsu.ac.in | 43 | 27 | Real |
+| GJU | Guru Jambheshwar University of Science & Technology | Hisar | admin@gju.ac.in | 215 | 63 | Real |
+| BPSMV | Bhagat Phool Singh Mahila Vishwavidyalaya | Khanpur Kalan (Sonipat) | admin@bpsmv.ac.in | 338 | 64 | Real |
+| CBLU | Chaudhary Bansi Lal University | Bhiwani | admin@cblu.ac.in | 55 | 15 | Dummy |
+| GU | Gurugram University | Gurugram | admin@gu.ac.in | 54 | 15 | Dummy |
+| MVSU | Maharishi Valmiki Sanskrit University | Kaithal | admin@mvsu.ac.in | 40 | 15 | Dummy |
+| IGU | Indira Gandhi University | Meerpur (Rewari) | admin@igu.ac.in | 60 | 15 | Dummy |
+| CCSHAU | Chaudhary Charan Singh Haryana Agricultural University | Hisar | admin@ccshau.ac.in | 66 | 15 | Dummy |
+| DCRUST | Deenbandhu Chhotu Ram University of Science & Technology | Murthal (Sonipat) | admin@dcrust.ac.in | 60 | 15 | Dummy |
 
 **Super Admin:** admin@he.haryana.gov.in / admin123
 **State User:** state@he.haryana.gov.in / admin123
 
 ---
 
+## Next up: ECharts migration
+
+ECharts + `echarts-for-react` already installed (`npm install echarts echarts-for-react`). Migration will replace all 7 Recharts chart sections:
+1. Employee Distribution (stacked bar)
+2. Sunburst (native ECharts sunburst — biggest improvement)
+3. Summary bar chart
+4. Category-wise bar chart
+5. Employment Type bar chart
+6. Gender donut (nested pie)
+7. Sanction vs Present (grouped-stacked bar)
+
+Benefits: native sunburst, smart label collision avoidance, smooth animations, better tooltips
+
+---
+
 ## Known issues / pending
 
-- **Railway frontend deployments** sometimes don't pick up new code from `railway up` — may need to redeploy from Railway dashboard or trigger via `git push` + Railway auto-deploy
-- **Sunburst tab click** — the Recharts SVG overlay intercepts physical clicks on the "Summary Chart" tab; works via keyboard/JS click. Real user clicks should work fine
-- **4 missing logos**: GJU, CCSHAU, DCRUST, SVSU — need logo files
-- **8 universities with dummy data** — replace with real Excel data when available
-- **Bulk import tip**: Use `prisma.createMany({ data: [...], skipDuplicates: true })` for fast imports instead of individual upserts
+- **2 missing logos**: CCSHAU, DCRUST — need logo files
+- **6 universities with dummy data** — replace with real Excel data when available
 
 ### High Priority pending
 | Item | Details |
 |------|---------|
+| **ECharts migration** | Replace Recharts with ECharts for all 7 dashboard charts |
 | Employee edit page | Currently only detail view — no edit form at /employees/[id]/edit |
 | Excel template download | Provide downloadable .xlsx template matching expected columns |
 | Preview before import | Show parsed rows before committing to DB |
@@ -202,5 +134,6 @@
 - **NestJS build path:** Output goes to `dist/src/main.js`, not `dist/main.js`
 - **Railway monorepo:** Uses `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile` env var. Dockerfiles use `COPY backend/` (project root context)
 - **Next.js cache:** Sometimes needs `.next/` deleted + server restart to pick up changes
-- **Frontend env for Railway:** `NEXT_PUBLIC_API_URL` must be set as Docker build arg (baked at build time, not runtime)
-- **Bulk data imports:** Use `prisma.createMany()` with `skipDuplicates: true` for speed — not individual upserts (network latency kills performance on Railway)
+- **Frontend env for Railway:** `NEXT_PUBLIC_API_URL` must be set as Docker build arg (baked at build time, not runtime). Also set in `.env.production`
+- **Deploy frontend:** `railway up -s frontend` from project root. If build fails, check TS errors first
+- **DB sync:** `pg_dump` local → `pg_restore` to Railway. Always use `--clean --if-exists --no-owner --no-acl`
