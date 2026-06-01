@@ -82,8 +82,8 @@ function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'v
   };
   const { bg, path } = icons[type];
   return (
-    <div className={`${bg} w-12 h-12 rounded-xl flex items-center justify-center`}>
-      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <div className={`${bg} w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center`}>
+      <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d={path} />
       </svg>
     </div>
@@ -127,7 +127,7 @@ function ChartCard({ title, children, className = '', tableData }: {
   }, [title]);
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`} ref={chartRef}>
+    <div className={`bg-white rounded-xl border border-gray-200 p-3 md:p-6 ${className}`} ref={chartRef}>
       <div className="flex items-center justify-between mb-4">
         <div />
         <h3 className="font-bold text-gray-800">{title}</h3>
@@ -200,6 +200,13 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
   const genderInstance = useRef<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     api.get<ChartData>('/employees/dashboard-charts').then((d) => {
@@ -272,10 +279,10 @@ export default function DashboardPage() {
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 80, left: 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { rotate: -40, fontSize: 11, interval: 0, color: '#374151', fontWeight: 500, width: 100, overflow: 'truncate' as const },
+        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 9 : 11, interval: 0, color: '#374151', fontWeight: 500, width: isMobile ? 60 : 100, overflow: 'truncate' as const },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
@@ -284,7 +291,7 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: desigList.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
@@ -294,7 +301,7 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [data, desigList]);
+  }, [data, desigList, isMobile]);
 
   // --- Chart 2: Sunburst data ---
   const sunburstEchartsData = useMemo(() => {
@@ -360,10 +367,10 @@ export default function DashboardPage() {
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 100, left: 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 110 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { rotate: -35, fontSize: isAllUni ? 10 : 11, interval: 0, color: '#374151', fontWeight: 500 },
+        axisLabel: { rotate: isMobile ? -55 : -35, fontSize: isMobile ? 8 : (isAllUni ? 10 : 11), interval: 0, color: '#374151', fontWeight: 500 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
@@ -377,7 +384,7 @@ export default function DashboardPage() {
         ],
       } : {}),
       series: desigs.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
         data: subjects.map(s => {
           const desig = s.children.find(c => c.name === d);
           return desig ? desig.children.reduce((sum, pt) => sum + pt.value, 0) : 0;
@@ -390,7 +397,7 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [activeSubjects, subjectFilter, isAllUni]);
+  }, [activeSubjects, subjectFilter, isAllUni, isMobile]);
 
   // --- Charts 4 & 5: Category-wise and Employment Type (university-specific) ---
   const categoryOption = useMemo(() => {
@@ -402,12 +409,12 @@ export default function DashboardPage() {
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 70, left: 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: 70, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { fontSize: 13, fontWeight: 600, color: '#374151' },
+        axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151' },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-        name: 'Category', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
+        name: 'Category', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: isMobile ? 11 : 14, fontWeight: 'bold', color: '#374151' },
       },
       yAxis: {
         type: 'value' as const,
@@ -415,7 +422,7 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: udDesigs.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
@@ -425,7 +432,7 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [uniData]);
+  }, [uniData, isMobile]);
 
   const employmentTypeOption = useMemo(() => {
     if (!uniData) return null;
@@ -436,12 +443,12 @@ export default function DashboardPage() {
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 70, left: 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: 70, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { fontSize: 13, fontWeight: 600, color: '#374151' },
+        axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151' },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-        name: 'Employment Type', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' },
+        name: 'Employment Type', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: isMobile ? 11 : 14, fontWeight: 'bold', color: '#374151' },
       },
       yAxis: {
         type: 'value' as const,
@@ -449,7 +456,7 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: udDesigs.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: 65,
+        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
@@ -459,7 +466,7 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [uniData]);
+  }, [uniData, isMobile]);
 
   // --- Chart 6: Gender donut ---
   const genderChartData = useMemo(() => {
@@ -514,28 +521,28 @@ export default function DashboardPage() {
       },
       series: [
         {
-          name: 'Gender', type: 'pie' as const, radius: ['15%', '44%'],
+          name: 'Gender', type: 'pie' as const, radius: isMobile ? ['12%', '38%'] : ['15%', '44%'],
           data: genderChartData.innerData,
-          label: { show: true, position: 'inside' as const, fontSize: 16, fontWeight: 'bold', color: '#fff' },
+          label: { show: true, position: 'inside' as const, fontSize: isMobile ? 13 : 16, fontWeight: 'bold', color: '#fff' },
           itemStyle: { borderColor: '#fff', borderWidth: 3 },
           emphasis: { scale: true, scaleSize: 5, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' } },
           blur: { itemStyle: { opacity: 0.4 } },
         },
         {
-          name: 'Designation', type: 'pie' as const, radius: ['46%', '72%'],
+          name: 'Designation', type: 'pie' as const, radius: isMobile ? ['42%', '65%'] : ['46%', '72%'],
           data: genderChartData.outerData,
           label: {
-            show: true, fontSize: 12.5, fontWeight: 500, color: '#1F2937',
+            show: !isMobile, fontSize: 12.5, fontWeight: 500, color: '#1F2937',
             formatter: (p: any) => p.data?.desigName || p.name,
           },
-          labelLine: { show: true, length: 18, length2: 12, smooth: true, lineStyle: { width: 1.5 } },
+          labelLine: { show: !isMobile, length: 18, length2: 12, smooth: true, lineStyle: { width: 1.5 } },
           itemStyle: { borderColor: '#fff', borderWidth: 3 },
           emphasis: { scale: true, scaleSize: 8, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' } },
           blur: { itemStyle: { opacity: 0.4 }, label: { opacity: 0.3 }, labelLine: { lineStyle: { opacity: 0.3 } } },
         },
       ],
     };
-  }, [genderChartData]);
+  }, [genderChartData, isMobile]);
 
   const onGenderHover = useCallback((gender: string, desigName?: string) => {
     const inst = genderInstance.current;
@@ -609,11 +616,11 @@ export default function DashboardPage() {
 
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: sanctionTooltip },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10, color: '#374151' }, itemGap: 12 },
-      grid: { top: 30, right: 15, bottom: 90, left: 15, containLabel: true },
+      legend: { bottom: 0, icon: 'circle', itemWidth: isMobile ? 8 : 10, itemHeight: isMobile ? 8 : 10, textStyle: { fontSize: isMobile ? 8 : 10, color: '#374151' }, itemGap: isMobile ? 6 : 12 },
+      grid: { top: 30, right: 15, bottom: isMobile ? 110 : 90, left: 15, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { rotate: -40, fontSize: 10, fontWeight: 500, interval: 0, color: '#374151' },
+        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 8 : 10, fontWeight: 500, interval: 0, color: '#374151' },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
@@ -623,7 +630,7 @@ export default function DashboardPage() {
       },
       series: [
         ...sanctionKeys.map((k, i) => ({
-          name: k, type: 'bar' as const, stack: 'sanction', barWidth: 20, barGap: '10%',
+          name: k, type: 'bar' as const, stack: 'sanction', barWidth: isMobile ? 10 : 20, barGap: '10%',
           data: rows.map(r => Number(r[k]) || 0),
           itemStyle: { color: allColors[k] || RING_COLORS[i], borderColor: '#fff', borderWidth: 1 },
           emphasis: { focus: 'series' as const },
@@ -633,7 +640,7 @@ export default function DashboardPage() {
           } : {}),
         })),
         ...presentKeys.map((k, i) => ({
-          name: k, type: 'bar' as const, stack: 'present', barWidth: 20,
+          name: k, type: 'bar' as const, stack: 'present', barWidth: isMobile ? 10 : 20,
           data: rows.map(r => Number(r[k]) || 0),
           itemStyle: { color: allColors[k] || RING_COLORS[(i + 4)], borderColor: '#fff', borderWidth: 1 },
           emphasis: { focus: 'series' as const },
@@ -644,7 +651,7 @@ export default function DashboardPage() {
         })),
       ],
     };
-  }, [uniData]);
+  }, [uniData, isMobile]);
 
   if (!data) {
     return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading dashboard...</p></div>;
@@ -660,27 +667,27 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
         {!isUniAdmin && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-            <div><p className="text-sm text-gray-500">Universities</p><p className="text-3xl font-bold text-gray-900">{stats.universityCount}</p></div>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
+            <div><p className="text-xs md:text-sm text-gray-500">Universities</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.universityCount}</p></div>
             <StatIcon type="university" />
           </div>
         )}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div><p className="text-sm text-gray-500">Employees</p><p className="text-3xl font-bold text-gray-900">{stats.employeeCount.toLocaleString()}</p></div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500">Employees</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.employeeCount.toLocaleString()}</p></div>
           <StatIcon type="employees" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div><p className="text-sm text-gray-500">Subjects</p><p className="text-3xl font-bold text-gray-900">{stats.subjectCount}</p></div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500">Subjects</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.subjectCount}</p></div>
           <StatIcon type="subjects" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div><p className="text-sm text-gray-500">Total Vacant Seats</p><p className="text-3xl font-bold text-gray-900">{stats.vacantSeats.toLocaleString()}</p></div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500">Vacant Seats</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.vacantSeats.toLocaleString()}</p></div>
           <StatIcon type="vacant" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div><p className="text-sm text-gray-500">Designations</p><p className="text-3xl font-bold text-gray-900">{stats.designationCount}</p></div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500">Designations</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.designationCount}</p></div>
           <StatIcon type="designations" />
         </div>
       </div>
@@ -690,12 +697,12 @@ export default function DashboardPage() {
         title="Employee Distribution by Designation Across Universities"
         tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
       >
-        <ReactECharts option={employeeDistOption} style={{ height: '460px' }} notMerge={true} lazyUpdate={true} />
+        <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '460px' }} notMerge={true} lazyUpdate={true} />
       </ChartCard>
 
       {/* 2 & 3. Hierarchy View / Summary Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4 relative z-10">
+      <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4 relative z-10">
           <div className="flex gap-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('hierarchy')}
@@ -706,12 +713,12 @@ export default function DashboardPage() {
               className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >Summary Chart</button>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 md:gap-3 flex-wrap">
             {!isUniAdmin && (
               <select
                 value={selectedUni}
                 onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+                className="border border-gray-300 rounded-lg px-2 md:px-3 py-1.5 text-sm flex-1 min-w-0 md:flex-none"
               >
                 <option value="all">All Universities</option>
                 {data.universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -720,7 +727,7 @@ export default function DashboardPage() {
             <select
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+              className="border border-gray-300 rounded-lg px-2 md:px-3 py-1.5 text-sm flex-1 min-w-0 md:flex-none"
             >
               <option value="">Filter Subjects</option>
               {uniSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -733,7 +740,7 @@ export default function DashboardPage() {
             <h4 className="font-bold text-gray-800 text-center mb-2">Employee Breakdown - {selectedUniName}</h4>
             {sunburstEchartsData.length > 0 && sunburstEchartsData[0].children?.length > 0 ? (
               <>
-                <ReactECharts option={sunburstOption} style={{ height: '680px' }} notMerge={true} lazyUpdate={true} />
+                <ReactECharts option={sunburstOption} style={{ height: isMobile ? '380px' : '680px' }} notMerge={true} lazyUpdate={true} />
                 <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-2 text-xs">
                   <span className="font-semibold text-gray-600">Center: University</span>
                   <span className="font-semibold text-gray-600">Ring 1: Subjects</span>
@@ -750,7 +757,7 @@ export default function DashboardPage() {
           <div>
             <h4 className="font-bold text-gray-800 text-center mb-2">Summary - {selectedUniName}</h4>
             {summaryOption ? (
-              <ReactECharts option={summaryOption} style={{ height: '450px' }} notMerge={true} lazyUpdate={true} />
+              <ReactECharts option={summaryOption} style={{ height: isMobile ? '350px' : '450px' }} notMerge={true} lazyUpdate={true} />
             ) : (
               <p className="text-center text-gray-400 py-16">No data</p>
             )}
@@ -774,7 +781,7 @@ export default function DashboardPage() {
                 title="Category-wise Designation Distribution"
                 tableData={{ headers: ['Category', ...(uniData.designations || [])], rows: uniData.categoryDesignation.map(row => [row.category, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
               >
-                <ReactECharts option={categoryOption} style={{ height: '420px' }} notMerge={true} lazyUpdate={true} />
+                <ReactECharts option={categoryOption} style={{ height: isMobile ? '320px' : '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
             )}
             {employmentTypeOption && (
@@ -782,7 +789,7 @@ export default function DashboardPage() {
                 title="Employment Type &rarr; Designation Distribution"
                 tableData={{ headers: ['Employment Type', ...(uniData.designations || [])], rows: uniData.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
               >
-                <ReactECharts option={employmentTypeOption} style={{ height: '420px' }} notMerge={true} lazyUpdate={true} />
+                <ReactECharts option={employmentTypeOption} style={{ height: isMobile ? '320px' : '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
             )}
           </div>
@@ -802,7 +809,7 @@ export default function DashboardPage() {
             >
               <ReactECharts
                 option={genderOption}
-                style={{ height: '380px' }}
+                style={{ height: isMobile ? '300px' : '380px' }}
                 notMerge={true}
                 lazyUpdate={true}
                 onChartReady={(instance: any) => { genderInstance.current = instance; }}
@@ -816,7 +823,7 @@ export default function DashboardPage() {
                 const femaleTotal = genderChartData.innerData.find(d => d.genderKey === 'FEMALE')?.value || 0;
 
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', padding: '0 20px 12px', fontSize: 12.5 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px', padding: isMobile ? '0 8px 8px' : '0 20px 12px', fontSize: isMobile ? 11 : 12.5 }}>
                     <div>
                       <p style={{ fontWeight: 700, color: '#312E81', marginBottom: 6, fontSize: 13, borderBottom: '2px solid #312E81', paddingBottom: 4, cursor: 'pointer' }}
                         onMouseEnter={() => onGenderHover('MALE')} onMouseLeave={onGenderLeave}>
@@ -861,7 +868,7 @@ export default function DashboardPage() {
                   }),
                 }}
               >
-                <ReactECharts option={sanctionOption} style={{ height: '480px' }} notMerge={true} lazyUpdate={true} />
+                <ReactECharts option={sanctionOption} style={{ height: isMobile ? '380px' : '480px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
             )}
           </div>
