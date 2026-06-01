@@ -212,7 +212,7 @@ function ChartCard({ title, children, className = '', tableData }: {
 // Custom bar shape — white separator on top edge only, not on sides/bottom
 const BarWithTopStroke = (props: any) => {
   const { x, y, width, height, fill, fillOpacity } = props;
-  if (!height || height <= 0) return null;
+  if (!height || height <= 0) return <g />;
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={fillOpacity ?? 1} />
