@@ -328,8 +328,8 @@ export default function DashboardPage() {
         Math.max(10, point[1] - size.contentSize[1] - 20),
       ],
       formatter: (params: any) => {
-        const path = params.treePathInfo?.slice(1).map((n: any) => n.name).join(' → ');
-        return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${path || ''}</p><b>${params.name}</b>: ${params.value ?? ''}</div>`;
+        if (!params.value) return `<div style="font-size:13px"><b>${params.name}</b></div>`;
+        return `<div style="font-size:13px"><b>${params.name}</b>: ${params.value}</div>`;
       },
     },
     series: [{
