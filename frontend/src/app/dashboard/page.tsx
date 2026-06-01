@@ -552,8 +552,37 @@ export default function DashboardPage() {
       'Present - Professor': '#BBF7D0', 'Present - Assistant Professor': '#FDE68A',
     };
 
+    const sanctionTooltip = (params: any) => {
+      const subject = params.name;
+      const seriesName = params.seriesName as string;
+      const value = params.value as number;
+      const isPresent = seriesName.startsWith('Present');
+      const designation = seriesName.replace(/^(Sanction|Present) - /, '');
+      const counterKey = isPresent ? `Sanction - ${designation}` : `Present - ${designation}`;
+      const row = rows.find(r => r.subject === subject);
+      const counterVal = row ? (Number(row[counterKey]) || 0) : 0;
+      const total = value + counterVal;
+      const sVal = isPresent ? counterVal : value;
+      const pVal = isPresent ? value : counterVal;
+      const sColor = allColors[`Sanction - ${designation}`] || '#666';
+      const pColor = allColors[`Present - ${designation}`] || '#999';
+      const dot = (c: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:8px"></span>`;
+      return `<div style="min-width:220px">
+        <p style="text-align:center;font-size:11px;color:#9CA3AF;margin:0 0 4px">${subject}</p>
+        <p style="text-align:center;font-size:28px;font-weight:bold;margin:0;color:#111827">${value}</p>
+        <p style="text-align:center;font-size:13px;color:#6B7280;margin:2px 0 10px">Total: ${total}</p>
+        <hr style="border:none;border-top:1px solid #E5E7EB;margin:0 0 8px"/>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px">
+          <span>${dot(sColor)}Sanction - ${designation}</span><b>${sVal}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px">
+          <span>${dot(pColor)}Present - ${designation}</span><b>${pVal}</b>
+        </div>
+      </div>`;
+    };
+
     return {
-      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: sanctionTooltip },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10, color: '#374151' }, itemGap: 12 },
       grid: { top: 30, right: 15, bottom: 90, left: 15, containLabel: true },
       xAxis: {
