@@ -4,6 +4,8 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { StatsSkeleton } from '@/components/ui/skeleton';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -654,16 +656,31 @@ export default function DashboardPage() {
   }, [uniData, isMobile]);
 
   if (!data) {
-    return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading dashboard...</p></div>;
+    return (
+      <div className="space-y-6">
+        <Breadcrumb items={[{ label: 'Dashboard', icon: 'dashboard' }]} />
+        <StatsSkeleton count={5} />
+        <div className="animate-pulse bg-gray-200 rounded-xl h-[460px]" />
+      </div>
+    );
   }
 
   const { stats } = data;
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span>Home</span><span>&gt;</span><span className="text-gray-800 font-medium">Dashboard UI</span>
+      <div className="flex items-center justify-between">
+        <Breadcrumb items={[{ label: 'Dashboard', icon: 'dashboard' }]} />
+        {!isUniAdmin && (
+          <select
+            value={selectedUni}
+            onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[220px]"
+          >
+            <option value="all">All Universities</option>
+            {data.universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Stat Cards */}
