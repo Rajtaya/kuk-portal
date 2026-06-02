@@ -45,7 +45,14 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('emp-visible-cols');
-    if (saved) try { setVisibleCols(JSON.parse(saved)); } catch { /* ignore */ }
+    if (saved) {
+      try {
+        const parsed: string[] = JSON.parse(saved);
+        const allKeys = ALL_COLUMNS.map((c) => c.key);
+        const merged = [...new Set([...parsed, ...allKeys.filter((k) => !parsed.includes(k))])];
+        setVisibleCols(merged);
+      } catch { /* ignore */ }
+    }
   }, []);
 
   useEffect(() => {
