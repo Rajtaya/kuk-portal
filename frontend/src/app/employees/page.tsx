@@ -26,6 +26,7 @@ const ALL_COLUMNS: ColDef[] = [
   { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
   { key: 'presentDesig', label: 'Present Designation', render: (e) => e.designationPresent || '-' },
   { key: 'gender', label: 'Gender', render: (e) => e.gender },
+  { key: 'postType', label: 'Type', render: (e) => e.postType },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
@@ -65,7 +66,7 @@ export default function EmployeesPage() {
 
   const activeCols = ALL_COLUMNS.filter((c) => visibleCols.includes(c.key));
 
-  const canWrite = user?.role !== 'STATE_USER';
+  const canWrite = user?.role === 'UNIVERSITY_ADMIN';
 
   useEffect(() => {
     if (user?.role !== 'UNIVERSITY_ADMIN') {

@@ -20,7 +20,7 @@ export class EmployeesController {
   constructor(private employeesService: EmployeesService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.UNIVERSITY_ADMIN)
   create(@Body() dto: CreateEmployeeDto) {
     return this.employeesService.create(dto);
   }
@@ -49,19 +49,19 @@ export class EmployeesController {
   }
 
   @Put(':id')
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.UNIVERSITY_ADMIN)
   update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
     return this.employeesService.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.UNIVERSITY_ADMIN)
   delete(@Param('id') id: string) {
     return this.employeesService.delete(id);
   }
 
   @Post('bulk-upload')
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async bulkUpload(
