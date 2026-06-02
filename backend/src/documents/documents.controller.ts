@@ -1,25 +1,31 @@
-import { Controller, Get, Post, Delete, Param, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Query, UseGuards, UseInterceptors, UploadedFile, ForbiddenException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
-import { DocumentType } from '@prisma/client';
+import { DocumentType, Role } from '@prisma/client';
 import { DocumentsService } from './documents.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Documents')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('documents')
 export class DocumentsController {
   constructor(private documentsService: DocumentsService) {}
 
   @Post(':employeeId')
+  @Roles(Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
-  upload(
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async upload(
     @Param('employeeId') employeeId: string,
     @UploadedFile() file: Express.Multer.File,
     @Query('type') type: DocumentType = DocumentType.OTHER,
+    @CurrentUser() user: any,
   ) {
+    await this.documentsService.verifyEmployeeOwnership(employeeId, user.universityId);
     return this.documentsService.upload(employeeId, file, type);
   }
 
@@ -29,7 +35,9 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
+  @Roles(Role.UNIVERSITY_ADMIN)
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.documentsService.verifyDocumentOwnership(id, user.universityId);
     return this.documentsService.delete(id);
   }
 }

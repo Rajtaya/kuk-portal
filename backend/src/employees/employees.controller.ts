@@ -22,7 +22,8 @@ export class EmployeesController {
 
   @Post()
   @Roles(Role.UNIVERSITY_ADMIN)
-  create(@Body() dto: CreateEmployeeDto) {
+  create(@Body() dto: CreateEmployeeDto, @CurrentUser() user: any) {
+    dto.universityId = user.universityId;
     return this.employeesService.create(dto);
   }
 
@@ -88,13 +89,18 @@ export class EmployeesController {
 
   @Put(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
-  update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
+  async update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>, @CurrentUser() user: any) {
+    const emp = await this.employeesService.findOne(id);
+    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
+    delete dto.universityId;
     return this.employeesService.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
-  delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    const emp = await this.employeesService.findOne(id);
+    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot delete another university\'s employee');
     return this.employeesService.delete(id);
   }
 

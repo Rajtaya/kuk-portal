@@ -15,7 +15,9 @@ export class EmployeesService {
   }
 
   async findAll(filters: EmployeeFilterDto, userUniversityId?: string) {
-    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', search, ...rest } = filters;
+    const ALLOWED_SORT = ['name','employeeId','createdAt','designationPresent','retirementDate','gender','category','postType','employmentStatus'];
+    const { page = 1, limit = 20, sortBy: rawSort = 'createdAt', sortOrder = 'desc', search, ...rest } = filters;
+    const sortBy = ALLOWED_SORT.includes(rawSort) ? rawSort : 'createdAt';
 
     const where: Prisma.EmployeeWhereInput = {};
 

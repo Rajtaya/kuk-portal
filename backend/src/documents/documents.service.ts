@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { DocumentType } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class DocumentsService {
@@ -14,12 +15,28 @@ export class DocumentsService {
     }
   }
 
+  async verifyEmployeeOwnership(employeeId: string, universityId: string) {
+    const emp = await this.prisma.employee.findUnique({ where: { id: employeeId }, select: { universityId: true } });
+    if (!emp) throw new NotFoundException('Employee not found');
+    if (emp.universityId !== universityId) throw new ForbiddenException('Cannot access another university\'s employee');
+  }
+
+  async verifyDocumentOwnership(documentId: string, universityId: string) {
+    const doc = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      include: { employee: { select: { universityId: true } } },
+    });
+    if (!doc) throw new NotFoundException('Document not found');
+    if (doc.employee.universityId !== universityId) throw new ForbiddenException('Cannot access another university\'s document');
+  }
+
   async upload(employeeId: string, file: Express.Multer.File, type: DocumentType) {
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const fileName = `${Date.now()}-${file.originalname}`;
-    const filePath = path.join(this.uploadDir, fileName);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const filePath = path.join(this.uploadDir, safeName);
     fs.writeFileSync(filePath, file.buffer);
 
     return this.prisma.document.create({
@@ -27,7 +44,7 @@ export class DocumentsService {
         employeeId,
         type,
         fileName: file.originalname,
-        fileUrl: `/uploads/${fileName}`,
+        fileUrl: `/uploads/${safeName}`,
         fileSize: file.size,
         mimeType: file.mimetype,
       },
