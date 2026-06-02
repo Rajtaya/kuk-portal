@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 type ReportKey = string;
 
@@ -135,6 +136,7 @@ export default function ReportsPage() {
 
   return (
     <div>
+      <Breadcrumb items={[{ label: 'Reports', icon: 'report' }]} />
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Reports</h2>
         <p className="text-sm text-gray-500 mt-1">Generate and export detailed reports</p>

@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { Department, University } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import { TableSkeleton } from '@/components/ui/skeleton';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { useToast } from '@/components/ui/toast';
 
 interface SanctionedPost {
   id: string;
@@ -39,6 +43,7 @@ export default function SanctionedPostsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isStateUser = user?.role === 'STATE_USER';
   const canWrite = isSuperAdmin || isStateUser;
+  const { toast } = useToast();
 
   const [tab, setTab] = useState<'manage' | 'vacancy'>(canWrite ? 'manage' : 'vacancy');
   const [posts, setPosts] = useState<SanctionedPost[]>([]);
@@ -114,13 +119,16 @@ export default function SanctionedPostsPage() {
         await api.post('/sanctioned-posts', payload);
       }
       setShowForm(false);
+      toast(editing ? 'Post updated' : 'Post created', 'success');
       loadData();
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError(err.message); toast('Failed to save', 'error'); }
     finally { setSaving(false); }
   }
 
   async function handleDelete(id: string) {
+    if (!confirm('Delete this sanctioned post?')) return;
     await api.delete(`/sanctioned-posts/${id}`);
+    toast('Post deleted', 'success');
     loadData();
   }
 
@@ -144,6 +152,7 @@ export default function SanctionedPostsPage() {
 
   return (
     <div>
+      <Breadcrumb items={[{ label: 'Sanctioned Posts', icon: 'sanction' }]} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Sanctioned Posts</h2>
@@ -261,7 +270,7 @@ export default function SanctionedPostsPage() {
       {tab === 'manage' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loading ? (
-            <div className="p-12 text-center text-gray-400">Loading...</div>
+            <TableSkeleton rows={8} cols={6} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -282,7 +291,7 @@ export default function SanctionedPostsPage() {
                         <td className="px-4 py-3">{p.department?.name}</td>
                         <td className="px-4 py-3">{p.subject || '-'}</td>
                         <td className="px-4 py-3">{p.designation}</td>
-                        <td className="px-4 py-3">{p.postType}</td>
+                        <td className="px-4 py-3"><Badge value={p.postType} /></td>
                         <td className="px-4 py-3 text-center align-middle font-bold text-primary-700 tabular-nums">{p.sanctionedCount}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
@@ -304,7 +313,7 @@ export default function SanctionedPostsPage() {
       {tab === 'vacancy' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loading ? (
-            <div className="p-12 text-center text-gray-400">Loading...</div>
+            <TableSkeleton rows={8} cols={6} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { University } from '@/lib/types';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { useToast } from '@/components/ui/toast';
 
 type SortKey = 'departments' | 'employees' | 'name';
 
@@ -50,7 +53,9 @@ export default function UniversitiesPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
+  const { toast } = useToast();
   const [universities, setUniversities] = useState<University[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>('departments');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -65,7 +70,8 @@ export default function UniversitiesPage() {
   }, []);
 
   function loadData() {
-    api.get<University[]>('/universities').then(setUniversities);
+    setLoading(true);
+    api.get<University[]>('/universities').then(setUniversities).finally(() => setLoading(false));
   }
 
   const sorted = useMemo(() => {
@@ -129,9 +135,11 @@ export default function UniversitiesPage() {
         await api.post('/universities', payload);
       }
       setShowForm(false);
+      toast(editing ? 'University updated' : 'University created', 'success');
       loadData();
     } catch (err: any) {
       setError(err.message);
+      toast('Failed to save', 'error');
     } finally {
       setSaving(false);
     }
@@ -146,6 +154,7 @@ export default function UniversitiesPage() {
 
   return (
     <div>
+      <Breadcrumb items={[{ label: 'Universities', icon: 'university' }]} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Universities</h2>
@@ -249,7 +258,8 @@ export default function UniversitiesPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {sorted.map((uni, idx) => {
+        {loading && Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+        {!loading && sorted.map((uni, idx) => {
           const empCount = uni._count?.employees || 0;
           const deptCount = uni._count?.departments || 0;
           const gradient = CARD_COLORS[idx % CARD_COLORS.length];

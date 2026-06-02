@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { Employee, University, PaginatedResponse } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import { TableSkeleton } from '@/components/ui/skeleton';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { useToast } from '@/components/ui/toast';
 
 interface ColDef {
   key: string;
@@ -21,12 +25,12 @@ const ALL_COLUMNS: ColDef[] = [
   { key: 'uniCode', label: 'University Code', render: (e) => e.university?.code || '-' },
   { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
   { key: 'subject', label: 'Subject', render: (e) => e.subject || '-' },
-  { key: 'category', label: 'Category', render: (e) => e.category },
-  { key: 'catSelection', label: 'Selection Category', render: (e) => e.categorySelection },
+  { key: 'category', label: 'Category', render: (e) => <Badge value={e.category} /> },
+  { key: 'catSelection', label: 'Selection Category', render: (e) => <Badge value={e.categorySelection} /> },
   { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
   { key: 'presentDesig', label: 'Present Designation', render: (e) => e.designationPresent || '-' },
-  { key: 'gender', label: 'Gender', render: (e) => e.gender },
-  { key: 'postType', label: 'Type', render: (e) => e.postType },
+  { key: 'gender', label: 'Gender', render: (e) => <Badge value={e.gender} /> },
+  { key: 'postType', label: 'Type', render: (e) => <Badge value={e.postType} /> },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
@@ -34,7 +38,9 @@ const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
 export default function EmployeesPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<PaginatedResponse<Employee>>({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [universities, setUniversities] = useState<University[]>([]);
@@ -82,8 +88,9 @@ export default function EmployeesPage() {
   }, [user]);
 
   const fetchEmployees = useCallback((page: number = 1, extra: Record<string, string> = {}) => {
+    setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: '20', ...extra });
-    api.get<PaginatedResponse<Employee>>(`/employees?${params}`).then(setData);
+    api.get<PaginatedResponse<Employee>>(`/employees?${params}`).then(setData).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
@@ -114,8 +121,9 @@ export default function EmployeesPage() {
     if (!confirm(`Delete employee "${name}"?`)) return;
     try {
       await api.delete(`/employees/${id}`);
+      toast(`Deleted "${name}"`, 'success');
       fetchEmployees(data.page, filters);
-    } catch { /* ignore */ }
+    } catch { toast('Failed to delete employee', 'error'); }
   };
 
   const handleExport = () => {
@@ -144,14 +152,7 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-4">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-        <Link href="/dashboard" className="hover:text-gray-600">Home</Link>
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
-        <span className="text-gray-700 font-medium">Employees UI</span>
-      </div>
+      <Breadcrumb items={[{ label: 'Employees', icon: 'employees' }]} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -344,6 +345,8 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
+
+      {loading && <TableSkeleton rows={10} cols={activeCols.length} />}
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
