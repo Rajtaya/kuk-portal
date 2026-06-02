@@ -14,6 +14,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/prisma ./prisma
+RUN mkdir -p ./uploads && chown node:node ./uploads
 
 USER node
 EXPOSE 4000
