@@ -667,6 +667,20 @@ export default function DashboardPage() {
 
   const { stats } = data;
 
+  // Click a university's bar in the main chart → drill the rest of the dashboard to that university
+  const handleUniversityBarClick = (params: any) => {
+    if (isUniAdmin) return;
+    const name = params?.name;
+    if (!name) return;
+    const id =
+      data.universities.find((u) => u.name === name || u.code === name)?.id ||
+      data.hierarchy.find((h) => h.universityName === name)?.universityId;
+    if (id && id !== selectedUni) {
+      setSelectedUni(id);
+      setSubjectFilter('');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -714,7 +728,7 @@ export default function DashboardPage() {
         title="Employee Distribution by Designation Across Universities"
         tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
       >
-        <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '460px' }} notMerge={true} lazyUpdate={true} />
+        <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '460px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
       </ChartCard>
 
       {/* 2 & 3. Hierarchy View / Summary Chart */}
