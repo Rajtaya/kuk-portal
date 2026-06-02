@@ -320,7 +320,7 @@ export default function EmployeesPage() {
               <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)}
                 className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
-                {['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {/* Post Type */}

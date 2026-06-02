@@ -16,7 +16,6 @@ const BADGE_STYLES: Record<string, string> = {
   GENERAL: 'bg-slate-100 text-slate-700 border-slate-200',
   SC: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   ST: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  OBC: 'bg-amber-100 text-amber-700 border-amber-200',
   EWS: 'bg-cyan-100 text-cyan-700 border-cyan-200',
   BCA: 'bg-violet-100 text-violet-700 border-violet-200',
   BCB: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',

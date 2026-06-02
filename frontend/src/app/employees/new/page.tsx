@@ -114,12 +114,12 @@ export default function NewEmployeePage() {
             </div>
             <div><label className={lbl}>Category</label>
               <select className={inp} value={form.category} onChange={(e) => update('category', e.target.value)}>
-                {['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div><label className={lbl}>Category (Selection)</label>
               <select className={inp} value={form.categorySelection} onChange={(e) => update('categorySelection', e.target.value)}>
-                {['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div><label className={lbl}>Employment Status</label>

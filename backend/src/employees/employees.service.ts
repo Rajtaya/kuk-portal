@@ -112,7 +112,7 @@ export class EmployeesService {
         const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderRaw) ? genderRaw : 'MALE';
 
         const categoryRaw = (row['Category'] || '').toUpperCase();
-        const validCategories = ['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'];
+        const validCategories = ['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'];
         const category = validCategories.includes(categoryRaw) ? categoryRaw : 'GENERAL';
 
         const catSelRaw = (row['Category(Selection)'] || '').toUpperCase();

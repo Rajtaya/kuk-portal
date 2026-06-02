@@ -25,7 +25,6 @@ enum Category {
   GENERAL
   SC
   ST
-  OBC
   EWS
   BCA
   BCB
