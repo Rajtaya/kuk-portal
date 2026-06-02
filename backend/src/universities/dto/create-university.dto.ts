@@ -24,4 +24,24 @@ export class CreateUniversityDto {
   @IsOptional()
   @IsString()
   state?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  website?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  logoUrl?: string;
 }

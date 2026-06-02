@@ -85,6 +85,10 @@ model University {
   address         String?
   city            String?
   state           String?          @default("Haryana")
+  website         String?
+  email           String?
+  phone           String?
+  logoUrl         String?
   users           User[]
   departments     Department[]
   employees       Employee[]
@@ -177,12 +181,12 @@ model SanctionedPost {
   departmentId   String
   subject        String?
   designation    String
-  category       Category   @default(GENERAL)
+  postType       PostType   @default(BUDGETED)
   sanctionedCount Int       @default(0)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  @@unique([universityId, departmentId, designation, category, subject])
+  @@unique([universityId, departmentId, designation, subject, postType])
   @@index([universityId])
   @@map("sanctioned_posts")
 }

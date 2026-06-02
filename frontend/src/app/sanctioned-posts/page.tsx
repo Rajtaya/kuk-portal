@@ -11,7 +11,7 @@ interface SanctionedPost {
   departmentId: string;
   subject?: string;
   designation: string;
-  category: string;
+  postType: string;
   sanctionedCount: number;
   university?: { name: string; code: string };
   department?: { name: string };
@@ -24,20 +24,20 @@ interface VacancyRow {
   department: string;
   subject?: string;
   designation: string;
-  category: string;
+  postType: string;
   sanctioned: number;
   filled: number;
   vacant: number;
 }
 
-const categories = ['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'];
 const designations = ['Professor','Associate Professor','Assistant Professor','Other Teaching Posts'];
+const postTypes = ['BUDGETED','SFS','CONTRACTUAL'];
 
 export default function SanctionedPostsPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isStateUser = user?.role === 'STATE_USER';
-  const canWrite = !isStateUser;
+  const canWrite = isSuperAdmin || isStateUser;
 
   const [tab, setTab] = useState<'manage' | 'vacancy'>(canWrite ? 'manage' : 'vacancy');
   const [posts, setPosts] = useState<SanctionedPost[]>([]);
@@ -55,7 +55,7 @@ export default function SanctionedPostsPage() {
 
   const [form, setForm] = useState({
     universityId: '', departmentId: '', subject: '',
-    designation: 'Professor', category: 'GENERAL', sanctionedCount: 0,
+    designation: 'Professor', postType: 'BUDGETED', sanctionedCount: 0,
   });
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function SanctionedPostsPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ universityId: fixedUniversityId, departmentId: '', subject: '', designation: 'Professor', category: 'GENERAL', sanctionedCount: 0 });
+    setForm({ universityId: fixedUniversityId, departmentId: '', subject: '', designation: 'Professor', postType: 'BUDGETED', sanctionedCount: 0 });
     setShowForm(true);
     setError('');
   }
@@ -90,7 +90,7 @@ export default function SanctionedPostsPage() {
       departmentId: p.departmentId,
       subject: p.subject || '',
       designation: p.designation,
-      category: p.category,
+      postType: p.postType || 'BUDGETED',
       sanctionedCount: p.sanctionedCount,
     });
     setShowForm(true);
@@ -132,8 +132,8 @@ export default function SanctionedPostsPage() {
 
   function exportCSV() {
     if (!vacancyData.length) return;
-    const headers = ['University','Department','Subject','Designation','Category','Sanctioned','Filled','Vacant'];
-    const rows = vacancyData.map((r) => [r.university,r.department,r.subject||'',r.designation,r.category,r.sanctioned,r.filled,r.vacant].join(','));
+    const headers = ['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant'];
+    const rows = vacancyData.map((r) => [r.university,r.department,r.subject||'',r.designation,r.postType||'',r.sanctioned,r.filled,r.vacant].join(','));
     const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vacancy-report.csv'; a.click();
   }
@@ -232,9 +232,9 @@ export default function SanctionedPostsPage() {
                 </select>
               </div>
               <div>
-                <label className={lbl}>Category *</label>
-                <select className={inp} value={form.category} onChange={(e) => update('category', e.target.value)}>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                <label className={lbl}>Type *</label>
+                <select className={inp} value={form.postType} onChange={(e) => update('postType', e.target.value)}>
+                  {postTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
@@ -262,7 +262,7 @@ export default function SanctionedPostsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {(isSuperAdmin ? ['University'] : []).concat(['Department','Subject','Designation','Category','Sanctioned Posts','Actions']).map((h) => (
+                    {(isSuperAdmin ? ['University'] : []).concat(['Department','Subject','Designation','Type','Sanctioned Posts','Actions']).map((h) => (
                       <th key={h} className={`px-4 py-3 align-middle font-semibold text-gray-600 ${h === 'Sanctioned Posts' ? 'text-center' : 'text-left'}`}>{h}</th>
                     ))}
                   </tr>
@@ -277,7 +277,7 @@ export default function SanctionedPostsPage() {
                         <td className="px-4 py-3">{p.department?.name}</td>
                         <td className="px-4 py-3">{p.subject || '-'}</td>
                         <td className="px-4 py-3">{p.designation}</td>
-                        <td className="px-4 py-3">{p.category}</td>
+                        <td className="px-4 py-3">{p.postType}</td>
                         <td className="px-4 py-3 text-center align-middle font-bold text-primary-700 tabular-nums">{p.sanctionedCount}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
@@ -305,7 +305,7 @@ export default function SanctionedPostsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {['University','Department','Subject','Designation','Category','Sanctioned','Filled','Vacant'].map((h) => (
+                    {['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant'].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
@@ -320,7 +320,7 @@ export default function SanctionedPostsPage() {
                         <td className="px-4 py-3">{row.department}</td>
                         <td className="px-4 py-3">{row.subject || '-'}</td>
                         <td className="px-4 py-3">{row.designation}</td>
-                        <td className="px-4 py-3">{row.category}</td>
+                        <td className="px-4 py-3">{row.postType}</td>
                         <td className="px-4 py-3 font-medium">{row.sanctioned}</td>
                         <td className="px-4 py-3 font-medium text-green-700">{row.filled}</td>
                         <td className="px-4 py-3 font-medium text-red-700">{row.vacant}</td>

@@ -20,6 +20,10 @@ export interface University {
   address?: string;
   city?: string;
   state?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  logoUrl?: string;
   _count?: { employees: number; departments: number };
 }
 

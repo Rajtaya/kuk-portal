@@ -20,7 +20,7 @@ export class SanctionedPostsController {
   constructor(private service: SanctionedPostsService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   create(@Body() dto: CreateSanctionedPostDto) {
     return this.service.create(dto);
   }
@@ -38,19 +38,19 @@ export class SanctionedPostsController {
   }
 
   @Put(':id')
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   update(@Param('id') id: string, @Body() dto: Partial<CreateSanctionedPostDto>) {
     return this.service.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   delete(@Param('id') id: string) {
     return this.service.delete(id);
   }
 
   @Post('bulk-upload')
-  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async bulkUpload(

@@ -41,7 +41,6 @@ export class SanctionedPostsService {
           universityId: post.universityId,
           departmentId: post.departmentId,
           designationPresent: { contains: post.designation, mode: 'insensitive' },
-          category: post.category,
           employmentStatus: 'ACTIVE',
           ...(post.subject ? { subject: { contains: post.subject, mode: 'insensitive' } } : {}),
         },
@@ -54,7 +53,7 @@ export class SanctionedPostsService {
         department: post.department.name,
         subject: post.subject,
         designation: post.designation,
-        category: post.category,
+        postType: post.postType,
         sanctioned: post.sanctionedCount,
         filled,
         vacant: post.sanctionedCount - filled,
@@ -92,18 +91,18 @@ export class SanctionedPostsService {
           deptCache.set(deptName.toLowerCase(), departmentId);
         }
 
-        const categoryRaw = (row['Category'] || 'GENERAL').toUpperCase();
-        const validCategories = ['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'];
-        const category = validCategories.includes(categoryRaw) ? categoryRaw : 'GENERAL';
+        const postTypeRaw = (row['Type'] || row['PostType'] || 'BUDGETED').toUpperCase();
+        const validPostTypes = ['BUDGETED','SFS','CONTRACTUAL'];
+        const postType = validPostTypes.includes(postTypeRaw) ? postTypeRaw : 'BUDGETED';
 
         await this.prisma.sanctionedPost.upsert({
           where: {
-            universityId_departmentId_designation_category_subject: {
+            universityId_departmentId_designation_subject_postType: {
               universityId,
               departmentId,
               designation,
-              category: category as any,
               subject: row['Subject'] || null,
+              postType: postType as any,
             },
           },
           update: { sanctionedCount: count },
@@ -111,8 +110,8 @@ export class SanctionedPostsService {
             universityId,
             departmentId,
             designation,
-            category: category as any,
             subject: row['Subject'] || null,
+            postType: postType as any,
             sanctionedCount: count,
           },
         });
