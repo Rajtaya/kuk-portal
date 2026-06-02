@@ -1,7 +1,8 @@
 import {
-  Controller, Get, Post, Put, Delete, Param, Body, Query,
+  Controller, Get, Post, Put, Delete, Param, Body, Query, Res,
   UseGuards, UseInterceptors, UploadedFile, ForbiddenException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -41,6 +42,43 @@ export class EmployeesController {
   getDashboardCharts(@Query('universityId') queryUniId: string, @CurrentUser() user: any) {
     const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : (queryUniId || undefined);
     return this.employeesService.getDashboardCharts(universityId);
+  }
+
+  @Get('template')
+  async downloadTemplate(@Res() res: Response) {
+    const XLSX = await import('xlsx');
+    const headers = [
+      'Employee Name', 'Employee ID', 'Department', 'Subject',
+      'Category', 'Category(Selection)', 'Type',
+      'Designation(appointment)', 'Designation (Present)',
+      'Gender', 'Date of Joining', 'Retirement Date',
+      'Employment Status', 'Mobile Number', 'Email Address',
+    ];
+    const sampleRow = {
+      'Employee Name': 'Dr. Rajesh Kumar',
+      'Employee ID': 'EMP001',
+      'Department': 'Computer Science',
+      'Subject': 'Data Structures',
+      'Category': 'GENERAL',
+      'Category(Selection)': 'GENERAL',
+      'Type': 'BUDGETED',
+      'Designation(appointment)': 'Assistant Professor',
+      'Designation (Present)': 'Associate Professor',
+      'Gender': 'MALE',
+      'Date of Joining': '2015-06-15',
+      'Retirement Date': '2045-06-30',
+      'Employment Status': 'ACTIVE',
+      'Mobile Number': '9876543210',
+      'Email Address': 'rajesh@example.ac.in',
+    };
+    const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
+    ws['!cols'] = headers.map((h) => ({ wch: Math.max(h.length + 2, 18) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="employee-upload-template.xlsx"');
+    res.send(buf);
   }
 
   @Get(':id')
