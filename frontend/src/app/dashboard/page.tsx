@@ -665,7 +665,8 @@ export default function DashboardPage() {
     );
   }
 
-  const { stats } = data;
+  // Top stat cards reflect the selected university (fall back to global totals for "all" or while its data loads)
+  const stats = (!isAllUni && uniData) ? uniData.stats : data.stats;
 
   // Click a university's bar in the main chart → drill the rest of the dashboard to that university
   const handleUniversityBarClick = (params: any) => {
@@ -696,6 +697,24 @@ export default function DashboardPage() {
           </select>
         )}
       </div>
+
+      {/* Scope indicator — makes clear the stats below reflect the selected university */}
+      {!isUniAdmin && !isAllUni && selectedUniName && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Showing data for {selectedUniName}
+          </span>
+          <button
+            onClick={() => { setSelectedUni('all'); setSubjectFilter(''); }}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+          >
+            View all universities
+          </button>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">

@@ -1,5 +1,21 @@
 # UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 5)
 
+> ## ⚠️ HIGHLIGHTED DATA NOTE — `Employee.subject` is unnormalized free-text
+>
+> **Discovered 2026-06-02 while scoping the dashboard stat cards per university.**
+>
+> - The employee `subject` field is **free-text**, not constrained to the `Subject` master table.
+> - **110 distinct** subject strings exist across employee records, vs **43** rows in the `Subject` master.
+> - **Consequence:** the dashboard "Subjects" stat card now reflects the selected university
+>   (distinct subjects among that university's employees), but the **global** card still shows the
+>   master count (43). So a single university can read **higher** than the global total
+>   (e.g. **MDU = 58 subjects** vs global **43**) — a child exceeding its parent.
+> - **Decision (per user):** keep current behavior (per-university distinct; global = 43 master) and
+>   track this here rather than changing it now.
+> - **Real fix (future):** normalize `Employee.subject` to the `Subject` master (dedupe variants/typos,
+>   map free-text → master ids), then both global and per-university counts become consistent.
+>   Alternatively, switch every count to "distinct-in-records" (global would then show ~110).
+
 ## What was done this session (Session 5 — 2026-06-01)
 
 ### 18. ECharts migration (major)
@@ -28,7 +44,7 @@
 - **CDN cache fix**: pages were cached by Railway edge for 1 year (`s-maxage=31536000`). Added `export const dynamic = 'force-dynamic'` to root layout + `Cache-Control: no-cache` headers in next.config.ts
 - **Dockerfile fix**: added `COPY --from=builder /app/public ./public` — logos/icons were 404'ing in production (standalone build doesn't auto-copy public/)
 - **TS build fix**: `postTypeDesignation` row typed as `Record<string, any>[]`
-- **Auto-deploy unavailable** on current Railway plan — must run `railway up -s frontend` / `-s backend` manually after `git push`
+- **Auto-deploy enabled** — `git push` to `main` auto-deploys both services on Railway
 
 ---
 
@@ -171,5 +187,5 @@ Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
 - **Deploy frontend:** `railway up -s frontend` **from `/Users/aarya/Desktop/KUKPortal/kuk-portal` (project root)**. ⚠️ Running from the wrong cwd uploads stale files and the deploy silently uses old code — this caused hours of "why isn't it updating" confusion in session 5. Always `cd` to project root first. If build fails, check TS errors first
 - **Railway CDN cache:** edge caches pages aggressively. Root layout has `export const dynamic = 'force-dynamic'` + `Cache-Control: no-cache` in next.config.ts to prevent stale pages. Don't remove these
 - **Dockerfile must copy public/:** standalone Next.js build does NOT auto-include `public/`. Dockerfile has `COPY --from=builder /app/public ./public` — without it, logos/icons 404 in production
-- **Auto-deploy unavailable** on current Railway plan — `git push` does NOT trigger a deploy. Must `railway up -s frontend`/`-s backend` manually
+- **Auto-deploy enabled** — `git push` to `main` auto-deploys both services on Railway
 - **DB sync:** `pg_dump` local → `pg_restore` to Railway. Always use `--clean --if-exists --no-owner --no-acl`. Railway DB creds in Current state table above

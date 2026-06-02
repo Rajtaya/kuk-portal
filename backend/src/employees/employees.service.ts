@@ -287,9 +287,11 @@ export class EmployeesService {
       stats: {
         universityCount: allUniversities.length,
         employeeCount: employees.length,
-        subjectCount,
+        // When scoped to a university, report that university's distinct subjects/designations
+        // (from its active employees) rather than the global master counts.
+        subjectCount: universityId ? subjectSet.size : subjectCount,
         vacantSeats: Math.max(0, vacantSeats),
-        designationCount,
+        designationCount: universityId ? designationSet.size : designationCount,
       },
       designationByUniversity: [...uniMap.entries()].map(([university, desigs]) => ({ university, ...desigs })),
       hierarchy: [...hMap.entries()].map(([id, { name, subs }]) => ({
