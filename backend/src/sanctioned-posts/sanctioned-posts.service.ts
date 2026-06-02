@@ -56,7 +56,8 @@ export class SanctionedPostsService {
         postType: post.postType,
         sanctioned: post.sanctionedCount,
         filled,
-        vacant: post.sanctionedCount - filled,
+        vacant: Math.max(0, post.sanctionedCount - filled),
+        excess: Math.max(0, filled - post.sanctionedCount),
       });
     }
 

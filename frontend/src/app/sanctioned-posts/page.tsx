@@ -28,6 +28,7 @@ interface VacancyRow {
   sanctioned: number;
   filled: number;
   vacant: number;
+  excess: number;
 }
 
 const designations = ['Professor','Associate Professor','Assistant Professor','Other Teaching Posts'];
@@ -126,14 +127,14 @@ export default function SanctionedPostsPage() {
   function update(key: string, value: string | number) { setForm((prev) => ({ ...prev, [key]: value })); }
 
   const totals = vacancyData.reduce(
-    (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
-    { sanctioned: 0, filled: 0, vacant: 0 },
+    (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
+    { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
 
   function exportCSV() {
     if (!vacancyData.length) return;
-    const headers = ['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant'];
-    const rows = vacancyData.map((r) => [r.university,r.department,r.subject||'',r.designation,r.postType||'',r.sanctioned,r.filled,r.vacant].join(','));
+    const headers = ['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant','Excess'];
+    const rows = vacancyData.map((r) => [r.university,r.department,r.subject||'',r.designation,r.postType||'',r.sanctioned,r.filled,r.vacant,r.excess||0].join(','));
     const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'vacancy-report.csv'; a.click();
   }
@@ -176,7 +177,7 @@ export default function SanctionedPostsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-orange-700">{totals.sanctioned}</p>
           <p className="text-sm text-orange-600">Sanctioned</p>
@@ -188,6 +189,10 @@ export default function SanctionedPostsPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-red-700">{totals.vacant}</p>
           <p className="text-sm text-red-600">Vacant</p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-amber-700">{totals.excess}</p>
+          <p className="text-sm text-amber-600">Excess</p>
         </div>
       </div>
 
@@ -305,14 +310,14 @@ export default function SanctionedPostsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant'].map((h) => (
+                    {['University','Department','Subject','Designation','Type','Sanctioned','Filled','Vacant','Excess'].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {vacancyData.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center py-12 text-gray-400">No vacancy data</td></tr>
+                    <tr><td colSpan={9} className="text-center py-12 text-gray-400">No vacancy data</td></tr>
                   ) : (
                     vacancyData.map((row) => (
                       <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -324,6 +329,7 @@ export default function SanctionedPostsPage() {
                         <td className="px-4 py-3 font-medium">{row.sanctioned}</td>
                         <td className="px-4 py-3 font-medium text-green-700">{row.filled}</td>
                         <td className="px-4 py-3 font-medium text-red-700">{row.vacant}</td>
+                        <td className="px-4 py-3 font-medium text-amber-700">{row.excess || 0}</td>
                       </tr>
                     ))
                   )}
