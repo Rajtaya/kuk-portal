@@ -660,7 +660,7 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <Breadcrumb items={[{ label: 'Dashboard', icon: 'dashboard' }]} />
         <StatsSkeleton count={5} />
-        <div className="animate-pulse bg-gray-200 rounded-xl h-[460px]" />
+        <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl h-[460px]" />
       </div>
     );
   }
@@ -675,7 +675,7 @@ export default function DashboardPage() {
           <select
             value={selectedUni}
             onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[220px]"
+            className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 shadow-sm min-w-[220px]"
           >
             <option value="all">All Universities</option>
             {data.universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
@@ -686,25 +686,25 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
         {!isUniAdmin && (
-          <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
-            <div><p className="text-xs md:text-sm text-gray-500">Universities</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.universityCount}</p></div>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
+            <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Universities</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.universityCount}</p></div>
             <StatIcon type="university" />
           </div>
         )}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500">Employees</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.employeeCount.toLocaleString()}</p></div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Employees</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.employeeCount.toLocaleString()}</p></div>
           <StatIcon type="employees" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500">Subjects</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.subjectCount}</p></div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Subjects</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.subjectCount}</p></div>
           <StatIcon type="subjects" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500">Vacant Seats</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.vacantSeats.toLocaleString()}</p></div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Vacant Seats</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
           <StatIcon type="vacant" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500">Designations</p><p className="text-2xl md:text-3xl font-bold text-gray-900">{stats.designationCount}</p></div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
+          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Designations</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.designationCount}</p></div>
           <StatIcon type="designations" />
         </div>
       </div>

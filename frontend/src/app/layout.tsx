@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/components/ui/toast';
+import { DarkModeProvider } from '@/lib/dark-mode-context';
+import { CommandPalette } from '@/components/ui/command-palette';
 
 // Prevent Railway CDN from caching stale pages
 export const dynamic = 'force-dynamic';
@@ -33,14 +35,25 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* Apply saved theme before paint to avoid a flash of the wrong mode */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var d=localStorage.getItem('dark-mode');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(d==='true'||(d===null&&m)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className={inter.className}>
-        <AuthProvider><ToastProvider>{children}</ToastProvider></AuthProvider>
+        <DarkModeProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+            <CommandPalette />
+          </AuthProvider>
+        </DarkModeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

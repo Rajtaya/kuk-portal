@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 type ReportKey = string;
 
@@ -48,6 +50,16 @@ export default function ReportsPage() {
   const [search, setSearch] = useState('');
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setExportOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const isSuperOrState = user?.role === 'SUPER_ADMIN' || user?.role === 'STATE_USER';
   const allReports = [...(isSuperOrState ? stateReports : []), ...commonReports];
@@ -67,19 +79,15 @@ export default function ReportsPage() {
     }
   }
 
-  function exportCSV() {
-    if (!reportData.length) return;
-    const headers = Object.keys(reportData[0]);
-    const csv = [headers.join(','), ...reportData.map((row) => headers.map((h) => {
-      const val = row[h];
-      if (val instanceof Object) return JSON.stringify(val);
-      return JSON.stringify(val ?? '');
-    }).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${activeReport}-report.csv`;
-    a.click();
+  function doExport(fmt: 'csv' | 'excel' | 'pdf') {
+    if (!sorted.length) return;
+    const cols = columns.map((k) => ({ key: k, label: formatHeader(k) }));
+    const title = allReports.find((r) => r.key === activeReport)?.label || 'Report';
+    const name = `${activeReport}-report`;
+    if (fmt === 'csv') exportToCSV(name, cols, sorted);
+    else if (fmt === 'excel') exportToExcel(name, cols, sorted);
+    else exportToPDF(title, cols, sorted);
+    setExportOpen(false);
   }
 
   function flattenRow(row: any): Record<string, any> {
@@ -138,8 +146,8 @@ export default function ReportsPage() {
     <div>
       <Breadcrumb items={[{ label: 'Reports', icon: 'report' }]} />
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Reports</h2>
-        <p className="text-sm text-gray-500 mt-1">Generate and export detailed reports</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Generate and export detailed reports</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -151,8 +159,8 @@ export default function ReportsPage() {
               onClick={() => loadReport(report.key)}
               className={`group text-left p-5 rounded-2xl border-2 transition-all duration-200 ${
                 isActive
-                  ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/10'
-                  : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-md hover:-translate-y-0.5'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg shadow-blue-500/10'
+                  : 'border-gray-100 bg-white dark:bg-gray-900 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md hover:-translate-y-0.5'
               }`}
             >
               <div className="flex items-start gap-4">
@@ -162,8 +170,8 @@ export default function ReportsPage() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <h3 className={`font-semibold text-sm leading-tight ${isActive ? 'text-blue-700' : 'text-gray-900'}`}>{report.label}</h3>
-                  <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{report.description}</p>
+                  <h3 className={`font-semibold text-sm leading-tight ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>{report.label}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">{report.description}</p>
                 </div>
               </div>
             </button>
@@ -172,9 +180,9 @@ export default function ReportsPage() {
       </div>
 
       {activeReport && (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
           {/* Header bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/60 dark:to-gray-900">
             <div className="flex items-center gap-3">
               {(() => {
                 const r = allReports.find((r) => r.key === activeReport);
@@ -187,8 +195,8 @@ export default function ReportsPage() {
                 ) : null;
               })()}
               <div>
-                <h3 className="font-bold text-gray-900">{allReports.find((r) => r.key === activeReport)?.label}</h3>
-                <p className="text-xs text-gray-500">{sorted.length} records{search ? ` (filtered from ${flatData.length})` : ''}</p>
+                <h3 className="font-bold text-gray-900 dark:text-white">{allReports.find((r) => r.key === activeReport)?.label}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{sorted.length} records{search ? ` (filtered from ${flatData.length})` : ''}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -202,7 +210,7 @@ export default function ReportsPage() {
                   placeholder="Search in results..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full sm:w-56 pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                  className="w-full sm:w-56 pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -213,28 +221,37 @@ export default function ReportsPage() {
                 )}
               </div>
               {/* Export */}
-              <button onClick={exportCSV} disabled={!reportData.length} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm shrink-0">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export CSV
-              </button>
+              <div className="relative shrink-0" ref={exportRef}>
+                <button onClick={() => setExportOpen(!exportOpen)} disabled={!reportData.length} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </button>
+                {exportOpen && (
+                  <div className="absolute right-0 top-11 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 w-40">
+                    <button onClick={() => doExport('csv')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">CSV (.csv)</button>
+                    <button onClick={() => doExport('excel')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Excel (.xlsx)</button>
+                    <button onClick={() => doExport('pdf')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">PDF (print)</button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Table */}
           {loading ? (
             <div className="p-20 text-center">
-              <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-10 h-10 border-3 border-gray-200 dark:border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
               <p className="text-gray-400 text-sm">Loading report...</p>
             </div>
           ) : sorted.length === 0 ? (
-            <div className="p-20 text-center">
-              <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-gray-400 text-sm">{search ? 'No matching records found' : 'No data available'}</p>
-            </div>
+            <EmptyState
+              icon={search ? '🔍' : '📄'}
+              title={search ? 'No matching records' : 'No data available'}
+              description={search ? 'Try a different search term.' : 'This report returned no rows.'}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -265,7 +282,7 @@ export default function ReportsPage() {
                 </thead>
                 <tbody>
                   {sorted.map((row, i) => (
-                    <tr key={i} className={`border-b border-gray-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-blue-50/40`}>
+                    <tr key={i} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-blue-50/40 dark:hover:bg-gray-800/60`}>
                       <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
                       {columns.map((k) => {
                         let val = row[k];
@@ -275,7 +292,7 @@ export default function ReportsPage() {
                         const isNum = numericCols.has(k);
                         const display = String(val ?? '-');
                         return (
-                          <td key={k} className={`px-4 py-3 whitespace-nowrap align-middle ${isNum ? 'text-center font-semibold text-gray-900 tabular-nums' : 'text-gray-700'}`}>
+                          <td key={k} className={`px-4 py-3 whitespace-nowrap align-middle ${isNum ? 'text-center font-semibold text-gray-900 dark:text-gray-100 tabular-nums' : 'text-gray-700 dark:text-gray-300'}`}>
                             {display}
                           </td>
                         );
@@ -289,7 +306,7 @@ export default function ReportsPage() {
 
           {/* Footer */}
           {sorted.length > 0 && (
-            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-gray-500">
+            <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>Showing {sorted.length} of {flatData.length} records</span>
               <span>Click column headers to sort</span>
             </div>

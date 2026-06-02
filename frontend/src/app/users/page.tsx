@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { University } from '@/lib/types';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface UserRecord {
   id: string;
@@ -100,15 +101,15 @@ export default function UsersPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500';
-  const lbl = 'block text-sm font-medium text-gray-700 mb-1';
+  const inp = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500';
+  const lbl = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-500 mt-1">{users.length} users</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{users.length} users</p>
         </div>
         <button onClick={openCreate} className="px-4 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
           Add User
@@ -116,9 +117,9 @@ export default function UsersPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">{editing ? 'Edit User' : 'Create User'}</h3>
-          {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{editing ? 'Edit User' : 'Create User'}</h3>
+          {error && <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
 
           <form onSubmit={handleSave}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -155,7 +156,7 @@ export default function UsersPage() {
               <button type="submit" disabled={saving} className="px-5 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors">
                 {saving ? 'Saving...' : editing ? 'Update User' : 'Create User'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 dark:border-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 Cancel
               </button>
             </div>
@@ -163,23 +164,26 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        {users.length === 0 ? (
+          <EmptyState icon="👤" title="No users yet" description="Add a user to grant access to the portal." action={{ label: 'Add User', onClick: openCreate }} />
+        ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Role</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">University</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+            <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800">
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Name</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Email</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Role</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">University</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Status</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <tr key={u.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-900 dark:text-gray-200">
                 <td className="px-4 py-3 font-medium">{u.name}</td>
-                <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{u.email}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     u.role === 'SUPER_ADMIN' ? 'bg-red-50 text-red-700' :
@@ -207,6 +211,7 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
     </div>
   );

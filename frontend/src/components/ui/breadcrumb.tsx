@@ -17,8 +17,8 @@ const ICONS: Record<string, string> = {
 
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="flex items-center gap-1.5 text-sm text-gray-400 mb-5">
-      <Link href="/dashboard" className="hover:text-gray-600">
+    <nav className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 mb-5">
+      <Link href="/dashboard" className="hover:text-gray-600 dark:hover:text-gray-300">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.home} />
         </svg>
@@ -34,9 +34,9 @@ export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
             </svg>
           )}
           {item.href ? (
-            <Link href={item.href} className="hover:text-gray-600">{item.label}</Link>
+            <Link href={item.href} className="hover:text-gray-600 dark:hover:text-gray-300">{item.label}</Link>
           ) : (
-            <span className="text-gray-700 font-medium">{item.label}</span>
+            <span className="text-gray-700 dark:text-gray-200 font-medium">{item.label}</span>
           )}
         </span>
       ))}

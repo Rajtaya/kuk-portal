@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 body {
   @apply bg-gray-50 text-gray-900;
+}
+html.dark body {
+  @apply bg-gray-950 text-gray-100;
 }
 
 /* Remove focus outlines on all SVG chart elements */

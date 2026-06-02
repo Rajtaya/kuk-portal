@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { useToast } from '@/components/ui/toast';
+import { EmptyState } from '@/components/ui/empty-state';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 interface ColDef {
   key: string;
@@ -47,6 +49,8 @@ export default function EmployeesPage() {
   const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_VISIBLE);
   const [colMenuOpen, setColMenuOpen] = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -64,6 +68,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) setColMenuOpen(false);
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) setExportMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -126,8 +131,8 @@ export default function EmployeesPage() {
     } catch { toast('Failed to delete employee', 'error'); }
   };
 
-  const handleExport = () => {
-    const rows = data.data.map((e, i) => ({
+  const buildExportRows = () =>
+    data.data.map((e, i) => ({
       'Sr.No.': i + 1 + (data.page - 1) * 20,
       'University Name': e.university?.name || '',
       'University Code': e.university?.code || '',
@@ -141,13 +146,15 @@ export default function EmployeesPage() {
       'Post Type': e.postType,
       'Status': e.employmentStatus,
     }));
-    const header = Object.keys(rows[0] || {}).join(',');
-    const csv = [header, ...rows.map(r => Object.values(r).map(v => `"${v}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'employees.csv'; a.click();
-    URL.revokeObjectURL(url);
+
+  const handleExport = (fmt: 'csv' | 'excel' | 'pdf') => {
+    const rows = buildExportRows();
+    if (!rows.length) { toast('Nothing to export', 'error'); return; }
+    const cols = Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
+    if (fmt === 'csv') exportToCSV('employees', cols, rows);
+    else if (fmt === 'excel') exportToExcel('employees', cols, rows);
+    else exportToPDF('Employees', cols, rows);
+    setExportMenuOpen(false);
   };
 
   return (
@@ -156,7 +163,7 @@ export default function EmployeesPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
           </svg>
@@ -174,7 +181,7 @@ export default function EmployeesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:border-blue-500"
+              className="pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg text-sm w-64 focus:outline-none focus:border-blue-500"
             />
           </div>
           {canWrite && (
@@ -186,24 +193,34 @@ export default function EmployeesPage() {
             </Link>
           )}
           {canWrite && (
-            <Link href="/employees/upload" className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <Link href="/employees/upload" className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
               Upload Excel
             </Link>
           )}
-          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Download Excel
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setExportMenuOpen(!exportMenuOpen)} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </button>
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 w-40">
+                <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">CSV (.csv)</button>
+                <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">Excel (.xlsx)</button>
+                <button onClick={() => handleExport('pdf')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">PDF (print)</button>
+              </div>
+            )}
+          </div>
           {/* Column visibility toggle */}
           <div className="relative" ref={colMenuRef}>
             <button
               onClick={() => setColMenuOpen(!colMenuOpen)}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               title="Show/Hide Columns"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -212,10 +229,10 @@ export default function EmployeesPage() {
               Columns
             </button>
             {colMenuOpen && (
-              <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-2 w-56">
+              <div className="absolute right-0 top-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-2 w-56">
                 <p className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase">Toggle Columns</p>
                 {ALL_COLUMNS.map((col) => (
-                  <label key={col.key} className={`flex items-center gap-3 px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 ${col.alwaysOn ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label key={col.key} className={`flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${col.alwaysOn ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="checkbox"
                       checked={visibleCols.includes(col.key)}
@@ -243,7 +260,7 @@ export default function EmployeesPage() {
       <div className="flex items-center gap-2 mb-4">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${showFilters ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${showFilters ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300' : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
@@ -273,14 +290,14 @@ export default function EmployeesPage() {
       </div>
 
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 shadow-sm">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* University */}
             {user?.role !== 'UNIVERSITY_ADMIN' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">University</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">University</label>
                 <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                  className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                   <option value="">All</option>
                   {universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
                 </select>
@@ -288,9 +305,9 @@ export default function EmployeesPage() {
             )}
             {/* Gender */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Gender</label>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Gender</label>
               <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -299,18 +316,18 @@ export default function EmployeesPage() {
             </div>
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Category</label>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Category</label>
               <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
                 {['GENERAL','SC','ST','OBC','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {/* Post Type */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Post Type</label>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Post Type</label>
               <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
                 <option value="BUDGETED">Budgeted</option>
                 <option value="SFS">Self Financed</option>
@@ -319,9 +336,9 @@ export default function EmployeesPage() {
             </div>
             {/* Status */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Status</label>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Status</label>
               <select value={filters.employmentStatus || ''} onChange={(e) => applyFilter('employmentStatus', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
                 <option value="ACTIVE">Active</option>
                 <option value="RETIRED">Retired</option>
@@ -332,9 +349,9 @@ export default function EmployeesPage() {
             </div>
             {/* Designation */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Designation</label>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Designation</label>
               <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
                 <option value="">All</option>
                 <option value="Professor">Professor</option>
                 <option value="Associate Professor">Associate Professor</option>
@@ -349,7 +366,7 @@ export default function EmployeesPage() {
       {loading && <TableSkeleton rows={10} cols={activeCols.length} />}
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -363,20 +380,27 @@ export default function EmployeesPage() {
             <tbody>
               {data.data.length === 0 ? (
                 <tr>
-                  <td colSpan={activeCols.length + 1} className="text-center py-16 text-gray-400">No records found</td>
+                  <td colSpan={activeCols.length + 1} className="p-0">
+                    <EmptyState
+                      icon="🧑‍🏫"
+                      title="No employees found"
+                      description={activeFilterCount > 0 || search ? 'No employees match your current filters.' : 'There are no employee records to show yet.'}
+                      action={canWrite ? { label: 'Add Employee', onClick: () => router.push('/employees/new') } : undefined}
+                    />
+                  </td>
                 </tr>
               ) : (
                 data.data.map((emp, i) => (
-                  <tr key={emp.id} className={`border-b border-gray-100 hover:bg-blue-50/50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                  <tr key={emp.id} className={`border-b border-gray-100 dark:border-gray-800 hover:bg-blue-50/50 dark:hover:bg-gray-800/50 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/40 dark:bg-gray-800/30'}`}>
                     {activeCols.map((col) => (
-                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''}`}>{col.render(emp, i, data.page)}</td>
+                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''}`}>{col.render(emp, i, data.page)}</td>
                     ))}
                     <td className="px-3 py-2.5 sticky right-0 bg-inherit">
                       <div className="flex items-center justify-center gap-2">
                         {/* View */}
                         <button
                           onClick={() => router.push(`/employees/${emp.id}`)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                          className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                           title="View"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -418,23 +442,23 @@ export default function EmployeesPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-          <p className="text-sm text-gray-500">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Showing {data.data.length} of {data.total} records
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => fetchEmployees(data.page - 1, filters)}
               disabled={data.page <= 1}
-              className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-40 hover:bg-white dark:hover:bg-gray-800 transition-colors"
             >
               Previous
             </button>
-            <span className="text-sm text-gray-600">Page {data.page} of {data.totalPages}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Page {data.page} of {data.totalPages}</span>
             <button
               onClick={() => fetchEmployees(data.page + 1, filters)}
               disabled={data.page >= data.totalPages}
-              className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-white transition-colors"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-40 hover:bg-white dark:hover:bg-gray-800 transition-colors"
             >
               Next
             </button>
