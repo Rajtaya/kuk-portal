@@ -9,7 +9,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('reports')
 export class ReportsController {
   constructor(private reportsService: ReportsService) {}
@@ -19,7 +19,6 @@ export class ReportsController {
   }
 
   @Get('university-wise')
-  @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   universityWiseReport() {
     return this.reportsService.universityWiseReport();
@@ -64,7 +63,6 @@ export class ReportsController {
   }
 
   @Get('employee-strength')
-  @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.STATE_USER)
   employeeStrengthReport() {
     return this.reportsService.employeeStrengthReport();

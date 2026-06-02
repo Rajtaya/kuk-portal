@@ -84,6 +84,7 @@ export class EmployeesService {
   }
 
   async bulkImport(rows: Record<string, any>[], universityId: string) {
+    if (rows.length > 5000) throw new Error('Maximum 5000 rows per upload');
     const results = { success: 0, failed: 0, errors: [] as string[], total: rows.length };
     const deptCache = new Map<string, string>();
 

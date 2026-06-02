@@ -22,7 +22,7 @@ export class AuditInterceptor implements NestInterceptor {
           action,
           entity,
           entityId: result?.id || request.params?.id,
-          changes: method !== 'DELETE' ? body : null,
+          changes: method !== 'DELETE' ? (() => { const { password, ...safe } = body || {}; return safe; })() : null,
           ipAddress: request.ip,
         });
       }),
