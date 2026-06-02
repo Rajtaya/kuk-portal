@@ -1,4 +1,4 @@
-# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 5)
+# UEMS Session Handoff — 2026-06-02 (Updated 2026-06-02 session 7)
 
 > ## ⚠️ HIGHLIGHTED DATA NOTE — `Employee.subject` is unnormalized free-text
 >
@@ -16,7 +16,34 @@
 >   map free-text → master ids), then both global and per-university counts become consistent.
 >   Alternatively, switch every count to "distinct-in-records" (global would then show ~110).
 
-## What was done this session (Session 5 — 2026-06-01)
+## What was done this session (Session 7 — 2026-06-02)
+
+> Session 6 (2026-06-02, UI/UX batches 1–2: commits `e775cd7`, `089f4dc`) is logged separately in `HANDOFF_busy _error.md`.
+
+### 26. UI/UX feature pass (commit `cb4baf2`)
+- **Dark mode** — class-based Tailwind (`darkMode: 'class'`), `DarkModeProvider`/`useDarkMode` (`src/lib/dark-mode-context.tsx`), FOUC-prevention script in root layout, toggle in the sidebar footer + mobile top bar. Dark coverage across shared components and all main pages. **Dashboard ECharts cards intentionally kept light** (axis/label colors are tuned for a light background).
+- **Cmd/Ctrl+K command palette** (`src/components/ui/command-palette.tsx`) — role-aware navigation + theme/logout actions.
+- **Empty states** (`src/components/ui/empty-state.tsx`) — wired into the shared `DataTable` and the employees / sanctioned-posts / reports / users lists.
+- **Mobile card view** — shared `DataTable` renders cards below the `md` breakpoint.
+- **Export** (`src/lib/export-utils.ts`) — CSV, Excel (via the already-installed `xlsx`), and PDF (dependency-free browser print window; no jsPDF). Wired into employees, the sanctioned-posts vacancy report, and reports.
+
+### 27. Dashboard interactivity & chart fixes
+- **Click-to-drill (`be624e7`)** — clicking a university's bar in the main "Employee Distribution by Designation" chart resolves that university and sets `selectedUni`, so the dropdown + every drill-down chart switch to it. No-op for University Admins.
+- **Sunburst outer labels (`fb5262d`)** — the designation (46–70%) and post-type (70–92%) rings were `label:{show:false}`; re-enabled radial labels with a `minAngle` declutter threshold, truncation, and a text outline.
+- **Category chart labels (`73a8b20`)** — the Category-wise x-axis had no `interval`, so ECharts auto-hid some labels; set `interval:0` + rotation + wider bottom grid so all categories show.
+- **Top stat cards reflect the selected university (`217cdfc`)** — backend `dashboard-charts` now scopes `subjectCount`/`designationCount` to the selected university (global keeps master counts); frontend cards read the selected university's stats; added a "Showing data for <University>" scope chip with a "View all universities" reset. **See the highlighted DATA NOTE at the top** re: free-text `Employee.subject`.
+
+### 28. Removed OBC category — Haryana has no OBC (commit `0ba6d8f`)
+- Haryana uses **BC-A** and **BC-B**, not OBC. Removed `OBC` from the Prisma `Category` enum, backend bulk-upload validation, the frontend `Category` type, the employee filter + add-employee dropdowns, and the badge color map.
+- **Data migration (local + Railway):** the **234** employees categorized OBC in *each* of `category` and `categorySelection` were **split evenly into BC-A / BC-B** (Postgres won't drop an in-use enum value, so data was remapped first). Railway's startup `prisma db push --accept-data-loss` then dropped the enum value on deploy.
+- **Verified live:** Railway `Category` enum is now `GENERAL,SC,ST,EWS,BCA,BCB,PWD,ESM`.
+- **Related, NOT done:** Haryana also has **no ST** category (0 ST rows; the `ST` enum value is unused but left in place). Remove the same way if desired.
+
+### Local-dev notes (this session)
+- The `:3000` server was a **production build baked to the Railway API** — restarted it as a clean `next dev` (with `NEXT_PUBLIC_API_URL` unset) so it proxies `/api` → local `:4000`. Backend runs the **compiled** `node dist/src/main.js` (not watch); rebuild with `./node_modules/.bin/tsc -p tsconfig.json` (the `nest` CLI was broken by two corrupted `node_modules` packages — `semver`, `magic-string` — fixed via `rm -rf node_modules/<pkg> && npm install`).
+- **Gotcha:** running `next build` while `next dev` is up clobbers the dev server's `.next` (blank pages). If that happens: kill `:3000`, `rm -rf .next`, restart `next dev`.
+
+## What was done in Session 5 — 2026-06-01
 
 ### 18. ECharts migration (major)
 - Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`). ~40% less code (1115→~520 lines), native sunburst with built-in drill-down, removed all manual hover state. See detailed notes further down.
@@ -97,7 +124,7 @@
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/kuk-portal |
-| **Latest commit** | `d4315bc` on `main` |
+| **Latest commit** | `0ba6d8f` on `main` (session 7 — OBC category removed) |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
 | **Universities** | 12 |
