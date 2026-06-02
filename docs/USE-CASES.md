@@ -33,10 +33,10 @@
               └─────────────┘           └─────────────┘
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |       Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| Login | Yes | Yes | Yes |
-| View Profile | Yes | Yes | Yes |
+| Login           | Yes | Yes | Yes |
+| View Profile    | Yes | Yes | Yes |
 
 ---
 
@@ -51,11 +51,11 @@
             └── View University Stats ◄── State User, University Admin (read-only)
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |            Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| Create University | Yes | No | No |
-| Edit University | Yes | No | No |
-| View Universities | Yes | Yes | Yes |
+| Create University     | Yes | No | No |
+| Edit University       | Yes | No | No |
+| View Universities     | Yes | Yes | Yes |
 | View University Stats | Yes | Yes | Yes |
 
 ---
@@ -74,15 +74,15 @@
             └── Export CSV ◄── Super Admin, State User
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |                   Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| Add Employee | No | No | Yes |
-| Edit Employee | No | No | Yes |
-| Delete Employee | No | No | Yes |
-| Bulk Upload Excel | No | No | Yes |
-| View Employee List | Yes (all) | Yes (all) | Yes (own university) |
-| View Employee Detail | Yes | Yes | Yes (own) |
-| Export CSV | Yes | Yes | Yes |
+| Add Employee                | No | No | Yes |
+| Edit Employee               | No | No | Yes |
+| Delete Employee             | No | No | Yes |
+| Bulk Upload Excel           | No | No | Yes |
+| View Employee List          | Yes (all) | Yes (all) | Yes (own university) |
+| View Employee Detail        | Yes | Yes | Yes (own) |
+| Export CSV                  | Yes | Yes | Yes |
 | Filter (PostType, Designation, University, Category, Gender, Status) | Yes | Yes | Yes |
 
 ---
@@ -101,15 +101,15 @@
             └── Export Vacancy CSV ◄── University Admin (read-only)
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |                  Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| Create Sanctioned Post | Yes | Yes | No |
-| Edit Sanctioned Post | Yes | Yes | No |
-| Delete Sanctioned Post | Yes | Yes | No |
-| Bulk Upload | Yes | Yes | No |
-| View Posts | Yes (all) | Yes (all) | Yes (own university) |
-| View Vacancy Report | Yes | Yes | Yes (own) |
-| Export Vacancy CSV | Yes | Yes | Yes |
+| Create Sanctioned Post      | Yes | Yes | No |
+| Edit Sanctioned Post        | Yes | Yes | No |
+| Delete Sanctioned Post      | Yes | Yes | No |
+| Bulk Upload                 | Yes | Yes | No |
+| View Posts                  | Yes (all) | Yes (all) | Yes (own university) |
+| View Vacancy Report         | Yes | Yes | Yes (own) |
+| Export Vacancy CSV          | Yes | Yes | Yes |
 
 ---
 
@@ -128,10 +128,10 @@
             └── Sanction vs Present Chart
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |            Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
 | View Dashboard Stats | Yes (all) | Yes (all) | Yes (own university) |
-| View All Charts | Yes (all) | Yes (all) | Yes (own university) |
+| View All Charts      | Yes (all) | Yes (all) | Yes (own university) |
 | Filter by University | Yes | Yes | No (auto-filtered) |
 
 ---
@@ -153,11 +153,11 @@
             └── Employee Directory
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |                  Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| University-wise Report | Yes | Yes | No |
-| Employee Strength Report | Yes | Yes | No |
-| All Other Reports | Yes | Yes | Yes (own university) |
+| University-wise Report      | Yes | Yes | No |
+| Employee Strength Report    | Yes | Yes | No |
+| All Other Reports           | Yes | Yes | Yes (own university) |
 
 ---
 
@@ -172,12 +172,12 @@
             └── View User List
 ```
 
-| Use Case | Super Admin | State User | University Admin |
+| Use Case |      Super Admin | State User | University Admin |
 |----------|:-:|:-:|:-:|
-| Create User | Yes | No | No |
-| Edit User | Yes | No | No |
-| Toggle Active | Yes | No | No |
-| View Users | Yes | No | No |
+| Create User     | Yes | No | No |
+| Edit User       | Yes | No | No |
+| Toggle Inactive | Yes | No | No |
+| View Users      | Yes | No | No |
 
 ---
 
@@ -233,18 +233,18 @@
 
 ## Complete Access Matrix
 
-| Module | Super Admin | State User | University Admin |
+| Module |                    Super Admin | State User | University Admin |
 |--------|:-:|:-:|:-:|
-| **Login / Profile** | RW | RW | RW |
-| **Universities** | RW | R | R |
-| **Employees** | R | R | RW (own) |
-| **Sanctioned Posts** | RW | RW | R |
-| **Dashboard / Charts** | R (all) | R (all) | R (own) |
-| **Reports** | R (all) | R (all) | R (own) |
-| **Users** | RW | — | — |
-| **Master Data** | RW | R | R |
-| **Departments** | RW | RW | RW |
-| **Documents** | RW | RW | RW |
-| **Audit Logs** | R | — | — |
+| **Login / Profile**               | RW | RW | RW |
+| **Universities**                  | RW | R | R |
+| **Employees**                     | R | R | RW (own) |
+| **Sanctioned  Posts**             | RW | RW | R |
+| **Dashboard / Charts**            | R (all) | R (all) | R (own) |
+| **Reports**                       | R (all) | R (all) | R (own) |
+| **Users**                         | RW | — | — |
+| **Master Data**                   | RW | R | R |
+| **Departments**                   | RW | RW | RW |
+| **Documents**                     | RW | RW | RW |
+| **Audit Logs**                    | R | — | — |
 
 _RW = Read/Write, R = Read-only, — = No access_
