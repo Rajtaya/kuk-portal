@@ -15,7 +15,8 @@ async function bootstrap() {
   app.use(helmet());
   app.setGlobalPrefix('api');
 
-  const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || 'http://localhost:3000').split(',');
+  const corsEnv = process.env.CORS_ORIGIN || process.env.CORS_ORIGINS;
+  const allowedOrigins = corsEnv ? corsEnv.split(',') : true;
   app.enableCors({ origin: allowedOrigins, credentials: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
