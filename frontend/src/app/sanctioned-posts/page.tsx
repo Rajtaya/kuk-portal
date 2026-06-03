@@ -63,6 +63,8 @@ export default function SanctionedPostsPage() {
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [exportOpen, setExportOpen] = useState(false);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
   const fixedUniversityId = !isSuperAdmin ? user?.university?.id || '' : '';
@@ -155,15 +157,68 @@ export default function SanctionedPostsPage() {
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
 
+  // Available filter options (computed from data)
+  const availableFilters = useMemo(() => {
+    const src = tab === 'vacancy' ? vacancyData : posts;
+    if (!src.length) return [];
+    const defs: { key: string; label: string; values: string[] }[] = [];
+
+    if (isSuperAdmin) {
+      const unis = [...new Set(tab === 'vacancy'
+        ? vacancyData.map(r => r.universityCode)
+        : posts.map(p => p.university?.code).filter(Boolean) as string[]
+      )].sort();
+      if (unis.length > 1) defs.push({ key: 'university', label: 'University', values: unis });
+    }
+
+    const desigs = [...new Set(tab === 'vacancy'
+      ? vacancyData.map(r => r.designation)
+      : posts.map(p => p.designation)
+    )].sort();
+    if (desigs.length > 1) defs.push({ key: 'designation', label: 'Designation', values: desigs });
+
+    const types = [...new Set(tab === 'vacancy'
+      ? vacancyData.map(r => r.postType)
+      : posts.map(p => p.postType)
+    )].sort();
+    if (types.length > 1) defs.push({ key: 'postType', label: 'Post Type', values: types });
+
+    const subjects = [...new Set(tab === 'vacancy'
+      ? vacancyData.map(r => r.subject).filter(Boolean) as string[]
+      : posts.map(p => p.subject).filter(Boolean) as string[]
+    )].sort();
+    if (subjects.length > 1) defs.push({ key: 'subject', label: 'Subject', values: subjects });
+
+    return defs;
+  }, [tab, posts, vacancyData, isSuperAdmin]);
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  function clearAllFilters() { setFilters({}); setSearch(''); }
+
+  function matchesFilters(row: any, isVacancy: boolean): boolean {
+    return Object.entries(filters).every(([key, val]) => {
+      if (!val) return true;
+      if (key === 'university') return isVacancy ? row.universityCode === val : row.university?.code === val;
+      if (key === 'designation') return row.designation === val;
+      if (key === 'postType') return row.postType === val;
+      if (key === 'subject') return (row.subject || '') === val;
+      return true;
+    });
+  }
+
   // Filtered + sorted vacancy data
   const filteredVacancy = useMemo(() => {
-    if (!search.trim()) return vacancyData;
-    const q = search.toLowerCase();
-    return vacancyData.filter(r =>
-      [r.universityCode, r.university, r.department, r.subject, r.designation, r.postType]
-        .some(v => String(v ?? '').toLowerCase().includes(q))
-    );
-  }, [vacancyData, search]);
+    let data = vacancyData.filter(r => matchesFilters(r, true));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(r =>
+        [r.universityCode, r.university, r.department, r.subject, r.designation, r.postType]
+          .some(v => String(v ?? '').toLowerCase().includes(q))
+      );
+    }
+    return data;
+  }, [vacancyData, search, filters]);
 
   const sortedVacancy = useMemo(() => {
     if (!sortCol) return filteredVacancy;
@@ -178,13 +233,16 @@ export default function SanctionedPostsPage() {
 
   // Filtered + sorted manage data
   const filteredPosts = useMemo(() => {
-    if (!search.trim()) return posts;
-    const q = search.toLowerCase();
-    return posts.filter(p =>
-      [p.university?.code, p.university?.name, p.department?.name, p.subject, p.designation, p.postType, String(p.sanctionedCount)]
-        .some(v => String(v ?? '').toLowerCase().includes(q))
-    );
-  }, [posts, search]);
+    let data = posts.filter(p => matchesFilters(p, false));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(p =>
+        [p.university?.code, p.university?.name, p.department?.name, p.subject, p.designation, p.postType, String(p.sanctionedCount)]
+          .some(v => String(v ?? '').toLowerCase().includes(q))
+      );
+    }
+    return data;
+  }, [posts, search, filters]);
 
   const sortedPosts = useMemo(() => {
     if (!sortCol) return filteredPosts;
@@ -297,7 +355,7 @@ export default function SanctionedPostsPage() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit">
         {canWrite && (
-          <button onClick={() => { setTab('manage'); setSearch(''); setSortCol(null); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'manage' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+          <button onClick={() => { setTab('manage'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'manage' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
             <span className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
@@ -306,7 +364,7 @@ export default function SanctionedPostsPage() {
             </span>
           </button>
         )}
-        <button onClick={() => { setTab('vacancy'); setSearch(''); setSortCol(null); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'vacancy' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+        <button onClick={() => { setTab('vacancy'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'vacancy' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
           <span className="flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -414,10 +472,31 @@ export default function SanctionedPostsPage() {
             </div>
             <div>
               <h3 className="font-bold text-gray-900 dark:text-white">{tab === 'manage' ? 'Manage Posts' : 'Vacancy Report'}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{activeCount} records{search ? ` (filtered from ${totalCount})` : ''}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {activeCount} records{(search || activeFilterCount > 0) ? ` (filtered from ${totalCount})` : ''}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Filter toggle */}
+            {availableFilters.length > 0 && (
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  showFilters || activeFilterCount > 0
+                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                </svg>
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
+                )}
+              </button>
+            )}
             {/* Search */}
             <div className="relative flex-1 sm:flex-none">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -459,6 +538,66 @@ export default function SanctionedPostsPage() {
             )}
           </div>
         </div>
+
+        {/* Filter panel */}
+        {showFilters && availableFilters.length > 0 && (
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/40">
+            <div className="flex flex-wrap items-end gap-3">
+              {availableFilters.map(f => (
+                <div key={f.key} className="min-w-[160px]">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{f.label}</label>
+                  <select
+                    value={filters[f.key] || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all ${
+                      filters[f.key]
+                        ? 'border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-200'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
+                    <option value="">All {f.label}s</option>
+                    {f.values.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+              ))}
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear all
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Active filter pills (when panel is collapsed) */}
+        {activeFilterCount > 0 && !showFilters && (
+          <div className="px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-blue-50/50 dark:bg-blue-500/5 flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtered by:</span>
+            {Object.entries(filters).filter(([, v]) => v).map(([key, val]) => {
+              const fd = availableFilters.find(f => f.key === key);
+              return (
+                <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium">
+                  {fd?.label}: {val}
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, [key]: '' }))}
+                    className="ml-0.5 hover:text-blue-600 dark:hover:text-blue-100"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              );
+            })}
+            <button onClick={clearAllFilters} className="text-xs text-red-500 dark:text-red-400 hover:underline ml-1">Clear all</button>
+          </div>
+        )}
 
         {/* Manage Tab */}
         {tab === 'manage' && (
