@@ -34,6 +34,17 @@ const commonReports: ReportDef[] = [
   { key: 'employee-directory', label: 'Employee Directory', description: 'Contact directory of active employees', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', color: 'from-teal-500 to-teal-600' },
 ];
 
+const FILTER_DEFS: { key: string; label: string; matchColumns: string[] }[] = [
+  { key: 'university', label: 'University', matchColumns: ['university', 'code', 'university.code'] },
+  { key: 'department', label: 'Department', matchColumns: ['department', 'department.name'] },
+  { key: 'designation', label: 'Designation', matchColumns: ['designation', 'designationPresent'] },
+  { key: 'gender', label: 'Gender', matchColumns: ['gender'] },
+  { key: 'category', label: 'Category', matchColumns: ['category'] },
+  { key: 'postType', label: 'Post Type', matchColumns: ['postType'] },
+  { key: 'subject', label: 'Subject', matchColumns: ['subject'] },
+  { key: 'classification', label: 'Classification', matchColumns: ['classification', 'employeeClassification'] },
+];
+
 function formatHeader(key: string) {
   return key
     .replace(/([A-Z])/g, ' $1')
@@ -51,6 +62,8 @@ export default function ReportsPage() {
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [exportOpen, setExportOpen] = useState(false);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,6 +82,7 @@ export default function ReportsPage() {
     setActiveReport(key);
     setSearch('');
     setSortCol(null);
+    setFilters({});
     try {
       const data = await api.get<any[]>(`/reports/${key}`);
       setReportData(Array.isArray(data) ? data : []);
@@ -107,12 +121,38 @@ export default function ReportsPage() {
   const flatData = reportData.map(flattenRow);
   const columns = flatData.length > 0 ? Object.keys(flatData[0]).filter((k) => !k.endsWith('Id') && k !== 'id' && k !== 'documents') : [];
 
+  const availableFilters = useMemo(() => {
+    if (!columns.length) return [];
+    return FILTER_DEFS.filter(fd =>
+      fd.matchColumns.some(mc => columns.includes(mc))
+    ).map(fd => {
+      const col = fd.matchColumns.find(mc => columns.includes(mc))!;
+      const values = [...new Set(flatData.map(r => String(r[col] ?? '')).filter(Boolean))].sort();
+      return { ...fd, col, values };
+    }).filter(f => f.values.length > 1);
+  }, [flatData, columns]);
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  // Filter by dropdowns
+  const dropdownFiltered = useMemo(() => {
+    const activeFilters = Object.entries(filters).filter(([, v]) => v);
+    if (!activeFilters.length) return flatData;
+    return flatData.filter(row =>
+      activeFilters.every(([filterKey, filterVal]) => {
+        const fd = availableFilters.find(f => f.key === filterKey);
+        if (!fd) return true;
+        return String(row[fd.col] ?? '') === filterVal;
+      })
+    );
+  }, [flatData, filters, availableFilters]);
+
   // Search filter
   const filtered = useMemo(() => {
-    if (!search.trim()) return flatData;
+    if (!search.trim()) return dropdownFiltered;
     const q = search.toLowerCase();
-    return flatData.filter(row => columns.some(k => String(row[k] ?? '').toLowerCase().includes(q)));
-  }, [flatData, search, columns]);
+    return dropdownFiltered.filter(row => columns.some(k => String(row[k] ?? '').toLowerCase().includes(q)));
+  }, [dropdownFiltered, search, columns]);
 
   // Sort
   const sorted = useMemo(() => {
@@ -136,11 +176,15 @@ export default function ReportsPage() {
     }
   };
 
-  // Number columns for right-align and highlighting
   const numericCols = useMemo(() => {
     if (!flatData.length) return new Set<string>();
     return new Set(columns.filter(k => flatData.every(r => r[k] === null || r[k] === undefined || r[k] === '' || !isNaN(Number(r[k])))));
   }, [flatData, columns]);
+
+  function clearAllFilters() {
+    setFilters({});
+    setSearch('');
+  }
 
   return (
     <div>
@@ -196,10 +240,32 @@ export default function ReportsPage() {
               })()}
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-white">{allReports.find((r) => r.key === activeReport)?.label}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{sorted.length} records{search ? ` (filtered from ${flatData.length})` : ''}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {sorted.length} records
+                  {(search || activeFilterCount > 0) ? ` (filtered from ${flatData.length})` : ''}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Filter toggle */}
+              {availableFilters.length > 0 && (
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    showFilters || activeFilterCount > 0
+                      ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                  </svg>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="ml-0.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
+                  )}
+                </button>
+              )}
               {/* Search */}
               <div className="relative flex-1 sm:flex-none">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -210,7 +276,7 @@ export default function ReportsPage() {
                   placeholder="Search in results..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full sm:w-56 pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                  className="w-full sm:w-56 pl-9 pr-8 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -240,6 +306,71 @@ export default function ReportsPage() {
             </div>
           </div>
 
+          {/* Filter panel */}
+          {showFilters && availableFilters.length > 0 && (
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/40">
+              <div className="flex flex-wrap items-end gap-3">
+                {availableFilters.map(f => (
+                  <div key={f.key} className="min-w-[160px]">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{f.label}</label>
+                    <select
+                      value={filters[f.key] || ''}
+                      onChange={(e) => setFilters(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all ${
+                        filters[f.key]
+                          ? 'border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-200'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                      }`}
+                    >
+                      <option value="">All {f.label}s</option>
+                      {f.values.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                ))}
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Active filter pills */}
+          {activeFilterCount > 0 && !showFilters && (
+            <div className="px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-blue-50/50 dark:bg-blue-500/5 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtered by:</span>
+              {Object.entries(filters).filter(([, v]) => v).map(([key, val]) => {
+                const fd = availableFilters.find(f => f.key === key);
+                return (
+                  <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium">
+                    {fd?.label}: {val}
+                    <button
+                      onClick={() => setFilters(prev => ({ ...prev, [key]: '' }))}
+                      className="ml-0.5 hover:text-blue-600 dark:hover:text-blue-100"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                );
+              })}
+              <button
+                onClick={clearAllFilters}
+                className="text-xs text-red-500 dark:text-red-400 hover:underline ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
           {/* Table */}
           {loading ? (
             <div className="p-20 text-center">
@@ -248,9 +379,9 @@ export default function ReportsPage() {
             </div>
           ) : sorted.length === 0 ? (
             <EmptyState
-              icon={search ? '🔍' : '📄'}
-              title={search ? 'No matching records' : 'No data available'}
-              description={search ? 'Try a different search term.' : 'This report returned no rows.'}
+              icon={search || activeFilterCount > 0 ? '🔍' : '📄'}
+              title={search || activeFilterCount > 0 ? 'No matching records' : 'No data available'}
+              description={search || activeFilterCount > 0 ? 'Try adjusting your filters or search term.' : 'This report returned no rows.'}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -262,7 +393,7 @@ export default function ReportsPage() {
                       <th
                         key={key}
                         onClick={() => toggleSort(key)}
-                        className={`px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-center' : 'text-left'}`}
+                        className={`group px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-center' : 'text-left'}`}
                       >
                         <div className={`flex items-center gap-1.5 ${numericCols.has(key) ? 'justify-center' : ''}`}>
                           <span>{formatHeader(key)}</span>
@@ -271,7 +402,7 @@ export default function ReportsPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <svg className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                             </svg>
                           )}
