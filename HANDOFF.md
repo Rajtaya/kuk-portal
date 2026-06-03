@@ -1,22 +1,63 @@
-# UEMS Session Handoff — 2026-06-02 (Updated 2026-06-02 session 7)
+# UEMS Session Handoff — 2026-06-03 (Updated 2026-06-03 session 8)
 
-> ## ⚠️ HIGHLIGHTED DATA NOTE — `Employee.subject` is unnormalized free-text
+> ## ✅ DATA NOTE — `Employee.subject` normalized (Session 8)
 >
-> **Discovered 2026-06-02 while scoping the dashboard stat cards per university.**
+> **Originally discovered 2026-06-02; fixed 2026-06-03.**
 >
-> - The employee `subject` field is **free-text**, not constrained to the `Subject` master table.
-> - **110 distinct** subject strings exist across employee records, vs **43** rows in the `Subject` master.
-> - **Consequence:** the dashboard "Subjects" stat card now reflects the selected university
->   (distinct subjects among that university's employees), but the **global** card still shows the
->   master count (43). So a single university can read **higher** than the global total
->   (e.g. **MDU = 58 subjects** vs global **43**) — a child exceeding its parent.
-> - **Decision (per user):** keep current behavior (per-university distinct; global = 43 master) and
->   track this here rather than changing it now.
-> - **Real fix (future):** normalize `Employee.subject` to the `Subject` master (dedupe variants/typos,
->   map free-text → master ids), then both global and per-university counts become consistent.
->   Alternatively, switch every count to "distinct-in-records" (global would then show ~110).
+> - The employee `subject` field was **free-text** with **110 distinct** values vs **43** in the `Subject` master.
+> - **Session 8 fix:** normalized all 110 → **53** standardized subjects, all matching the master table (now **57** entries).
+> - **What was done:** merged variant names (Laws→Law, Management Studies→Management, etc.),
+>   nulled 8 endowed chairs + 12 institutes/centres/campuses, added 14 new legitimate subjects to master.
+> - **259 employees** had subject set to NULL (were assigned to organizational units, not academic subjects).
+> - **Both local and Railway DBs synced.** The "child > parent" anomaly is resolved.
 
-## What was done this session (Session 7 — 2026-06-02)
+## What was done this session (Session 8 — 2026-06-03)
+
+### 30. Dashboard UI improvements (commit `4fa0cc4`)
+- **Filtered view banner**: replaced small blue pill with a full-width gradient banner (blue-to-indigo) showing a university icon, "FILTERED VIEW" label, university name in bold white, and "View all universities" button
+- **Universities stat card hidden** when a specific university is selected (showing "12 universities" while viewing one was confusing)
+
+### 31. Sanctioned Posts page redesign (commit `4fa0cc4`)
+- Full redesign matching Reports page style — dark `slate-800` table header, row numbers, alternating rows, sortable columns (click headers), search across all columns, icon-based edit/delete action buttons
+- **Gradient header bar** with icon, record count, search input
+- **Export dropdown** (CSV/Excel/PDF) on Vacancy Report tab with outside-click dismiss
+- **Totals row** in vacancy table footer (Sanctioned/Filled/Vacant/Excess)
+- **Record-count footer** ("Showing X of Y records / Click column headers to sort")
+- **Summary cards redesigned** with gradient icon badges instead of colored backgrounds
+
+### 32. Report filters (commit `4fa0cc4`)
+- **Dynamic filter dropdowns** in Reports page — auto-detect filterable columns per report (University, Department, Designation, Gender, Category, Post Type, Subject, Classification)
+- **Filters toggle button** in header bar with blue badge showing active filter count
+- **Collapsible filter panel** with labeled dropdowns; active filters highlighted in blue
+- **Filter pills** when panel is collapsed — show active filters at a glance with individual remove (x) buttons
+- **"Clear all"** button to reset all filters and search at once
+- Filters adapt dynamically per report type (e.g., Department-wise shows only University + Department; Teaching Staff shows all 7)
+
+### 33. Sanctioned Posts filters (commit `4e7f8ee`)
+- Added same filter system to Sanctioned Posts — University, Designation, Post Type, Subject dropdowns
+- Filters auto-detect available values from data, shown only when >1 value exists
+- Filter panel, pills, badge count, clear-all — same UX as Reports
+- Filters reset on tab switch (Manage Posts ↔ Vacancy Report)
+
+### 34. Subject normalization (database-only, 2026-06-03)
+- **110 → 53** distinct subject strings in employee records
+- **43 → 57** subjects in master table (14 new legitimate subjects added)
+- **0** employee subjects now unmatched against master
+- **Merges applied:**
+  - Laws → Law, English and Foreign Languages → English, Computer Science & Applications/Engineering → Computer Science
+  - Management Studies / Management Studies and Research / Business Administration / Haryana School of Business → Management
+  - History & Archaeology → History, Hotel variants → Tourism & Hotel Management
+  - Journalism and Mass Communication / Mass Communication → Journalism & Mass Communication
+  - Electronics and Communication Engineering / Electrical & Electronics Engineering → Electronics
+  - Sanskrit, Pali & Prakrit / Maharshi Dayanand and Vedic Studies → Sanskrit
+  - Applied Psychology → Psychology, Yoga Science / Yogic Studies → Yoga, Visual Arts → Fine Arts
+- **Nulled (not subjects):** 8 endowed chairs, 12 institutes/centres/campuses, "Engineering and Technology" (MDU faculty)
+- **New master subjects:** Bioinformatics, Civil Engineering, Defence & Strategic Studies, Environmental Science, Fashion Technology, Forensic Science, Genetics, Nursing, Physiotherapy, Printing Technology, Yoga, Allied Health Sciences, AI & Data Science, Food & Nutrition
+- **Applied to both** `employees` and `sanctioned_posts` tables, on both local and Railway DBs
+
+---
+
+## What was done in Session 7 — 2026-06-02
 
 > Session 6 (2026-06-02, UI/UX batches 1–2: commits `e775cd7`, `089f4dc`) is logged separately in `HANDOFF_busy _error.md`.
 
@@ -32,6 +73,9 @@
 - **Sunburst outer labels (`fb5262d`)** — the designation (46–70%) and post-type (70–92%) rings were `label:{show:false}`; re-enabled radial labels with a `minAngle` declutter threshold, truncation, and a text outline.
 - **Category chart labels (`73a8b20`)** — the Category-wise x-axis had no `interval`, so ECharts auto-hid some labels; set `interval:0` + rotation + wider bottom grid so all categories show.
 - **Top stat cards reflect the selected university (`217cdfc`)** — backend `dashboard-charts` now scopes `subjectCount`/`designationCount` to the selected university (global keeps master counts); frontend cards read the selected university's stats; added a "Showing data for <University>" scope chip with a "View all universities" reset. **See the highlighted DATA NOTE at the top** re: free-text `Employee.subject`.
+
+### 29. Sanctioned Posts filter use case documented (`11b362c`)
+- Added `Filter (University, Subject, Designation, PostType)` row to the Sanctioned Posts section in `docs/USE-CASES.md`, matching the Employees filter pattern.
 
 ### 28. Removed OBC category — Haryana has no OBC (commit `0ba6d8f`)
 - Haryana uses **BC-A** and **BC-B**, not OBC. Removed `OBC` from the Prisma `Category` enum, backend bulk-upload validation, the frontend `Category` type, the employee filter + add-employee dropdowns, and the badge color map.
@@ -124,7 +168,7 @@
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/kuk-portal |
-| **Latest commit** | `0ba6d8f` on `main` (session 7 — OBC category removed) |
+| **Latest commit** | `4e7f8ee` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
 | **Universities** | 12 |
@@ -191,8 +235,6 @@ Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
 ### Medium Priority pending
 | Item | Details |
 |------|---------|
-| Excel (.xlsx) export | Currently CSV only — add xlsx using `xlsx` library |
-| PDF export | Add PDF generation for reports |
 | Master data management UI | Frontend CRUD page for Subject + Designation masters |
 | Subject & Designation dropdown filters | Add to employee list filter bar |
 
@@ -201,7 +243,6 @@ Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`):
 |------|---------|
 | Password reset flow | Currently no password reset — must be done by Super Admin |
 | University CRUD UI | Add/edit universities from frontend (API exists, no UI) |
-| Dark mode | Theme support |
 
 ---
 
