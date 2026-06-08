@@ -279,14 +279,65 @@ export default function DashboardPage() {
     const rows = data.designationByUniversity;
     const categories = rows.map(r => r.university);
     const totals = rows.map(r => desigList.reduce((s, d) => s + (Number(r[d]) || 0), 0));
-    // Grouped bars for university admin (single uni), stacked for super admin / state user (all unis)
-    const useGrouped = isUniAdmin;
+
+    if (isUniAdmin && activeData?.sanctionVsPresent) {
+      // University Admin: Sanctioned vs Filled by Designation
+      const svpRows = activeData.sanctionVsPresent;
+      const allKeys = [...new Set(svpRows.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))];
+      const desigs = [...new Set(allKeys.map(k => k.replace(/^(Sanction|Present) - /, '')))].sort();
+      const sanctioned = desigs.map(d => svpRows.reduce((sum, r) => sum + (Number(r[`Sanction - ${d}`]) || 0), 0));
+      const filled = desigs.map(d => svpRows.reduce((sum, r) => sum + (Number(r[`Present - ${d}`]) || 0), 0));
+      const vacant = desigs.map((_, i) => Math.max(0, sanctioned[i] - filled[i]));
+      return {
+        tooltip: {
+          trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
+          formatter: (params: any) => {
+            const idx = params[0]?.dataIndex;
+            const desig = desigs[idx];
+            const s = sanctioned[idx]; const f = filled[idx]; const v = vacant[idx];
+            const pct = s > 0 ? Math.round((f / s) * 100) : 0;
+            const dot = (c: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></span>`;
+            return `<div style="min-width:200px">
+              <p style="font-weight:600;margin:0 0 8px;color:#111827">${desig}</p>
+              <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#3B82F6')}Sanctioned</span><b>${s}</b></div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#10B981')}Filled</span><b>${f}</b></div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#EF4444')}Vacant</span><b>${v}</b></div>
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:6px 0"/>
+              <p style="text-align:center;font-size:12px;color:#6B7280;margin:0">Fill Rate: <b style="color:${pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444'}">${pct}%</b></p>
+            </div>`;
+          },
+        },
+        legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+        grid: { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
+        xAxis: {
+          type: 'category' as const, data: desigs,
+          axisLabel: { fontSize: isMobile ? 9 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -30 : 0 },
+          axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+        },
+        yAxis: {
+          type: 'value' as const,
+          name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+          axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+        },
+        series: [
+          { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 25 : 50, barGap: '15%',
+            data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
+            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
+            data: filled, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
+            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
+            data: vacant, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
+            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        ],
+      };
+    }
+
+    // Super Admin / State User: stacked bars
     return {
-      tooltip: useGrouped
-        ? { trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const } }
-        : { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 50, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
         axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 9 : 11, interval: 0, color: '#374151', fontWeight: 500, width: isMobile ? 60 : 100, overflow: 'truncate' as const },
@@ -297,14 +348,7 @@ export default function DashboardPage() {
         name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
-      series: desigList.map((d, i) => useGrouped ? {
-        name: d, type: 'bar' as const, barWidth: isMobile ? 28 : 66, barGap: '15%',
-        data: rows.map(r => Number(r[d]) || 0),
-        itemStyle: { color: getDesigColor(d, i), borderRadius: [4, 4, 0, 0] },
-        emphasis: { focus: 'series' as const },
-        label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
-          formatter: (p: any) => p.value > 0 ? p.value : '' },
-      } : {
+      series: desigList.map((d, i) => ({
         name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
@@ -313,9 +357,9 @@ export default function DashboardPage() {
           label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
-      }),
+      })),
     };
-  }, [data, desigList, isMobile, isUniAdmin]);
+  }, [data, desigList, isMobile, isUniAdmin, activeData]);
 
   // --- Chart 2: Sunburst data ---
   const sunburstEchartsData = useMemo(() => {
@@ -761,7 +805,7 @@ export default function DashboardPage() {
 
       {/* 1. Employee Distribution by Designation */}
       <ChartCard
-        title="Employee Distribution by Designation Across Universities"
+        title={isUniAdmin ? "Sanctioned Posts vs Filled Posts (Designation-wise)" : "Employee Distribution by Designation Across Universities"}
         tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
       >
         <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '460px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
