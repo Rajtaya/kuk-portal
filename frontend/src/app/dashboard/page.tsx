@@ -667,83 +667,6 @@ export default function DashboardPage() {
     };
   }, [activeData, isMobile]);
 
-  // --- Chart 8: Master Chart — Sanctioned vs Filled by Designation (University Admin only) ---
-  const masterDesigOption = useMemo(() => {
-    if (!isUniAdmin || !activeData?.sanctionVsPresent) return null;
-    const rows = activeData.sanctionVsPresent;
-    const allKeys = [...new Set(rows.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))];
-    const desigs = [...new Set(allKeys.map(k => k.replace(/^(Sanction|Present) - /, '')))].sort();
-
-    const sanctioned = desigs.map(d =>
-      rows.reduce((sum, r) => sum + (Number(r[`Sanction - ${d}`]) || 0), 0)
-    );
-    const filled = desigs.map(d =>
-      rows.reduce((sum, r) => sum + (Number(r[`Present - ${d}`]) || 0), 0)
-    );
-    const vacant = desigs.map((_, i) => Math.max(0, sanctioned[i] - filled[i]));
-
-    return {
-      tooltip: {
-        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
-        formatter: (params: any) => {
-          const idx = params[0]?.dataIndex;
-          const desig = desigs[idx];
-          const s = sanctioned[idx]; const f = filled[idx]; const v = vacant[idx];
-          const pct = s > 0 ? Math.round((f / s) * 100) : 0;
-          return `<div style="min-width:200px">
-            <p style="font-weight:600;margin:0 0 8px;color:#111827">${desig}</p>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3B82F6;margin-right:6px"></span>Sanctioned</span><b>${s}</b>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981;margin-right:6px"></span>Filled</span><b>${f}</b>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF4444;margin-right:6px"></span>Vacant</span><b>${v}</b>
-            </div>
-            <hr style="border:none;border-top:1px solid #E5E7EB;margin:6px 0"/>
-            <p style="text-align:center;font-size:12px;color:#6B7280;margin:0">Fill Rate: <b style="color:${pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444'}">${pct}%</b></p>
-          </div>`;
-        },
-      },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 70, left: 20, containLabel: true },
-      xAxis: {
-        type: 'category' as const, data: desigs,
-        axisLabel: { fontSize: isMobile ? 9 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -30 : 0 },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-      },
-      yAxis: {
-        type: 'value' as const,
-        name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
-      },
-      series: [
-        {
-          name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 25 : 50, barGap: '15%',
-          data: sanctioned,
-          itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A',
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
-        {
-          name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
-          data: filled,
-          itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46',
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
-        {
-          name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
-          data: vacant,
-          itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B',
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
-      ],
-    };
-  }, [activeData, isUniAdmin, isMobile]);
-
   if (!data) {
     return (
       <div className="space-y-6">
@@ -1000,12 +923,6 @@ export default function DashboardPage() {
                 );
               })()}
             </ChartCard>
-
-            {masterDesigOption && (
-              <ChartCard title="Sanctioned Posts vs Filled Posts (Designation-wise)">
-                <ReactECharts option={masterDesigOption} style={{ height: isMobile ? '350px' : '420px' }} notMerge={true} lazyUpdate={true} />
-              </ChartCard>
-            )}
 
             {sanctionOption && (
               <ChartCard
