@@ -278,9 +278,8 @@ export default function DashboardPage() {
     if (!data) return {};
     const rows = data.designationByUniversity;
     const categories = rows.map(r => r.university);
-    const totals = rows.map(r => desigList.reduce((s, d) => s + (Number(r[d]) || 0), 0));
     return {
-      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
+      tooltip: { trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const } },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
@@ -294,14 +293,12 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: desigList.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
+        name: d, type: 'bar' as const,
         data: rows.map(r => Number(r[d]) || 0),
-        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
+        itemStyle: { color: getDesigColor(d, i), borderRadius: [3, 3, 0, 0] },
         emphasis: { focus: 'series' as const },
-        ...(i === desigList.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
-            formatter: (p: any) => totals[p.dataIndex] || '' },
-        } : {}),
+        label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 600, color: '#374151',
+          formatter: (p: any) => p.value > 0 ? p.value : '' },
       })),
     };
   }, [data, desigList, isMobile]);
