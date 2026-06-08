@@ -110,6 +110,7 @@
 | View Posts                  | Yes (all) | Yes (all) | Yes (own university) |
 | View Vacancy Report         | Yes | Yes | Yes (own) |
 | Export Vacancy CSV          | Yes | Yes | Yes |
+| Filter (University, Subject, Designation, PostType) | Yes | Yes | Yes |
 
 ---
 

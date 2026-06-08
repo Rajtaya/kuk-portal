@@ -434,15 +434,15 @@ export default function SanctionedPostsPage() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{budgeted.total.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{budgeted.total.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Total</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{budgeted.filled.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{budgeted.filled.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Filled</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">{budgeted.vacant.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">{budgeted.vacant.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Vacant</p>
             </div>
           </div>
@@ -455,15 +455,15 @@ export default function SanctionedPostsPage() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-orange-600 dark:text-orange-400">{sfs.total.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{sfs.total.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Total</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{sfs.filled.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{sfs.filled.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Filled</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">{sfs.vacant.toLocaleString()}</p>
+              <p className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">{sfs.vacant.toLocaleString()}</p>
               <p className="text-[11px] text-gray-400">Vacant</p>
             </div>
           </div>
