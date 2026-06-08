@@ -1,4 +1,4 @@
-# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-01 session 5)
+# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-08 session 9)
 
 > ## ⚠️ HIGHLIGHTED DATA NOTE — `Employee.subject` is unnormalized free-text
 >
@@ -16,7 +16,35 @@
 >   map free-text → master ids), then both global and per-university counts become consistent.
 >   Alternatively, switch every count to "distinct-in-records" (global would then show ~110).
 
-## What was done this session (Session 5 — 2026-06-01)
+## What was done this session (Session 9 — 2026-06-08)
+
+### 23. STATE_USER access fixes
+- **Sidebar**: Added `sanctioned` link to STATE_USER role links (was missing, only had dashboard/employees/universities/reports)
+- **Sanctioned Posts page**: 6 fixes where `isSuperAdmin` checks were updated to `isSuperAdmin || isStateUser` — university filter, universities list loading, fixedUniversityId, form university dropdown, manage table university column, university info banner
+
+### 24. Dashboard bug fix — "All Universities" hides charts
+- Bottom 4 charts (category, employment type, gender, sanction vs present) disappeared when "All Universities" was selected
+- Root cause: charts used `uniData` directly, which is null for "all" selection
+- Fix: created `activeData = (!isAllUni && uniData) ? uniData : data` fallback pattern, updated all 4 chart useMemo hooks + render conditions
+
+### 25. Reports page — shutter animation
+- Report card grid now slides up (shutter animation) when a report is selected, instead of conditional render
+- CSS transition using `maxHeight` + `opacity` for smooth 500ms animation
+- Added back button (chevron-left) in report header to return to card grid
+
+### 26. Sanctioned Posts — UI/UX overhaul (major)
+- **Compact header**: title + university dropdown + manage/vacancy tabs + add button all on one row (was 3 separate rows)
+- **University filtering for STATE_USER**: dropdown with all 12 universities, X button to clear, data cascades via `selectedUni` → `uniFilteredVacancy/Posts` → `filteredVacancy/Posts` → `sortedVacancy/Posts`
+- **Slim stat strip**: 5 compact cards (Sanctioned/Filled/Vacant/Excess/Fill Rate) with color-coded backgrounds, replaces large icon cards
+- **Fill Rate card**: percentage + progress bar, color-coded green/amber/red by threshold (75%/50%)
+- **Vacancy table — Fill % column**: inline mini progress bar + percentage per row, color-coded by severity
+- **Vacancy table — color-coded vacant cells**: red background tint for high vacancy (>50%), orange for moderate
+- **Vacancy table footer**: includes fill rate % in totals row
+- **Form slide animation**: add/edit form slides down smoothly (maxHeight transition) instead of hard toggle
+
+---
+
+## What was done in Session 5 — 2026-06-01
 
 ### 18. ECharts migration (major)
 - Replaced all 7 Recharts chart sections with ECharts (`echarts-for-react`). ~40% less code (1115→~520 lines), native sunburst with built-in drill-down, removed all manual hover state. See detailed notes further down.
@@ -97,7 +125,7 @@
 | **Live backend** | https://backend-production-7615.up.railway.app/api |
 | **Swagger docs** | https://backend-production-7615.up.railway.app/api/docs |
 | **Repo** | https://github.com/Rajtaya/kuk-portal |
-| **Latest commit** | `d4315bc` on `main` |
+| **Latest commit** | `e9daf04` on `main` |
 | **Local DB** | `postgresql://aarya@localhost:5432/kuk_portal` |
 | **Railway DB** | `postgresql://postgres:FgumMmQbxvyKUnHmvEEduzmeIDBVfAvm@zephyr.proxy.rlwy.net:59171/railway` |
 | **Universities** | 12 |
