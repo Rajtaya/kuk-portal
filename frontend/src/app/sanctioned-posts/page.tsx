@@ -401,30 +401,6 @@ export default function SanctionedPostsPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-1.5">
-          <select
-            value={selectedType}
-            onChange={(e) => { setSelectedType(e.target.value); setFilters({}); setSearch(''); }}
-            className="border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 shadow-sm w-40"
-          >
-            <option value="all">All Types</option>
-            {postTypes.map(t => (
-              <option key={t} value={t}>{t === 'SFS' ? 'SFS' : t.charAt(0) + t.slice(1).toLowerCase()}</option>
-            ))}
-          </select>
-          {selectedType !== 'all' && (
-            <button
-              onClick={() => { setSelectedType('all'); setFilters({}); setSearch(''); }}
-              className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-              title="Clear type filter"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-
         <div className="ml-auto flex items-center gap-2">
           <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             {canWrite && (
