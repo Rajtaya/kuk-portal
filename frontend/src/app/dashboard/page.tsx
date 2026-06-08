@@ -804,7 +804,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 1. Employee Distribution by Designation */}
-      <div className={isUniAdmin ? 'max-w-2xl' : ''}>
+      <div className={isUniAdmin ? 'max-w-5xl' : ''}>
         <ChartCard
           title={isUniAdmin ? "Sanctioned Posts vs Filled Posts (Designation-wise)" : "Employee Distribution by Designation Across Universities"}
           tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
