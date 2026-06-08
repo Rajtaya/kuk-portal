@@ -65,9 +65,10 @@ export default function SanctionedPostsPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedUni, setSelectedUni] = useState<string>('all');
   const exportRef = useRef<HTMLDivElement>(null);
 
-  const fixedUniversityId = !isSuperAdmin ? user?.university?.id || '' : '';
+  const fixedUniversityId = (!isSuperAdmin && !isStateUser) ? user?.university?.id || '' : '';
 
   const [form, setForm] = useState({
     universityId: '', departmentId: '', subject: '',
@@ -76,7 +77,7 @@ export default function SanctionedPostsPage() {
 
   useEffect(() => {
     loadData();
-    if (isSuperAdmin) api.get<University[]>('/universities').then(setUniversities);
+    if (isSuperAdmin || isStateUser) api.get<University[]>('/universities').then(setUniversities);
   }, []);
 
   useEffect(() => {
@@ -152,10 +153,21 @@ export default function SanctionedPostsPage() {
 
   function update(key: string, value: string | number) { setForm((prev) => ({ ...prev, [key]: value })); }
 
-  const totals = vacancyData.reduce(
+  const uniFilteredVacancy = useMemo(() => {
+    if (selectedUni === 'all') return vacancyData;
+    return vacancyData.filter(r => r.universityCode === selectedUni);
+  }, [vacancyData, selectedUni]);
+
+  const uniFilteredPosts = useMemo(() => {
+    if (selectedUni === 'all') return posts;
+    return posts.filter(p => p.university?.code === selectedUni);
+  }, [posts, selectedUni]);
+
+  const totals = uniFilteredVacancy.reduce(
     (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
+  const fillRate = totals.sanctioned > 0 ? Math.round((totals.filled / totals.sanctioned) * 100) : 0;
 
   // Available filter options (computed from data)
   const availableFilters = useMemo(() => {
@@ -163,7 +175,7 @@ export default function SanctionedPostsPage() {
     if (!src.length) return [];
     const defs: { key: string; label: string; values: string[] }[] = [];
 
-    if (isSuperAdmin) {
+    if (isSuperAdmin || isStateUser) {
       const unis = [...new Set(tab === 'vacancy'
         ? vacancyData.map(r => r.universityCode)
         : posts.map(p => p.university?.code).filter(Boolean) as string[]
@@ -209,7 +221,7 @@ export default function SanctionedPostsPage() {
 
   // Filtered + sorted vacancy data
   const filteredVacancy = useMemo(() => {
-    let data = vacancyData.filter(r => matchesFilters(r, true));
+    let data = uniFilteredVacancy.filter(r => matchesFilters(r, true));
     if (search.trim()) {
       const q = search.toLowerCase();
       data = data.filter(r =>
@@ -233,7 +245,7 @@ export default function SanctionedPostsPage() {
 
   // Filtered + sorted manage data
   const filteredPosts = useMemo(() => {
-    let data = posts.filter(p => matchesFilters(p, false));
+    let data = uniFilteredPosts.filter(p => matchesFilters(p, false));
     if (search.trim()) {
       const q = search.toLowerCase();
       data = data.filter(p =>
@@ -267,7 +279,7 @@ export default function SanctionedPostsPage() {
     }
   }
 
-  const numericCols = new Set(['sanctioned', 'filled', 'vacant', 'excess', 'sanctionedCount']);
+  const numericCols = new Set(['sanctioned', 'filled', 'vacant', 'excess', 'sanctionedCount', 'fillRate']);
 
   const vacancyExportCols: ExportColumn[] = [
     { key: 'universityCode', label: 'University' },
@@ -309,7 +321,7 @@ export default function SanctionedPostsPage() {
   }
 
   const manageHeaders = [
-    ...(isSuperAdmin ? [{ key: 'university', label: 'University' }] : []),
+    ...((isSuperAdmin || isStateUser) ? [{ key: 'university', label: 'University' }] : []),
     { key: 'department', label: 'Department' },
     { key: 'subject', label: 'Subject' },
     { key: 'designation', label: 'Designation' },
@@ -327,82 +339,113 @@ export default function SanctionedPostsPage() {
     { key: 'filled', label: 'Filled' },
     { key: 'vacant', label: 'Vacant' },
     { key: 'excess', label: 'Excess' },
+    { key: 'fillRate', label: 'Fill %' },
   ];
 
   const activeCount = tab === 'manage' ? sortedPosts.length : sortedVacancy.length;
-  const totalCount = tab === 'manage' ? posts.length : vacancyData.length;
+  const totalCount = tab === 'manage' ? uniFilteredPosts.length : uniFilteredVacancy.length;
+  const selectedUniName = useMemo(() => {
+    if (selectedUni === 'all') return 'All Universities';
+    const u = universities.find(u => u.code === selectedUni);
+    return u ? u.name : selectedUni;
+  }, [selectedUni, universities]);
 
   return (
-    <div>
+    <div className="space-y-6">
       <Breadcrumb items={[{ label: 'Sanctioned Posts', icon: 'sanction' }]} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Sanctioned Posts</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {user?.role === 'UNIVERSITY_ADMIN' ? `Manage posts for ${user?.university?.name}` : 'Post management & vacancy analysis'}
-          </p>
+
+      {/* Compact header: title + controls on one line */}
+      <div className="flex items-center gap-3 -mt-2">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Sanctioned Posts</h2>
+
+        {(isSuperAdmin || isStateUser) && (
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedUni}
+              onChange={(e) => { setSelectedUni(e.target.value); setFilters({}); setSearch(''); }}
+              className="border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 shadow-sm w-48"
+            >
+              <option value="all">All Universities</option>
+              {[...new Set(vacancyData.map(r => r.universityCode))].sort().map(code => {
+                const u = universities.find(u => u.code === code);
+                return <option key={code} value={code}>{code} — {u?.name || code}</option>;
+              })}
+            </select>
+            {selectedUni !== 'all' && (
+              <button
+                onClick={() => { setSelectedUni('all'); setFilters({}); setSearch(''); }}
+                className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                title="Clear filter"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+            {canWrite && (
+              <button onClick={() => { setTab('manage'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'manage' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                Manage
+              </button>
+            )}
+            <button onClick={() => { setTab('vacancy'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${tab === 'vacancy' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+              Vacancy
+            </button>
+          </div>
+
+          {canWrite && tab === 'manage' && (
+            <button onClick={openCreate} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add
+            </button>
+          )}
         </div>
-        {canWrite && tab === 'manage' && (
-          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Post
-          </button>
-        )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit">
-        {canWrite && (
-          <button onClick={() => { setTab('manage'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'manage' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-            <span className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-              </svg>
-              Manage Posts
-            </span>
-          </button>
-        )}
-        <button onClick={() => { setTab('vacancy'); setSearch(''); setSortCol(null); setFilters({}); }} className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === 'vacancy' ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-          <span className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-            Vacancy Report
-          </span>
-        </button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {/* Summary strip */}
+      <div className="grid grid-cols-5 gap-3">
         {[
-          { label: 'Sanctioned', value: totals.sanctioned, color: 'from-blue-500 to-blue-600', icon: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z' },
-          { label: 'Filled', value: totals.filled, color: 'from-emerald-500 to-emerald-600', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Vacant', value: totals.vacant, color: 'from-red-500 to-red-600', icon: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z' },
-          { label: 'Excess', value: totals.excess, color: 'from-amber-500 to-amber-600', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        ].map(({ label, value, color, icon }) => (
-          <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-sm shrink-0`}>
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
-              </svg>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{value.toLocaleString()}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-            </div>
+          { label: 'Sanctioned', value: totals.sanctioned, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+          { label: 'Filled', value: totals.filled, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+          { label: 'Vacant', value: totals.vacant, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10' },
+          { label: 'Excess', value: totals.excess, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} className={`${bg} rounded-xl px-4 py-3 text-center`}>
+            <p className={`text-xl font-bold tabular-nums ${color}`}>{value.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
           </div>
         ))}
+        {/* Fill Rate */}
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Fill Rate</span>
+            <span className={`text-lg font-bold tabular-nums ${fillRate >= 75 ? 'text-emerald-600 dark:text-emerald-400' : fillRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{fillRate}%</span>
+          </div>
+          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-2">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ease-out ${fillRate >= 75 ? 'bg-emerald-500' : fillRate >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+              style={{ width: `${Math.min(fillRate, 100)}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Add/Edit Form */}
-      {showForm && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6 shadow-sm">
+      <div
+        className="overflow-hidden transition-all duration-400 ease-in-out"
+        style={{ maxHeight: showForm ? 500 : 0, opacity: showForm ? 1 : 0 }}
+      >
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{editing ? 'Edit Sanctioned Post' : 'Add Sanctioned Post'}</h3>
           {error && <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>}
 
-          {!isSuperAdmin && user?.university && (
+          {!isSuperAdmin && !isStateUser && user?.university && (
             <div className="bg-primary-50 border border-primary-200 dark:bg-primary-500/10 dark:border-primary-500/20 rounded-lg px-4 py-2.5 mb-4">
               <p className="text-sm text-primary-800 dark:text-primary-300">University: <span className="font-semibold">{user.university.name} ({user.university.code})</span></p>
             </div>
@@ -410,7 +453,7 @@ export default function SanctionedPostsPage() {
 
           <form onSubmit={handleSave}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              {isSuperAdmin && (
+              {(isSuperAdmin || isStateUser) && (
                 <div>
                   <label className={lbl}>University *</label>
                   <select className={inp} value={form.universityId} onChange={(e) => update('universityId', e.target.value)} required>
@@ -455,7 +498,7 @@ export default function SanctionedPostsPage() {
             </div>
           </form>
         </div>
-      )}
+      </div>
 
       {/* Data Table */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
@@ -636,7 +679,7 @@ export default function SanctionedPostsPage() {
                     {sortedPosts.map((p, i) => (
                       <tr key={p.id} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-blue-50/40 dark:hover:bg-gray-800/60`}>
                         <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
-                        {isSuperAdmin && <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{p.university?.code}</td>}
+                        {(isSuperAdmin || isStateUser) && <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{p.university?.code}</td>}
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{p.department?.name}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{p.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{p.designation}</td>
@@ -699,24 +742,36 @@ export default function SanctionedPostsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedVacancy.map((row, i) => (
-                      <tr key={row.id} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-blue-50/40 dark:hover:bg-gray-800/60`}>
-                        <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.universityCode}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.department}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.designation}</td>
-                        <td className="px-4 py-3"><Badge value={row.postType} /></td>
-                        <td className="px-4 py-3 text-center align-middle font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{row.sanctioned}</td>
-                        <td className="px-4 py-3 text-center align-middle font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">{row.filled}</td>
-                        <td className="px-4 py-3 text-center align-middle font-semibold tabular-nums">
-                          {row.vacant > 0 ? <span className="text-red-700 dark:text-red-400">{row.vacant}</span> : <span className="text-gray-400">0</span>}
-                        </td>
-                        <td className="px-4 py-3 text-center align-middle font-semibold tabular-nums">
-                          {(row.excess || 0) > 0 ? <span className="text-amber-700 dark:text-amber-400">{row.excess}</span> : <span className="text-gray-400">0</span>}
-                        </td>
-                      </tr>
-                    ))}
+                    {sortedVacancy.map((row, i) => {
+                      const rowFill = row.sanctioned > 0 ? Math.round((row.filled / row.sanctioned) * 100) : 0;
+                      const vacantPct = row.sanctioned > 0 ? row.vacant / row.sanctioned : 0;
+                      return (
+                        <tr key={row.id} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-blue-50/40 dark:hover:bg-gray-800/60`}>
+                          <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.universityCode}</td>
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.department}</td>
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.designation}</td>
+                          <td className="px-4 py-3"><Badge value={row.postType} /></td>
+                          <td className="px-4 py-3 text-center align-middle font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{row.sanctioned}</td>
+                          <td className="px-4 py-3 text-center align-middle font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">{row.filled}</td>
+                          <td className={`px-4 py-3 text-center align-middle font-semibold tabular-nums ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-orange-50 dark:bg-orange-500/5') : ''}`}>
+                            {row.vacant > 0 ? <span className={vacantPct >= 0.5 ? 'text-red-700 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}>{row.vacant}</span> : <span className="text-gray-400">0</span>}
+                          </td>
+                          <td className="px-4 py-3 text-center align-middle font-semibold tabular-nums">
+                            {(row.excess || 0) > 0 ? <span className="text-amber-700 dark:text-amber-400">{row.excess}</span> : <span className="text-gray-400">0</span>}
+                          </td>
+                          <td className="px-3 py-3 text-center align-middle">
+                            <div className="flex items-center gap-1.5 justify-center">
+                              <div className="w-14 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${rowFill >= 75 ? 'bg-emerald-500' : rowFill >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(rowFill, 100)}%` }} />
+                              </div>
+                              <span className={`text-xs font-medium tabular-nums ${rowFill >= 75 ? 'text-emerald-600 dark:text-emerald-400' : rowFill >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{rowFill}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="bg-slate-50 dark:bg-gray-800/60 border-t-2 border-slate-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">
@@ -726,6 +781,7 @@ export default function SanctionedPostsPage() {
                       <td className="px-4 py-3 text-center text-emerald-700 dark:text-emerald-400 tabular-nums">{totals.filled.toLocaleString()}</td>
                       <td className="px-4 py-3 text-center text-red-700 dark:text-red-400 tabular-nums">{totals.vacant.toLocaleString()}</td>
                       <td className="px-4 py-3 text-center text-amber-700 dark:text-amber-400 tabular-nums">{totals.excess.toLocaleString()}</td>
+                      <td className={`px-3 py-3 text-center text-sm font-bold tabular-nums ${fillRate >= 75 ? 'text-emerald-600 dark:text-emerald-400' : fillRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{fillRate}%</td>
                     </tr>
                   </tfoot>
                 </table>

@@ -194,18 +194,20 @@ export default function ReportsPage() {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Generate and export detailed reports</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {allReports.map((report) => {
-          const isActive = activeReport === report.key;
-          return (
+      <div
+        className="overflow-hidden transition-all duration-500 ease-in-out"
+        style={{
+          maxHeight: activeReport ? 0 : 1000,
+          opacity: activeReport ? 0 : 1,
+          marginBottom: activeReport ? 0 : 32,
+        }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allReports.map((report) => (
             <button
               key={report.key}
               onClick={() => loadReport(report.key)}
-              className={`group text-left p-5 rounded-2xl border-2 transition-all duration-200 ${
-                isActive
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg shadow-blue-500/10'
-                  : 'border-gray-100 bg-white dark:bg-gray-900 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md hover:-translate-y-0.5'
-              }`}
+              className="group text-left p-5 rounded-2xl border-2 border-gray-100 bg-white dark:bg-gray-900 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-start gap-4">
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${report.color} flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-105`}>
@@ -214,13 +216,13 @@ export default function ReportsPage() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <h3 className={`font-semibold text-sm leading-tight ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>{report.label}</h3>
+                  <h3 className="font-semibold text-sm leading-tight text-gray-900 dark:text-gray-100">{report.label}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">{report.description}</p>
                 </div>
               </div>
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {activeReport && (
@@ -228,6 +230,15 @@ export default function ReportsPage() {
           {/* Header bar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/60 dark:to-gray-900">
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setActiveReport(null); setReportData([]); setSearch(''); setFilters({}); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Back to reports"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
               {(() => {
                 const r = allReports.find((r) => r.key === activeReport);
                 return r ? (

@@ -226,6 +226,7 @@ export default function DashboardPage() {
   const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
   const desigList = useMemo(() => data?.designations || [], [data]);
   const isAllUni = selectedUni === 'all';
+  const activeData = (!isAllUni && uniData) ? uniData : data;
 
   const allSubjectsMerged = useMemo(() => {
     if (!data) return [];
@@ -401,11 +402,11 @@ export default function DashboardPage() {
     };
   }, [activeSubjects, subjectFilter, isAllUni, isMobile]);
 
-  // --- Charts 4 & 5: Category-wise and Employment Type (university-specific) ---
+  // --- Charts 4 & 5: Category-wise and Employment Type ---
   const categoryOption = useMemo(() => {
-    if (!uniData) return null;
-    const rows = uniData.categoryDesignation;
-    const udDesigs = uniData.designations || [];
+    if (!activeData) return null;
+    const rows = activeData.categoryDesignation;
+    const udDesigs = activeData.designations || [];
     const categories = rows.map(r => r.category);
     const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
     return {
@@ -434,12 +435,12 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [uniData, isMobile]);
+  }, [activeData, isMobile]);
 
   const employmentTypeOption = useMemo(() => {
-    if (!uniData) return null;
-    const udDesigs = uniData.designations || [];
-    const rows: Record<string, any>[] = uniData.postTypeDesignation.map((r: Record<string, any>) => ({ ...r, postType: PT_LABELS[r.postType] || r.postType }));
+    if (!activeData) return null;
+    const udDesigs = activeData.designations || [];
+    const rows: Record<string, any>[] = activeData.postTypeDesignation.map((r: Record<string, any>) => ({ ...r, postType: PT_LABELS[r.postType] || r.postType }));
     const categories = rows.map(r => r.postType);
     const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
     return {
@@ -468,23 +469,23 @@ export default function DashboardPage() {
         } : {}),
       })),
     };
-  }, [uniData, isMobile]);
+  }, [activeData, isMobile]);
 
   // --- Chart 6: Gender donut ---
   const genderChartData = useMemo(() => {
-    if (!uniData) return null;
+    if (!activeData) return null;
     const maleColors: Record<string, string> = { 'Assistant Professor': '#3730A3', 'Professor': '#1E3A8A', 'Associate Professor': '#7C3AED', 'Senior Professor': '#1E1B4B' };
     const femaleColors: Record<string, string> = { 'Assistant Professor': '#2563EB', 'Professor': '#93C5FD', 'Associate Professor': '#C4B5FD', 'Senior Professor': '#BFDBFE' };
     const genderFill: Record<string, string> = { MALE: '#312E81', FEMALE: '#6366F1' };
 
-    const innerData = uniData.genderDesignation.map(g => ({
+    const innerData = activeData.genderDesignation.map(g => ({
       name: g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
       value: g.total,
       genderKey: g.gender,
       itemStyle: { color: genderFill[g.gender] || '#94A3B8' },
     }));
 
-    const outerData = uniData.genderDesignation.flatMap(g =>
+    const outerData = activeData.genderDesignation.flatMap(g =>
       g.designations.filter(d => d.value > 0).map(d => ({
         name: `${g.gender === 'MALE' ? 'Male' : 'Female'} - ${d.name}`,
         value: d.value,
@@ -496,7 +497,7 @@ export default function DashboardPage() {
 
     const totalAll = innerData.reduce((s, g) => s + g.value, 0);
     return { innerData, outerData, totalAll, maleColors, femaleColors };
-  }, [uniData]);
+  }, [activeData]);
 
   const genderOption = useMemo(() => {
     if (!genderChartData) return {};
@@ -571,8 +572,8 @@ export default function DashboardPage() {
 
   // --- Chart 7: Sanction vs Present ---
   const sanctionOption = useMemo(() => {
-    if (!uniData) return null;
-    const rows = uniData.sanctionVsPresent;
+    if (!activeData) return null;
+    const rows = activeData.sanctionVsPresent;
     const allKeys = [...new Set(rows.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
     const sanctionKeys = allKeys.filter(k => k.startsWith('Sanction'));
     const presentKeys = allKeys.filter(k => k.startsWith('Present'));
@@ -653,7 +654,7 @@ export default function DashboardPage() {
         })),
       ],
     };
-  }, [uniData, isMobile]);
+  }, [activeData, isMobile]);
 
   if (!data) {
     return (
@@ -820,8 +821,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* University-specific charts */}
-      {!isAllUni && uniData && (
+      {/* Detailed Analysis charts */}
+      {activeData && (
         <>
           <div className="flex items-center gap-3 mt-2">
             <div className="h-px flex-1 bg-gray-200" />
@@ -834,7 +835,7 @@ export default function DashboardPage() {
             {categoryOption && (
               <ChartCard
                 title="Category-wise Designation Distribution"
-                tableData={{ headers: ['Category', ...(uniData.designations || [])], rows: uniData.categoryDesignation.map(row => [row.category, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
+                tableData={{ headers: ['Category', ...(activeData.designations || [])], rows: activeData.categoryDesignation.map(row => [row.category, ...(activeData.designations || []).map(d => row[d] || 0)]) }}
               >
                 <ReactECharts option={categoryOption} style={{ height: isMobile ? '320px' : '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
@@ -842,7 +843,7 @@ export default function DashboardPage() {
             {employmentTypeOption && (
               <ChartCard
                 title="Employment Type &rarr; Designation Distribution"
-                tableData={{ headers: ['Employment Type', ...(uniData.designations || [])], rows: uniData.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...(uniData.designations || []).map(d => row[d] || 0)]) }}
+                tableData={{ headers: ['Employment Type', ...(activeData.designations || [])], rows: activeData.postTypeDesignation.map(row => [PT_LABELS[row.postType] || row.postType, ...(activeData.designations || []).map(d => row[d] || 0)]) }}
               >
                 <ReactECharts option={employmentTypeOption} style={{ height: isMobile ? '320px' : '420px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
@@ -854,10 +855,10 @@ export default function DashboardPage() {
             <ChartCard
               title="Gender & Designation Distribution"
               tableData={genderChartData ? {
-                headers: ['Gender', ...(uniData.designations || []), 'Total'],
-                rows: uniData.genderDesignation.map(g => [
+                headers: ['Gender', ...(activeData.designations || []), 'Total'],
+                rows: activeData.genderDesignation.map(g => [
                   g.gender === 'MALE' ? 'Male' : g.gender === 'FEMALE' ? 'Female' : 'Other',
-                  ...(uniData.designations || []).map(d => g.designations.find(x => x.name === d)?.value || 0),
+                  ...(activeData.designations || []).map(d => g.designations.find(x => x.name === d)?.value || 0),
                   g.total,
                 ]),
               } : undefined}
@@ -916,9 +917,9 @@ export default function DashboardPage() {
               <ChartCard
                 title="Sanction vs Present (Designation-wise)"
                 tableData={{
-                  headers: ['Subject', ...([...new Set(uniData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort())],
-                  rows: uniData.sanctionVsPresent.map(row => {
-                    const keys = [...new Set(uniData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
+                  headers: ['Subject', ...([...new Set(activeData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort())],
+                  rows: activeData.sanctionVsPresent.map(row => {
+                    const keys = [...new Set(activeData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
                     return [row.subject, ...keys.map(k => row[k] || 0)];
                   }),
                 }}
