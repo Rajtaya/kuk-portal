@@ -154,12 +154,18 @@ export default function SanctionedPostsPage() {
 
   function update(key: string, value: string | number) { setForm((prev) => ({ ...prev, [key]: value })); }
 
+  // University-only filter (for stat cards — not affected by type filter)
+  const uniOnlyVacancy = useMemo(() => {
+    if (selectedUni === 'all') return vacancyData;
+    return vacancyData.filter(r => r.universityCode === selectedUni);
+  }, [vacancyData, selectedUni]);
+
+  // University + type filter (for table data)
   const uniFilteredVacancy = useMemo(() => {
-    let data = vacancyData;
-    if (selectedUni !== 'all') data = data.filter(r => r.universityCode === selectedUni);
+    let data = uniOnlyVacancy;
     if (selectedType !== 'all') data = data.filter(r => r.postType === selectedType);
     return data;
-  }, [vacancyData, selectedUni, selectedType]);
+  }, [uniOnlyVacancy, selectedType]);
 
   const uniFilteredPosts = useMemo(() => {
     let data = posts;
@@ -168,17 +174,17 @@ export default function SanctionedPostsPage() {
     return data;
   }, [posts, selectedUni, selectedType]);
 
-  const totals = uniFilteredVacancy.reduce(
+  const totals = uniOnlyVacancy.reduce(
     (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
   const fillRate = totals.sanctioned > 0 ? Math.round((totals.filled / totals.sanctioned) * 100) : 0;
 
-  const budgeted = uniFilteredVacancy.filter(r => r.postType === 'BUDGETED').reduce(
+  const budgeted = uniOnlyVacancy.filter(r => r.postType === 'BUDGETED').reduce(
     (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
     { total: 0, filled: 0, vacant: 0 },
   );
-  const sfs = uniFilteredVacancy.filter(r => r.postType === 'SFS').reduce(
+  const sfs = uniOnlyVacancy.filter(r => r.postType === 'SFS').reduce(
     (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
     { total: 0, filled: 0, vacant: 0 },
   );
