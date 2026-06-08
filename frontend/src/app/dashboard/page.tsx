@@ -298,7 +298,7 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: desigList.map((d, i) => useGrouped ? {
-        name: d, type: 'bar' as const, barWidth: isMobile ? 25 : 60, barGap: '20%',
+        name: d, type: 'bar' as const, barWidth: isMobile ? 28 : 66, barGap: '15%',
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderRadius: [4, 4, 0, 0] },
         emphasis: { focus: 'series' as const },
