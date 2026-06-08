@@ -804,12 +804,14 @@ export default function DashboardPage() {
       </div>
 
       {/* 1. Employee Distribution by Designation */}
-      <ChartCard
-        title={isUniAdmin ? "Sanctioned Posts vs Filled Posts (Designation-wise)" : "Employee Distribution by Designation Across Universities"}
-        tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
-      >
-        <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '460px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
-      </ChartCard>
+      <div className={isUniAdmin ? 'max-w-2xl' : ''}>
+        <ChartCard
+          title={isUniAdmin ? "Sanctioned Posts vs Filled Posts (Designation-wise)" : "Employee Distribution by Designation Across Universities"}
+          tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
+        >
+          <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '420px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
+        </ChartCard>
+      </div>
 
       {/* 2 & 3. Hierarchy View / Summary Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-6">
