@@ -104,6 +104,40 @@ export class EmployeesController {
     return this.employeesService.delete(id);
   }
 
+  @Post(':id/photo')
+  @Roles(Role.UNIVERSITY_ADMIN)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('photo', {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.match(/^image\/(jpeg|png|webp)$/)) {
+        cb(new ForbiddenException('Only JPEG, PNG, WebP images allowed'), false);
+      } else {
+        cb(null, true);
+      }
+    },
+  }))
+  async uploadPhoto(
+    @Param('id') id: string,
+    @UploadedFile() photo: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    const emp = await this.employeesService.findOne(id);
+    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
+    if (!photo) throw new ForbiddenException('No photo uploaded');
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const ext = path.extname(photo.originalname) || '.jpg';
+    const filename = `${id}${ext}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', 'photos');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    fs.writeFileSync(path.join(uploadDir, filename), photo.buffer);
+
+    const photoUrl = `/uploads/photos/${filename}`;
+    return this.employeesService.update(id, { photoUrl } as any);
+  }
+
   @Post('bulk-upload')
   @Roles(Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')

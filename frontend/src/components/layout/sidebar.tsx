@@ -20,7 +20,7 @@ const navItems = {
 const roleLinks = {
   SUPER_ADMIN: ['dashboard', 'employees', 'universities', 'sanctioned', 'reports', 'users', 'settings'],
   STATE_USER: ['dashboard', 'employees', 'universities', 'sanctioned', 'reports'],
-  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned', 'reports'],
+  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned', 'reports', 'settings'],
 };
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';

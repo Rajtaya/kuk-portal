@@ -156,6 +156,7 @@ model Employee {
 
   mobileNumber           String?
   email                  String?
+  photoUrl               String?
 
   documents              Document[]
   createdAt              DateTime               @default(now())

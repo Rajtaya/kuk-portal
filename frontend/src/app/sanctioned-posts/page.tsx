@@ -66,6 +66,7 @@ export default function SanctionedPostsPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [selectedUni, setSelectedUni] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const exportRef = useRef<HTMLDivElement>(null);
 
   const fixedUniversityId = (!isSuperAdmin && !isStateUser) ? user?.university?.id || '' : '';
@@ -154,20 +155,33 @@ export default function SanctionedPostsPage() {
   function update(key: string, value: string | number) { setForm((prev) => ({ ...prev, [key]: value })); }
 
   const uniFilteredVacancy = useMemo(() => {
-    if (selectedUni === 'all') return vacancyData;
-    return vacancyData.filter(r => r.universityCode === selectedUni);
-  }, [vacancyData, selectedUni]);
+    let data = vacancyData;
+    if (selectedUni !== 'all') data = data.filter(r => r.universityCode === selectedUni);
+    if (selectedType !== 'all') data = data.filter(r => r.postType === selectedType);
+    return data;
+  }, [vacancyData, selectedUni, selectedType]);
 
   const uniFilteredPosts = useMemo(() => {
-    if (selectedUni === 'all') return posts;
-    return posts.filter(p => p.university?.code === selectedUni);
-  }, [posts, selectedUni]);
+    let data = posts;
+    if (selectedUni !== 'all') data = data.filter(p => p.university?.code === selectedUni);
+    if (selectedType !== 'all') data = data.filter(p => p.postType === selectedType);
+    return data;
+  }, [posts, selectedUni, selectedType]);
 
   const totals = uniFilteredVacancy.reduce(
     (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
   const fillRate = totals.sanctioned > 0 ? Math.round((totals.filled / totals.sanctioned) * 100) : 0;
+
+  const budgeted = uniFilteredVacancy.filter(r => r.postType === 'BUDGETED').reduce(
+    (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
+    { total: 0, filled: 0, vacant: 0 },
+  );
+  const sfs = uniFilteredVacancy.filter(r => r.postType === 'SFS').reduce(
+    (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
+    { total: 0, filled: 0, vacant: 0 },
+  );
 
   // Available filter options (computed from data)
   const availableFilters = useMemo(() => {
@@ -189,11 +203,7 @@ export default function SanctionedPostsPage() {
     )].sort();
     if (desigs.length > 1) defs.push({ key: 'designation', label: 'Designation', values: desigs });
 
-    const types = [...new Set(tab === 'vacancy'
-      ? vacancyData.map(r => r.postType)
-      : posts.map(p => p.postType)
-    )].sort();
-    if (types.length > 1) defs.push({ key: 'postType', label: 'Post Type', values: types });
+    defs.push({ key: 'postType', label: 'Post Type', values: [...postTypes] });
 
     const subjects = [...new Set(tab === 'vacancy'
       ? vacancyData.map(r => r.subject).filter(Boolean) as string[]
@@ -385,6 +395,30 @@ export default function SanctionedPostsPage() {
           </div>
         )}
 
+        <div className="flex items-center gap-1.5">
+          <select
+            value={selectedType}
+            onChange={(e) => { setSelectedType(e.target.value); setFilters({}); setSearch(''); }}
+            className="border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 shadow-sm w-40"
+          >
+            <option value="all">All Types</option>
+            {postTypes.map(t => (
+              <option key={t} value={t}>{t === 'SFS' ? 'SFS' : t.charAt(0) + t.slice(1).toLowerCase()}</option>
+            ))}
+          </select>
+          {selectedType !== 'all' && (
+            <button
+              onClick={() => { setSelectedType('all'); setFilters({}); setSearch(''); }}
+              className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+              title="Clear type filter"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
           <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             {canWrite && (
@@ -408,30 +442,48 @@ export default function SanctionedPostsPage() {
         </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-5 gap-3">
-        {[
-          { label: 'Sanctioned', value: totals.sanctioned, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-          { label: 'Filled', value: totals.filled, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-          { label: 'Vacant', value: totals.vacant, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10' },
-          { label: 'Excess', value: totals.excess, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-        ].map(({ label, value, color, bg }) => (
-          <div key={label} className={`${bg} rounded-xl px-4 py-3 text-center`}>
-            <p className={`text-xl font-bold tabular-nums ${color}`}>{value.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
+      {/* Summary strip — Budgeted + SFS */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Budgeted */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-5 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Budgeted Posts</span>
           </div>
-        ))}
-        {/* Fill Rate */}
-        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Fill Rate</span>
-            <span className={`text-lg font-bold tabular-nums ${fillRate >= 75 ? 'text-emerald-600 dark:text-emerald-400' : fillRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{fillRate}%</span>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{budgeted.total.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Total</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{budgeted.filled.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Filled</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">{budgeted.vacant.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Vacant</p>
+            </div>
           </div>
-          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-2">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ease-out ${fillRate >= 75 ? 'bg-emerald-500' : fillRate >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
-              style={{ width: `${Math.min(fillRate, 100)}%` }}
-            />
+        </div>
+        {/* SFS */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 px-5 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">SFS Posts</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-orange-600 dark:text-orange-400">{sfs.total.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Total</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{sfs.filled.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Filled</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">{sfs.vacant.toLocaleString()}</p>
+              <p className="text-[11px] text-gray-400">Vacant</p>
+            </div>
           </div>
         </div>
       </div>

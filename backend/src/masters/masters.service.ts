@@ -15,6 +15,12 @@ export class MastersService {
     return this.prisma.subject.create({ data: { name } });
   }
 
+  async updateSubject(id: string, name: string) {
+    const exists = await this.prisma.subject.findFirst({ where: { name, NOT: { id } } });
+    if (exists) throw new ConflictException('Subject with that name already exists');
+    return this.prisma.subject.update({ where: { id }, data: { name } });
+  }
+
   async deleteSubject(id: string) {
     return this.prisma.subject.delete({ where: { id } });
   }

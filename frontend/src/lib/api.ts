@@ -58,10 +58,10 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
-  async uploadFile<T>(endpoint: string, file: File, params?: Record<string, string>) {
+  async uploadFile<T>(endpoint: string, file: File, params?: Record<string, string>, fieldName = 'file') {
     const token = this.getToken();
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append(fieldName, file);
 
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     const res = await fetch(`${API_BASE}${endpoint}${query}`, {

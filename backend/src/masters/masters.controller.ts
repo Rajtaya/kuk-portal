@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { MastersService } from './masters.service';
@@ -20,9 +20,16 @@ export class MastersController {
 
   @Post('subjects')
   @UseGuards(RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   createSubject(@Body('name') name: string) {
     return this.mastersService.createSubject(name);
+  }
+
+  @Put('subjects/:id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
+  updateSubject(@Param('id') id: string, @Body('name') name: string) {
+    return this.mastersService.updateSubject(id, name);
   }
 
   @Delete('subjects/:id')

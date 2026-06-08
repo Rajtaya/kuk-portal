@@ -56,6 +56,7 @@ export interface Employee {
   employmentStatus: EmploymentStatus;
   mobileNumber?: string;
   email?: string;
+  photoUrl?: string;
   createdAt: string;
 }
 
