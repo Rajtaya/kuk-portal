@@ -1,4 +1,4 @@
-# UEMS Session Handoff — 2026-06-01 (Updated 2026-06-08 session 9)
+# UEMS Session Handoff — 2026-06-08 (Session 9)
 
 > ## ⚠️ HIGHLIGHTED DATA NOTE — `Employee.subject` is unnormalized free-text
 >
