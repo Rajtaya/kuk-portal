@@ -298,11 +298,11 @@ export default function DashboardPage() {
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: desigList.map((d, i) => useGrouped ? {
-        name: d, type: 'bar' as const,
+        name: d, type: 'bar' as const, barWidth: isMobile ? 20 : 40, barGap: '30%',
         data: rows.map(r => Number(r[d]) || 0),
-        itemStyle: { color: getDesigColor(d, i), borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: getDesigColor(d, i), borderRadius: [4, 4, 0, 0] },
         emphasis: { focus: 'series' as const },
-        label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 600, color: '#374151',
+        label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
           formatter: (p: any) => p.value > 0 ? p.value : '' },
       } : {
         name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
