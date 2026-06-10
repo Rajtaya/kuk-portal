@@ -7,7 +7,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { EmployeesService } from './employees.service';
-import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
+import { CreateEmployeeDto, UpdateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -89,7 +89,7 @@ export class EmployeesController {
 
   @Put(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
-  async update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>, @CurrentUser() user: any) {
+  async update(@Param('id') id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: any) {
     const emp = await this.employeesService.findOne(id);
     if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
     delete dto.universityId;

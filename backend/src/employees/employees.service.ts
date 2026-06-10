@@ -7,9 +7,22 @@ import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto'
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
+  // Date inputs arrive as "YYYY-MM-DD" from <input type="date">; Prisma only
+  // accepts Date objects or full ISO-8601 datetimes, anything else throws a 500.
+  private coerceDates<T extends { dateOfJoining?: any; retirementDate?: any }>(dto: T): T {
+    for (const key of ['dateOfJoining', 'retirementDate'] as const) {
+      const value = dto[key];
+      if (typeof value === 'string' && value) {
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) (dto as any)[key] = parsed;
+      }
+    }
+    return dto;
+  }
+
   create(dto: CreateEmployeeDto) {
     return this.prisma.employee.create({
-      data: dto as any,
+      data: this.coerceDates(dto) as any,
       include: { university: true, department: true },
     });
   }
@@ -74,7 +87,7 @@ export class EmployeesService {
   update(id: string, dto: Partial<CreateEmployeeDto>) {
     return this.prisma.employee.update({
       where: { id },
-      data: dto as any,
+      data: this.coerceDates(dto) as any,
       include: { university: true, department: true },
     });
   }
@@ -201,7 +214,7 @@ export class EmployeesService {
       this.prisma.designation.count(),
       this.prisma.sanctionedPost.findMany({
         where: universityId ? { universityId } : {},
-        select: { subject: true, designation: true, sanctionedCount: true },
+        select: { subject: true, designation: true, postType: true, sanctionedCount: true },
       }),
       this.prisma.sanctionedPost.aggregate({
         where: universityId ? { universityId } : {},
@@ -264,7 +277,35 @@ export class EmployeesService {
       m.set(desig, (m.get(desig) || 0) + 1);
     }
 
-    // 6. Sanction vs Present by Subject
+    // 6. Designation × PostType → Sanction / Present / Vacant (stacked bar)
+    const dpSanctionMap = new Map<string, number>();
+    for (const sp of sanctionedPosts) {
+      const key = `${sp.designation}||${sp.postType}`;
+      dpSanctionMap.set(key, (dpSanctionMap.get(key) || 0) + sp.sanctionedCount);
+    }
+    const dpPresentMap = new Map<string, number>();
+    for (const e of employees) {
+      const key = `${e.designationPresent || 'Other'}||${e.postType}`;
+      dpPresentMap.set(key, (dpPresentMap.get(key) || 0) + 1);
+    }
+    const allDPKeys = new Set([...dpSanctionMap.keys(), ...dpPresentMap.keys()]);
+    const desigOrder = ['Professor', 'Associate Professor', 'Assistant Professor', 'Other Teaching Posts'];
+    const ptOrder = ['BUDGETED', 'SFS', 'CONTRACTUAL'];
+    const designationPostType = [...allDPKeys]
+      .map(k => { const [d, p] = k.split('||'); return { designation: d, postType: p, key: k }; })
+      .sort((a, b) => {
+        const di = desigOrder.indexOf(a.designation) === -1 ? 99 : desigOrder.indexOf(a.designation);
+        const dj = desigOrder.indexOf(b.designation) === -1 ? 99 : desigOrder.indexOf(b.designation);
+        if (di !== dj) return di - dj;
+        return ptOrder.indexOf(a.postType) - ptOrder.indexOf(b.postType);
+      })
+      .map(({ designation, postType, key }) => {
+        const sanctioned = dpSanctionMap.get(key) || 0;
+        const present = dpPresentMap.get(key) || 0;
+        return { designation, postType, sanctioned, present, vacant: Math.max(0, sanctioned - present) };
+      });
+
+    // 7. Sanction vs Present by Subject
     const sMap = new Map<string, Record<string, number>>();
     for (const sp of sanctionedPosts) {
       const subj = sp.subject || 'General';
@@ -319,6 +360,7 @@ export class EmployeesService {
       sanctionVsPresent: [...allSubjs].sort().map(subj => ({
         subject: subj, ...(sMap.get(subj) || {}), ...(pMap.get(subj) || {}),
       })),
+      designationPostType,
       universities: allUniversities,
       designations: [...designationSet].sort(),
       subjects: [...subjectSet].sort(),

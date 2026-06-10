@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum, IsDateString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Gender, Category, PostType, EmployeeClassification, EmploymentStatus } from '@prisma/client';
 
 export class CreateEmployeeDto {
@@ -84,6 +84,10 @@ export class CreateEmployeeDto {
   @IsString()
   email?: string;
 }
+
+// Partial<CreateEmployeeDto> as a controller body type erases class-validator
+// metadata at runtime (no validation at all); PartialType keeps every rule.
+export class UpdateEmployeeDto extends PartialType(CreateEmployeeDto) {}
 
 export class EmployeeFilterDto {
   @IsOptional() @IsString() universityId?: string;
