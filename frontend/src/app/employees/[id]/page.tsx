@@ -22,6 +22,16 @@ function formatDate(d?: string | null) {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// For <input type="date">. Slicing the ISO string takes the UTC date, which is
+// one day behind the local date formatDate shows for stored IST-midnight values.
+function toDateInputValue(d?: string | null) {
+  if (!d) return '';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 function yearsOfService(d?: string | null) {
   if (!d) return null;
   const diff = Date.now() - new Date(d).getTime();
@@ -53,6 +63,7 @@ export default function EmployeeProfilePage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const canEdit = user?.role === 'UNIVERSITY_ADMIN';
@@ -96,8 +107,8 @@ export default function EmployeeProfilePage() {
         employeeClassification: emp.employeeClassification || 'TEACHING',
         designationAppointed: emp.designationAppointed || '',
         designationPresent: emp.designationPresent || '',
-        dateOfJoining: emp.dateOfJoining ? emp.dateOfJoining.slice(0, 10) : '',
-        retirementDate: emp.retirementDate ? emp.retirementDate.slice(0, 10) : '',
+        dateOfJoining: toDateInputValue(emp.dateOfJoining),
+        retirementDate: toDateInputValue(emp.retirementDate),
         employmentStatus: emp.employmentStatus || 'ACTIVE',
         mobileNumber: emp.mobileNumber || '',
         email: emp.email || '',
@@ -111,6 +122,10 @@ export default function EmployeeProfilePage() {
       api.get<Department[]>(`/departments?universityId=${employee.universityId}`).then(setDepartments);
     }
   }, [employee?.universityId]);
+
+  useEffect(() => {
+    api.get<{ id: string; name: string }[]>('/masters/subjects').then(setSubjects);
+  }, []);
 
   const summary = useMemo(() => {
     if (!employee) return null;
@@ -152,8 +167,8 @@ export default function EmployeeProfilePage() {
       employeeClassification: employee.employeeClassification || 'TEACHING',
       designationAppointed: employee.designationAppointed || '',
       designationPresent: employee.designationPresent || '',
-      dateOfJoining: employee.dateOfJoining ? employee.dateOfJoining.slice(0, 10) : '',
-      retirementDate: employee.retirementDate ? employee.retirementDate.slice(0, 10) : '',
+      dateOfJoining: toDateInputValue(employee.dateOfJoining),
+      retirementDate: toDateInputValue(employee.retirementDate),
       employmentStatus: employee.employmentStatus || 'ACTIVE',
       mobileNumber: employee.mobileNumber || '',
       email: employee.email || '',
@@ -166,7 +181,7 @@ export default function EmployeeProfilePage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           <p className="text-gray-400 text-sm">Loading profile...</p>
         </div>
       </div>
@@ -174,7 +189,7 @@ export default function EmployeeProfilePage() {
   }
 
   const sc = STATUS_COLOR[employee.employmentStatus] || STATUS_COLOR.ACTIVE;
-  const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
+  const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white';
   const lbl = 'block text-xs font-semibold text-gray-500 mb-1';
 
   return (
@@ -196,7 +211,7 @@ export default function EmployeeProfilePage() {
           {canEdit && !editing && (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -212,7 +227,7 @@ export default function EmployeeProfilePage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors"
               >
                 {saving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 Save Changes
@@ -232,10 +247,10 @@ export default function EmployeeProfilePage() {
                 <img
                   src={`${API_BASE}${employee.photoUrl}`}
                   alt={employee.name}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg shadow-blue-200"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg shadow-primary-200"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-200">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary-200">
                   {getInitials(employee.name)}
                 </div>
               )}
@@ -245,7 +260,7 @@ export default function EmployeeProfilePage() {
                   <button
                     onClick={() => photoInputRef.current?.click()}
                     disabled={uploading}
-                    className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 transition-colors border-2 border-white"
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-primary-700 transition-colors border-2 border-white"
                     title="Upload Photo"
                   >
                     {uploading ? (
@@ -278,7 +293,7 @@ export default function EmployeeProfilePage() {
 
         {/* MIDDLE — Personal + Employment Details */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="flex items-center gap-2 text-base font-bold text-blue-600 mb-5">
+          <h3 className="flex items-center gap-2 text-base font-bold text-primary-600 mb-5">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
@@ -323,7 +338,7 @@ export default function EmployeeProfilePage() {
 
         {/* RIGHT — Employment Details */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="flex items-center gap-2 text-base font-bold text-blue-600 mb-5">
+          <h3 className="flex items-center gap-2 text-base font-bold text-primary-600 mb-5">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
             </svg>
@@ -356,7 +371,12 @@ export default function EmployeeProfilePage() {
                   <option value="Assistant Professor">Assistant Professor</option><option value="Senior Professor">Senior Professor</option>
                 </select>
               </div>
-              <div><label className={lbl}>Subject</label><input className={inp} value={form.subject} onChange={(e) => update('subject', e.target.value)} /></div>
+              <div><label className={lbl}>Subject</label>
+                <select className={inp} value={form.subject} onChange={(e) => update('subject', e.target.value)}>
+                  <option value="">Select Subject</option>
+                  {subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
               <div><label className={lbl}>Department</label>
                 <select className={inp} value={form.departmentId} onChange={(e) => update('departmentId', e.target.value)}>
                   <option value="">Select</option>
@@ -416,7 +436,7 @@ export default function EmployeeProfilePage() {
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0 mt-0.5">{icon}</div>
+      <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-500 flex-shrink-0 mt-0.5">{icon}</div>
       <div className="min-w-0">
         <p className="text-xs text-gray-400 leading-none mb-0.5">{label}</p>
         <p className="text-sm font-medium text-gray-800 break-words">{value}</p>
@@ -439,7 +459,7 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 }
 
 const SUMMARY_COLORS: Record<string, { bg: string; icon: string }> = {
-  blue: { bg: 'bg-blue-50', icon: 'text-blue-500' },
+  blue: { bg: 'bg-primary-50', icon: 'text-primary-500' },
   amber: { bg: 'bg-amber-50', icon: 'text-amber-500' },
   purple: { bg: 'bg-purple-50', icon: 'text-purple-500' },
   green: { bg: 'bg-green-50', icon: 'text-green-500' },

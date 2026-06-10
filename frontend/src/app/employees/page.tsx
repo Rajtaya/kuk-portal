@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import { Employee, University, PaginatedResponse } from '@/lib/types';
+import { Employee, University, Department, PaginatedResponse } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
@@ -23,19 +22,20 @@ interface ColDef {
 
 const ALL_COLUMNS: ColDef[] = [
   { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, render: (_e, i, p) => i + 1 + (p - 1) * 20 },
+  { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
   { key: 'uniName', label: 'University Name', render: (e) => e.university?.name || '-' },
   { key: 'uniCode', label: 'University Code', render: (e) => e.university?.code || '-' },
-  { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
   { key: 'subject', label: 'Subject', render: (e) => e.subject || '-' },
+  { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
   { key: 'category', label: 'Category', render: (e) => <Badge value={e.category} /> },
   { key: 'catSelection', label: 'Selection Category', render: (e) => <Badge value={e.categorySelection} /> },
-  { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
   { key: 'presentDesig', label: 'Present Designation', render: (e) => e.designationPresent || '-' },
   { key: 'gender', label: 'Gender', render: (e) => <Badge value={e.gender} /> },
   { key: 'postType', label: 'Type', render: (e) => <Badge value={e.postType} /> },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
+const UNI_ADMIN_HIDDEN = ['uniName', 'uniCode'];
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -52,6 +52,32 @@ export default function EmployeesPage() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Add Employee modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addDepartments, setAddDepartments] = useState<Department[]>([]);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState('');
+  const emptyForm = {
+    employeeId: '', name: '', gender: 'MALE',
+    universityId: '', departmentId: '', subject: '',
+    category: 'GENERAL', categorySelection: 'GENERAL',
+    postType: 'BUDGETED', employeeClassification: 'TEACHING',
+    designationAppointed: '', designationPresent: '',
+    dateOfJoining: '', retirementDate: '',
+    employmentStatus: 'ACTIVE',
+    mobileNumber: '', email: '',
+  };
+  const [addForm, setAddForm] = useState(emptyForm);
+
+  // Upload modal
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ success: number; failed: number; total: number; errors: string[] } | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadUniversityId, setUploadUniversityId] = useState('');
+  const uploadFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('emp-visible-cols');
@@ -82,7 +108,8 @@ export default function EmployeesPage() {
     localStorage.setItem('emp-visible-cols', JSON.stringify(next));
   };
 
-  const activeCols = ALL_COLUMNS.filter((c) => visibleCols.includes(c.key));
+  const hiddenKeys = user?.role === 'UNIVERSITY_ADMIN' ? UNI_ADMIN_HIDDEN : [];
+  const activeCols = ALL_COLUMNS.filter((c) => visibleCols.includes(c.key) && !hiddenKeys.includes(c.key));
 
   const canWrite = user?.role === 'UNIVERSITY_ADMIN';
 
@@ -99,6 +126,16 @@ export default function EmployeesPage() {
   }, []);
 
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const f = { ...filters, ...(search ? { search } : {}) };
+      if (!search) delete f.search;
+      setFilters(f);
+      fetchEmployees(1, f);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleSearch = () => {
     const f = { ...filters, ...(search ? { search } : {}) };
@@ -157,19 +194,122 @@ export default function EmployeesPage() {
     setExportMenuOpen(false);
   };
 
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isStateUser = user?.role === 'STATE_USER';
+  const fixedUniversityId = !isSuperAdmin && !isStateUser ? user?.university?.id || '' : '';
+
+  // Add Employee handlers
+  useEffect(() => {
+    const uid = addForm.universityId || fixedUniversityId;
+    if (uid) api.get<Department[]>(`/departments?universityId=${uid}`).then(setAddDepartments);
+  }, [addForm.universityId, fixedUniversityId]);
+
+  useEffect(() => {
+    if (fixedUniversityId) setAddForm(prev => ({ ...prev, universityId: fixedUniversityId }));
+  }, [fixedUniversityId]);
+
+  function openAddModal() {
+    setAddForm({ ...emptyForm, universityId: fixedUniversityId });
+    setAddError('');
+    setShowAddModal(true);
+  }
+
+  async function handleAddSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAddSaving(true); setAddError('');
+    try {
+      await api.post('/employees', addForm);
+      toast('Employee added', 'success');
+      setShowAddModal(false);
+      fetchEmployees(data.page, filters);
+    } catch (err: any) { setAddError(err.message); }
+    finally { setAddSaving(false); }
+  }
+
+  // Upload handlers
+  function openUploadModal() {
+    setUploadFile(null); setUploadError(''); setUploadResult(null); setUploadUniversityId('');
+    if (uploadFileRef.current) uploadFileRef.current.value = '';
+    setShowUploadModal(true);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const ext = f.name.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext || '')) { setUploadError('Only .xlsx, .xls, .csv supported'); return; }
+    setUploadFile(f); setUploadError(''); setUploadResult(null);
+  }
+
+  async function handleUpload() {
+    if (!uploadFile) { setUploadError('Please select a file'); return; }
+    const uid = (isSuperAdmin || isStateUser) ? uploadUniversityId : user?.university?.id;
+    if (!uid) { setUploadError('Please select a university'); return; }
+    setUploading(true); setUploadError('');
+    try {
+      const res = await api.uploadFile<{ success: number; failed: number; total: number; errors: string[] }>('/employees/bulk-upload', uploadFile, { universityId: uid });
+      setUploadResult(res);
+      fetchEmployees(data.page, filters);
+    } catch (err: any) { setUploadError(err.message || 'Upload failed'); }
+    finally { setUploading(false); }
+  }
+
+  function downloadTemplate() {
+    const token = localStorage.getItem('token');
+    const base = process.env.NEXT_PUBLIC_API_URL || '/api';
+    fetch(`${base}/employees/template`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.blob()).then(blob => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'employee-upload-template.xlsx'; a.click(); URL.revokeObjectURL(a.href);
+      });
+  }
+
+  const addInp = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400';
+  const addLbl = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
+
   return (
     <div>
       <Breadcrumb items={[{ label: 'Employees', icon: 'employees' }]} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-          </svg>
-          Employees
-          {data.total > 0 && <span className="text-sm font-normal text-gray-400 ml-1">({data.total.toLocaleString()})</span>}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <svg className="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128H5.228A2 2 0 015 17.128v-.003c0-2.1 1.606-3.827 3.66-3.951C9.097 11.938 10.488 11 12 11c1.512 0 2.903.938 3.34 2.174C17.394 13.298 19 15.025 19 17.125M15 19.128H5.228M12 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Employees
+            {data.total > 0 && <span className="text-sm font-normal text-gray-400 ml-1">({data.total.toLocaleString()})</span>}
+          </h2>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`relative flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${showFilters ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300' : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}`}
+            title="Filters"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            {activeFilterCount > 0 && <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>}
+          </button>
+          {activeFilterCount > 0 && (
+            <button onClick={clearAllFilters} className="text-sm text-red-500 hover:text-red-700 font-medium">Clear all</button>
+          )}
+          {Object.entries(filters).filter(([k, v]) => k !== 'search' && v).map(([k, v]) => {
+            const labelMap: Record<string, string> = { universityId: 'University', gender: 'Gender', category: 'Category', postType: 'Post Type', employmentStatus: 'Status', designation: 'Designation' };
+            let displayVal = v;
+            if (k === 'universityId') { const u = universities.find((u) => u.id === v); displayVal = u ? u.code : v; }
+            if (k === 'postType') displayVal = v === 'SFS' ? 'Self Financed' : v === 'BUDGETED' ? 'Budgeted' : v === 'CONTRACTUAL' ? 'Contractual' : v;
+            if (k === 'gender') displayVal = v === 'MALE' ? 'Male' : v === 'FEMALE' ? 'Female' : 'Other';
+            return (
+            <span key={k} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
+              {labelMap[k] || k}: {displayVal}
+              <button onClick={() => applyFilter(k, '')} className="hover:text-red-500">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </span>
+            );
+          })}
+        </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -177,28 +317,35 @@ export default function EmployeesPage() {
             </svg>
             <input
               type="text"
-              placeholder="Search employee..."
+              placeholder="Search by name, subject, designation..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg text-sm w-64 focus:outline-none focus:border-blue-500"
+              className="pl-9 pr-8 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg text-sm w-80 focus:outline-none focus:border-primary-500"
             />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
           {canWrite && (
-            <Link href="/employees/new" className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            <button onClick={openAddModal} className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Add Employee
-            </Link>
+            </button>
           )}
           {canWrite && (
-            <Link href="/employees/upload" className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <button onClick={openUploadModal} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
               Upload Excel
-            </Link>
+            </button>
           )}
           <div className="relative" ref={exportMenuRef}>
             <button onClick={() => setExportMenuOpen(!exportMenuOpen)} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -238,7 +385,7 @@ export default function EmployeesPage() {
                       checked={visibleCols.includes(col.key)}
                       disabled={col.alwaysOn}
                       onChange={() => toggleCol(col.key)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
                     {col.label}
                   </label>
@@ -246,7 +393,7 @@ export default function EmployeesPage() {
                 <hr className="my-1" />
                 <button
                   onClick={() => { setVisibleCols(DEFAULT_VISIBLE); localStorage.setItem('emp-visible-cols', JSON.stringify(DEFAULT_VISIBLE)); }}
-                  className="w-full text-left px-4 py-2 text-xs text-blue-600 hover:bg-gray-50 font-medium"
+                  className="w-full text-left px-4 py-2 text-xs text-primary-600 hover:bg-gray-50 font-medium"
                 >
                   Reset to default
                 </button>
@@ -256,38 +403,6 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${showFilters ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300' : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-          </svg>
-          Filters
-          {activeFilterCount > 0 && <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{activeFilterCount}</span>}
-        </button>
-        {activeFilterCount > 0 && (
-          <button onClick={clearAllFilters} className="text-sm text-red-500 hover:text-red-700 font-medium">Clear all</button>
-        )}
-        {/* Active filter tags */}
-        {Object.entries(filters).filter(([k, v]) => k !== 'search' && v).map(([k, v]) => {
-          const labelMap: Record<string, string> = { universityId: 'University', gender: 'Gender', category: 'Category', postType: 'Post Type', employmentStatus: 'Status', designation: 'Designation' };
-          let displayVal = v;
-          if (k === 'universityId') { const u = universities.find((u) => u.id === v); displayVal = u ? u.code : v; }
-          if (k === 'postType') displayVal = v === 'SFS' ? 'Self Financed' : v === 'BUDGETED' ? 'Budgeted' : v === 'CONTRACTUAL' ? 'Contractual' : v;
-          if (k === 'gender') displayVal = v === 'MALE' ? 'Male' : v === 'FEMALE' ? 'Female' : 'Other';
-          return (
-          <span key={k} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-            {labelMap[k] || k}: {displayVal}
-            <button onClick={() => applyFilter(k, '')} className="hover:text-red-500">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </span>
-          );
-        })}
-      </div>
 
       {showFilters && (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 shadow-sm">
@@ -297,7 +412,7 @@ export default function EmployeesPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">University</label>
                 <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)}
-                  className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                  className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                   <option value="">All</option>
                   {universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
                 </select>
@@ -307,7 +422,7 @@ export default function EmployeesPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Gender</label>
               <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                 <option value="">All</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -318,7 +433,7 @@ export default function EmployeesPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Category</label>
               <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                 <option value="">All</option>
                 {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -327,7 +442,7 @@ export default function EmployeesPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Post Type</label>
               <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                 <option value="">All</option>
                 <option value="BUDGETED">Budgeted</option>
                 <option value="SFS">Self Financed</option>
@@ -338,7 +453,7 @@ export default function EmployeesPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Status</label>
               <select value={filters.employmentStatus || ''} onChange={(e) => applyFilter('employmentStatus', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                 <option value="">All</option>
                 <option value="ACTIVE">Active</option>
                 <option value="RETIRED">Retired</option>
@@ -351,7 +466,7 @@ export default function EmployeesPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Designation</label>
               <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
                 <option value="">All</option>
                 <option value="Professor">Professor</option>
                 <option value="Associate Professor">Associate Professor</option>
@@ -367,14 +482,14 @@ export default function EmployeesPage() {
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-auto max-h-[75vh]">
+          <table className="w-full text-sm border-separate border-spacing-0">
             <thead>
-              <tr className="bg-blue-600 text-white">
+              <tr className="bg-primary-700 text-white">
                 {activeCols.map((col) => (
-                  <th key={col.key} className={`px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'}`}>{col.label}</th>
+                  <th key={col.key} className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'}`}>{col.label}</th>
                 ))}
-                <th className="px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-blue-600">Action</th>
+                <th className="sticky top-0 z-10 px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -391,7 +506,7 @@ export default function EmployeesPage() {
                 </tr>
               ) : (
                 data.data.map((emp, i) => (
-                  <tr key={emp.id} className={`border-b border-gray-100 dark:border-gray-800 hover:bg-blue-50/50 dark:hover:bg-gray-800/50 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/40 dark:bg-gray-800/30'}`}>
+                  <tr key={emp.id} className={`border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50/50 dark:hover:bg-gray-800/50 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/40 dark:bg-gray-800/30'}`}>
                     {activeCols.map((col) => (
                       <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''}`}>{col.render(emp, i, data.page)}</td>
                     ))}
@@ -412,7 +527,7 @@ export default function EmployeesPage() {
                         {canWrite && (
                           <button
                             onClick={() => router.push(`/employees/${emp.id}`)}
-                            className="w-8 h-8 flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-md bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                             title="Edit"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -465,6 +580,169 @@ export default function EmployeesPage() {
           </div>
         </div>
       </div>
+      {/* Add Employee Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add New Employee</h3>
+              <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {addError && <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm mb-4">{addError}</div>}
+              {!isSuperAdmin && !isStateUser && user?.university && (
+                <div className="bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20 rounded-lg px-4 py-2.5 mb-4">
+                  <p className="text-sm text-primary-800 dark:text-primary-300">University: <span className="font-semibold">{user.university.name} ({user.university.code})</span></p>
+                </div>
+              )}
+              <form id="add-employee-form" onSubmit={handleAddSubmit}>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Personal Information</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div><label className={addLbl}>Employee ID</label><input className={addInp} value={addForm.employeeId} onChange={e => setAddForm(p => ({ ...p, employeeId: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Employee Name *</label><input className={addInp} value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))} required /></div>
+                  <div><label className={addLbl}>Gender *</label>
+                    <select className={addInp} value={addForm.gender} onChange={e => setAddForm(p => ({ ...p, gender: e.target.value }))}>
+                      <option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Mobile Number</label><input className={addInp} value={addForm.mobileNumber} onChange={e => setAddForm(p => ({ ...p, mobileNumber: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Email Address</label><input type="email" className={addInp} value={addForm.email} onChange={e => setAddForm(p => ({ ...p, email: e.target.value }))} /></div>
+                </div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Employment Details</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(isSuperAdmin || isStateUser) && (
+                    <div><label className={addLbl}>University *</label>
+                      <select className={addInp} value={addForm.universityId} onChange={e => setAddForm(p => ({ ...p, universityId: e.target.value }))} required>
+                        <option value="">Select University</option>
+                        {universities.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div><label className={addLbl}>Department *</label>
+                    <select className={addInp} value={addForm.departmentId} onChange={e => setAddForm(p => ({ ...p, departmentId: e.target.value }))} required>
+                      <option value="">Select Department</option>
+                      {addDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Subject</label><input className={addInp} value={addForm.subject} onChange={e => setAddForm(p => ({ ...p, subject: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Designation (Appointment)</label><input className={addInp} value={addForm.designationAppointed} onChange={e => setAddForm(p => ({ ...p, designationAppointed: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Designation (Present)</label><input className={addInp} value={addForm.designationPresent} onChange={e => setAddForm(p => ({ ...p, designationPresent: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Post Type</label>
+                    <select className={addInp} value={addForm.postType} onChange={e => setAddForm(p => ({ ...p, postType: e.target.value }))}>
+                      <option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option>
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Category</label>
+                    <select className={addInp} value={addForm.category} onChange={e => setAddForm(p => ({ ...p, category: e.target.value }))}>
+                      {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Category (Selection)</label>
+                    <select className={addInp} value={addForm.categorySelection} onChange={e => setAddForm(p => ({ ...p, categorySelection: e.target.value }))}>
+                      {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Employment Status</label>
+                    <select className={addInp} value={addForm.employmentStatus} onChange={e => setAddForm(p => ({ ...p, employmentStatus: e.target.value }))}>
+                      <option value="ACTIVE">Active</option><option value="RETIRED">Retired</option><option value="RESIGNED">Resigned</option><option value="TERMINATED">Terminated</option>
+                    </select>
+                  </div>
+                  <div><label className={addLbl}>Date of Joining</label><input type="date" className={addInp} value={addForm.dateOfJoining} onChange={e => setAddForm(p => ({ ...p, dateOfJoining: e.target.value }))} /></div>
+                  <div><label className={addLbl}>Retirement Date</label><input type="date" className={addInp} value={addForm.retirementDate} onChange={e => setAddForm(p => ({ ...p, retirementDate: e.target.value }))} /></div>
+                </div>
+              </form>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+              <button onClick={() => setShowAddModal(false)} className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+              <button type="submit" form="add-employee-form" disabled={addSaving} className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                {addSaving ? 'Saving...' : 'Save Employee'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Excel Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowUploadModal(false)} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Upload Employee Excel</h3>
+              <button onClick={() => setShowUploadModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {(isSuperAdmin || isStateUser) && (
+                <div>
+                  <label className={addLbl}>University *</label>
+                  <select className={addInp} value={uploadUniversityId} onChange={e => setUploadUniversityId(e.target.value)}>
+                    <option value="">Select University</option>
+                    {universities.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                  </select>
+                </div>
+              )}
+              {!isSuperAdmin && !isStateUser && user?.university && (
+                <div className="bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20 rounded-lg px-4 py-2.5">
+                  <p className="text-sm text-primary-800 dark:text-primary-300">Uploading for: <span className="font-semibold">{user.university.name} ({user.university.code})</span></p>
+                </div>
+              )}
+              <div
+                onClick={() => uploadFileRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 dark:hover:bg-primary-500/5 transition-colors"
+              >
+                <input ref={uploadFileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} className="hidden" />
+                {uploadFile ? (
+                  <div>
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{uploadFile.name}</p>
+                    <p className="text-sm text-gray-500 mt-1">{(uploadFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                ) : (
+                  <div>
+                    <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">Click or Drag file to upload</p>
+                    <p className="text-sm text-gray-400 mt-1">Supported formats: .xlsx, .xls, .csv</p>
+                  </div>
+                )}
+              </div>
+              {uploadError && <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">{uploadError}</div>}
+              {uploadResult && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Upload Results</p>
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <div className="text-center p-2 bg-white dark:bg-gray-900 rounded-lg"><p className="text-xl font-bold text-gray-700 dark:text-gray-300">{uploadResult.total}</p><p className="text-[10px] text-gray-500">Total</p></div>
+                    <div className="text-center p-2 bg-green-50 dark:bg-green-500/10 rounded-lg"><p className="text-xl font-bold text-green-700 dark:text-green-400">{uploadResult.success}</p><p className="text-[10px] text-green-600">Imported</p></div>
+                    <div className="text-center p-2 bg-red-50 dark:bg-red-500/10 rounded-lg"><p className="text-xl font-bold text-red-700 dark:text-red-400">{uploadResult.failed}</p><p className="text-[10px] text-red-600">Failed</p></div>
+                  </div>
+                  {uploadResult.errors.length > 0 && (
+                    <div className="max-h-32 overflow-y-auto bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">
+                      {uploadResult.errors.map((err, i) => <p key={i} className="text-xs text-red-600">{err}</p>)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+              <button onClick={downloadTemplate} className="px-4 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">Download Template</button>
+              <div className="flex gap-3">
+                <button onClick={() => setShowUploadModal(false)} className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                <button onClick={handleUpload} disabled={uploading || !uploadFile} className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                  {uploading ? 'Uploading...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

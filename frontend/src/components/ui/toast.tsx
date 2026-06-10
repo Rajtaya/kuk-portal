@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const colors = {
     success: 'bg-green-600',
     error: 'bg-red-600',
-    info: 'bg-blue-600',
+    info: 'bg-primary-600',
   };
 
   const icons = {

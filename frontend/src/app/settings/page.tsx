@@ -176,7 +176,7 @@ export default function SettingsPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-900 text-primary-600 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
@@ -196,7 +196,7 @@ export default function SettingsPage() {
           {/* Add form */}
           <div className="flex gap-2 mb-5">
             <input
-              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter new subject name..."
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
@@ -205,7 +205,7 @@ export default function SettingsPage() {
             <button
               onClick={addSubject}
               disabled={!newSubject.trim()}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
+              className="px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-40 transition-colors"
             >
               Add Subject
             </button>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                 {editingSubject === s.id ? (
                   <div className="flex items-center gap-1.5 flex-1 mr-1">
                     <input
-                      className="flex-1 px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="flex-1 px-2 py-1 border border-primary-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                       value={editSubjectName}
                       onChange={(e) => setEditSubjectName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') saveEditSubject(s.id); if (e.key === 'Escape') setEditingSubject(null); }}
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                   <>
                     <span className="text-sm text-gray-800 dark:text-gray-200">{s.name}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => startEditSubject(s)} className="p-1 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Edit">
+                      <button onClick={() => startEditSubject(s)} className="p-1 rounded-md text-primary-500 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors" title="Edit">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                         </svg>
@@ -272,7 +272,7 @@ export default function SettingsPage() {
             <div className="mb-4">
               <label className="block text-xs font-semibold text-gray-500 mb-1">Select University</label>
               <select
-                className="w-full max-w-md px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full max-w-md px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={deptUniId}
                 onChange={(e) => setDeptUniId(e.target.value)}
               >
@@ -282,15 +282,15 @@ export default function SettingsPage() {
             </div>
           )}
           {isUniAdmin && user?.university && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2.5 mb-4">
-              <p className="text-sm text-blue-800 dark:text-blue-300">University: <span className="font-semibold">{user.university.name} ({user.university.code})</span></p>
+            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg px-4 py-2.5 mb-4">
+              <p className="text-sm text-primary-800 dark:text-primary-300">University: <span className="font-semibold">{user.university.name} ({user.university.code})</span></p>
             </div>
           )}
           {/* Add form */}
           {(deptUniId || isUniAdmin) && (
             <div className="flex gap-2 mb-5">
               <input
-                className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Enter new department name..."
                 value={newDept}
                 onChange={(e) => setNewDept(e.target.value)}
@@ -299,7 +299,7 @@ export default function SettingsPage() {
               <button
                 onClick={addDepartment}
                 disabled={!newDept.trim()}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
+                className="px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-40 transition-colors"
               >
                 Add Department
               </button>
@@ -315,7 +315,7 @@ export default function SettingsPage() {
                 {editingDept === d.id ? (
                   <div className="flex items-center gap-1.5 flex-1 mr-1">
                     <input
-                      className="flex-1 px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="flex-1 px-2 py-1 border border-primary-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                       value={editDeptName}
                       onChange={(e) => setEditDeptName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') saveEditDept(d.id); if (e.key === 'Escape') setEditingDept(null); }}
@@ -341,7 +341,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => startEditDept(d)} className="p-1 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Edit">
+                      <button onClick={() => startEditDept(d)} className="p-1 rounded-md text-primary-500 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors" title="Edit">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                         </svg>
@@ -372,7 +372,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex gap-2 mb-5">
             <input
-              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter new designation name..."
               value={newDesignation}
               onChange={(e) => setNewDesignation(e.target.value)}
@@ -381,7 +381,7 @@ export default function SettingsPage() {
             <button
               onClick={addDesignation}
               disabled={!newDesignation.trim()}
-              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
+              className="px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-40 transition-colors"
             >
               Add Designation
             </button>

@@ -5,7 +5,7 @@ const BADGE_STYLES: Record<string, string> = {
   TERMINATED: 'bg-red-100 text-red-700 border-red-200',
   SUSPENDED: 'bg-orange-100 text-orange-700 border-orange-200',
 
-  BUDGETED: 'bg-blue-100 text-blue-700 border-blue-200',
+  BUDGETED: 'bg-primary-100 text-primary-700 border-primary-200',
   SFS: 'bg-purple-100 text-purple-700 border-purple-200',
   CONTRACTUAL: 'bg-teal-100 text-teal-700 border-teal-200',
 
@@ -23,7 +23,7 @@ const BADGE_STYLES: Record<string, string> = {
   ESM: 'bg-lime-100 text-lime-700 border-lime-200',
 
   SUPER_ADMIN: 'bg-red-100 text-red-700 border-red-200',
-  STATE_USER: 'bg-blue-100 text-blue-700 border-blue-200',
+  STATE_USER: 'bg-primary-100 text-primary-700 border-primary-200',
   UNIVERSITY_ADMIN: 'bg-green-100 text-green-700 border-green-200',
 };
 

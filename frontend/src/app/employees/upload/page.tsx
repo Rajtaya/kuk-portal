@@ -178,14 +178,14 @@ export default function UploadEmployeesPage() {
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-5 flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-blue-800">Download Template</h4>
-            <p className="text-xs text-blue-600 mt-1">Get the .xlsx template with all required columns and a sample row</p>
+            <h4 className="text-sm font-semibold text-primary-800">Download Template</h4>
+            <p className="text-xs text-primary-600 mt-1">Get the .xlsx template with all required columns and a sample row</p>
           </div>
           <button
             onClick={downloadTemplate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />

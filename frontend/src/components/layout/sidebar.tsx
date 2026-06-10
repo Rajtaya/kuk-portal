@@ -8,7 +8,7 @@ import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 import { clsx } from 'clsx';
 
 const navItems = {
-  dashboard:    { href: '/dashboard',        label: 'Dashboard',        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4', color: 'from-blue-500 to-blue-600' },
+  dashboard:    { href: '/dashboard',        label: 'Dashboard',        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4', color: 'from-primary-500 to-primary-600' },
   employees:    { href: '/employees',        label: 'Employees',        icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: 'from-emerald-500 to-emerald-600' },
   universities: { href: '/universities',     label: 'Universities',     icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', color: 'from-violet-500 to-violet-600' },
   sanctioned:   { href: '/sanctioned-posts', label: 'Sanctioned Posts', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', color: 'from-amber-500 to-amber-600' },
@@ -97,7 +97,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
                 )}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-400 to-blue-600 rounded-r-full" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-primary-400 to-primary-600 rounded-r-full" />
                 )}
                 <span className={clsx(
                   'w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all',
@@ -136,7 +136,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
               </div>
               <div className="flex items-center gap-1.5 mb-3">
                 {user?.university && (
-                  <span className="px-2 py-0.5 bg-blue-500/15 text-blue-300 text-[10px] font-medium rounded-full whitespace-nowrap">{user.university.code}</span>
+                  <span className="px-2 py-0.5 bg-primary-500/15 text-primary-300 text-[10px] font-medium rounded-full whitespace-nowrap">{user.university.code}</span>
                 )}
                 <span className="px-2 py-0.5 bg-white/8 text-slate-400 text-[10px] font-medium rounded-full whitespace-nowrap">
                   {user?.role?.replace(/_/g, ' ')}

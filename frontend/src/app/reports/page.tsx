@@ -19,7 +19,7 @@ interface ReportDef {
 }
 
 const stateReports: ReportDef[] = [
-  { key: 'university-wise', label: 'University-wise Employee Report', description: 'Employee count by university with type and gender breakdown', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5', color: 'from-blue-500 to-blue-600', stateOnly: true },
+  { key: 'university-wise', label: 'University-wise Employee Report', description: 'Employee count by university with type and gender breakdown', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5', color: 'from-primary-500 to-primary-600', stateOnly: true },
   { key: 'employee-strength', label: 'Employee Strength Report', description: 'Sanctioned posts, filled posts, and vacancies per university', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', color: 'from-emerald-500 to-emerald-600', stateOnly: true },
 ];
 
@@ -264,7 +264,7 @@ export default function ReportsPage() {
                   onClick={() => setShowFilters(!showFilters)}
                   className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                     showFilters || activeFilterCount > 0
-                      ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+                      ? 'bg-primary-50 dark:bg-primary-500/10 border-primary-200 dark:border-primary-500/30 text-primary-700 dark:text-primary-300'
                       : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
@@ -273,7 +273,7 @@ export default function ReportsPage() {
                   </svg>
                   Filters
                   {activeFilterCount > 0 && (
-                    <span className="ml-0.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
+                    <span className="ml-0.5 w-5 h-5 rounded-full bg-primary-600 text-white text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
                   )}
                 </button>
               )}
@@ -287,7 +287,7 @@ export default function ReportsPage() {
                   placeholder="Search in results..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full sm:w-56 pl-9 pr-8 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                  className="w-full sm:w-56 pl-9 pr-8 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -327,9 +327,9 @@ export default function ReportsPage() {
                     <select
                       value={filters[f.key] || ''}
                       onChange={(e) => setFilters(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all ${
                         filters[f.key]
-                          ? 'border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-200'
+                          ? 'border-primary-300 dark:border-primary-500/40 bg-primary-50 dark:bg-primary-500/10 text-primary-800 dark:text-primary-200'
                           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'
                       }`}
                     >
@@ -355,16 +355,16 @@ export default function ReportsPage() {
 
           {/* Active filter pills */}
           {activeFilterCount > 0 && !showFilters && (
-            <div className="px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-blue-50/50 dark:bg-blue-500/5 flex items-center gap-2 flex-wrap">
+            <div className="px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-primary-50/50 dark:bg-primary-500/5 flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtered by:</span>
               {Object.entries(filters).filter(([, v]) => v).map(([key, val]) => {
                 const fd = availableFilters.find(f => f.key === key);
                 return (
-                  <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium">
+                  <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-100 dark:bg-primary-500/20 text-primary-800 dark:text-primary-200 rounded-full text-xs font-medium">
                     {fd?.label}: {val}
                     <button
                       onClick={() => setFilters(prev => ({ ...prev, [key]: '' }))}
-                      className="ml-0.5 hover:text-blue-600 dark:hover:text-blue-100"
+                      className="ml-0.5 hover:text-primary-600 dark:hover:text-primary-100"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -398,18 +398,18 @@ export default function ReportsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-800 text-white">
+                  <tr className="bg-primary-700 text-white">
                     <th className="text-center align-middle px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10">#</th>
                     {columns.map((key) => (
                       <th
                         key={key}
                         onClick={() => toggleSort(key)}
-                        className={`group px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700 transition-colors select-none ${numericCols.has(key) ? 'text-center' : 'text-left'}`}
+                        className={`group px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none ${numericCols.has(key) ? 'text-center' : 'text-left'}`}
                       >
                         <div className={`flex items-center gap-1.5 ${numericCols.has(key) ? 'justify-center' : ''}`}>
                           <span>{formatHeader(key)}</span>
                           {sortCol === key ? (
-                            <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <svg className="w-3.5 h-3.5 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                             </svg>
                           ) : (
@@ -424,7 +424,7 @@ export default function ReportsPage() {
                 </thead>
                 <tbody>
                   {sorted.map((row, i) => (
-                    <tr key={i} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-blue-50/40 dark:hover:bg-gray-800/60`}>
+                    <tr key={i} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-primary-50/40 dark:hover:bg-gray-800/60`}>
                       <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono">{i + 1}</td>
                       {columns.map((k) => {
                         let val = row[k];

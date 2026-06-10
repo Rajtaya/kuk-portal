@@ -22,6 +22,7 @@ interface ChartData {
   postTypeDesignation: Record<string, any>[];
   genderDesignation: { gender: string; total: number; designations: { name: string; value: number }[] }[];
   sanctionVsPresent: Record<string, any>[];
+  designationPostType: { designation: string; postType: string; sanctioned: number; present: number; vacant: number }[];
   universities: { id: string; name: string; code: string }[];
   designations: string[];
   subjects: string[];
@@ -76,7 +77,7 @@ function barTooltipFormatter(params: any) {
 
 function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'vacant' | 'designations' }) {
   const icons: Record<string, { bg: string; path: string }> = {
-    university: { bg: 'bg-blue-500', path: 'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4' },
+    university: { bg: 'bg-primary-500', path: 'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4' },
     employees: { bg: 'bg-green-500', path: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     subjects: { bg: 'bg-orange-500', path: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
     vacant: { bg: 'bg-yellow-500', path: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
@@ -711,6 +712,64 @@ export default function DashboardPage() {
     };
   }, [activeData, isMobile]);
 
+  // --- Chart 8: Designation × PostType → Sanction / Present / Vacant (stacked bar) ---
+  const desigPostTypeOption = useMemo(() => {
+    if (!activeData?.designationPostType?.length) return null;
+    const rows = activeData.designationPostType;
+    const ptLabels: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'SFS', CONTRACTUAL: 'Contractual' };
+    const categories = rows.map(r => `${r.designation} ${ptLabels[r.postType] || r.postType}`);
+    const sanctioned = rows.map(r => r.sanctioned);
+    const present = rows.map(r => r.present);
+    const vacant = rows.map(r => r.vacant);
+    return {
+      tooltip: {
+        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
+        formatter: (params: any) => {
+          const idx = params[0]?.dataIndex;
+          const dot = (c: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></span>`;
+          return `<div style="min-width:180px">
+            <p style="font-weight:600;margin:0 0 8px;color:#111827">${categories[idx]}</p>
+            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#60A5FA')}Sanction</span><b>${sanctioned[idx]}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#34D399')}Present</span><b>${present[idx]}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#F87171')}Vacant</span><b>${vacant[idx]}</b></div>
+          </div>`;
+        },
+      },
+      legend: { top: 30, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
+      grid: { top: 70, right: 20, bottom: isMobile ? 100 : 60, left: 50, containLabel: true },
+      xAxis: {
+        type: 'category' as const, data: categories,
+        axisLabel: { rotate: isMobile ? -45 : -25, fontSize: isMobile ? 9 : 11, interval: 0, color: '#374151', fontWeight: 500 },
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      yAxis: {
+        type: 'value' as const,
+        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+      },
+      series: [
+        {
+          name: 'Sanction', type: 'bar' as const, stack: 'total', barWidth: isMobile ? 30 : 55,
+          data: sanctioned, itemStyle: { color: '#60A5FA' },
+          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            formatter: (p: any) => p.value > 0 ? p.value : '' },
+        },
+        {
+          name: 'Present', type: 'bar' as const, stack: 'total',
+          data: present, itemStyle: { color: '#34D399' },
+          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            formatter: (p: any) => p.value > 0 ? p.value : '' },
+        },
+        {
+          name: 'Vacant', type: 'bar' as const, stack: 'total',
+          data: vacant, itemStyle: { color: '#F87171' },
+          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            formatter: (p: any) => p.value > 0 ? p.value : '' },
+        },
+      ],
+    };
+  }, [activeData, isMobile]);
+
   if (!data) {
     return (
       <div className="space-y-6">
@@ -756,7 +815,7 @@ export default function DashboardPage() {
 
       {/* Scope indicator — makes clear the stats below reflect the selected university */}
       {!isUniAdmin && !isAllUni && selectedUniName && (
-        <div className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 flex items-center justify-between shadow-md">
+        <div className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 px-5 py-3 flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
               <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -813,17 +872,32 @@ export default function DashboardPage() {
         </ChartCard>
       </div>
 
+      {desigPostTypeOption && (
+        <ChartCard
+          title="Designation → Employment Type → Sanction / Present / Vacant"
+          tableData={{
+            headers: ['Category', 'Sanctioned', 'Present', 'Vacant'],
+            rows: activeData.designationPostType.map(r => {
+              const ptL: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'SFS', CONTRACTUAL: 'Contractual' };
+              return [`${r.designation} ${ptL[r.postType] || r.postType}`, r.sanctioned, r.present, r.vacant];
+            }),
+          }}
+        >
+          <ReactECharts option={desigPostTypeOption} style={{ height: isMobile ? '400px' : '500px' }} notMerge={true} lazyUpdate={true} />
+        </ChartCard>
+      )}
+
       {/* 2 & 3. Hierarchy View / Summary Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4 relative z-10">
           <div className="flex gap-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('hierarchy')}
-              className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'hierarchy' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'hierarchy' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >Hierarchy View</button>
             <button
               onClick={() => setActiveTab('summary')}
-              className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >Summary Chart</button>
           </div>
           <div className="flex gap-2 md:gap-3 flex-wrap">
@@ -984,6 +1058,7 @@ export default function DashboardPage() {
                 <ReactECharts option={sanctionOption} style={{ height: isMobile ? '380px' : '480px' }} notMerge={true} lazyUpdate={true} />
               </ChartCard>
             )}
+
           </div>
         </>
       )}
