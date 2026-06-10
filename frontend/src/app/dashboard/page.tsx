@@ -877,7 +877,7 @@ export default function DashboardPage() {
           title="Designation → Employment Type → Sanction / Present / Vacant"
           tableData={{
             headers: ['Category', 'Sanctioned', 'Present', 'Vacant'],
-            rows: activeData.designationPostType.map(r => {
+            rows: activeData!.designationPostType.map(r => {
               const ptL: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'SFS', CONTRACTUAL: 'Contractual' };
               return [`${r.designation} ${ptL[r.postType] || r.postType}`, r.sanctioned, r.present, r.vacant];
             }),
