@@ -1,7 +1,7 @@
-import { Controller, Post, Get, Body, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -9,12 +9,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const COOKIE_NAME = 'auth_token';
 
-function cookieOpts() {
-  const cross = !!(process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || process.env.RAILWAY_ENVIRONMENT);
+function cookieOpts(req: Request) {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
   return {
     httpOnly: true,
-    secure: cross,
-    sameSite: (cross ? 'none' : 'lax') as const,
+    secure: isHttps,
+    sameSite: (isHttps ? 'none' : 'lax') as const,
     path: '/',
     maxAge: 24 * 60 * 60 * 1000,
   };
@@ -27,11 +27,9 @@ export class AuthController {
 
   @Post('login')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    const opts = cookieOpts();
-    console.log('[AUTH] cookie cross-origin:', opts.sameSite, 'CORS_ORIGIN:', process.env.CORS_ORIGIN, 'RAILWAY_ENV:', process.env.RAILWAY_ENVIRONMENT);
-    res.cookie(COOKIE_NAME, result.accessToken, opts);
+    res.cookie(COOKIE_NAME, result.accessToken, cookieOpts(req));
     return { user: result.user };
   }
 
