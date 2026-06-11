@@ -256,9 +256,8 @@ export default function EmployeesPage() {
   }
 
   function downloadTemplate() {
-    const token = localStorage.getItem('token');
     const base = process.env.NEXT_PUBLIC_API_URL || '/api';
-    fetch(`${base}/employees/template`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${base}/employees/template`, { credentials: 'include' })
       .then(r => r.blob()).then(blob => {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = 'employee-upload-template.xlsx'; a.click(); URL.revokeObjectURL(a.href);

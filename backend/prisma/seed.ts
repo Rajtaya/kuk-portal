@@ -4,6 +4,11 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: Seed script must not run in production. Set NODE_ENV to development or test.');
+    process.exit(1);
+  }
+  console.warn('Seeding with default password "admin123" -- change all passwords before any non-local deployment.');
   const password = await bcrypt.hash('admin123', 10);
 
   // ─── Universities ──────────────────────────────────────

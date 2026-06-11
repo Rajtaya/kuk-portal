@@ -18,22 +18,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = api.getToken();
-    if (token) {
-      api.get<User>('/auth/profile').then(setUser).catch(() => api.setToken(null)).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    api.get<User>('/auth/profile').then(setUser).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await api.post<{ accessToken: string; user: User }>('/auth/login', { email, password });
-    api.setToken(res.accessToken);
+    const res = await api.post<{ user: User }>('/auth/login', { email, password });
     setUser(res.user);
   }
 
   function logout() {
-    api.setToken(null);
+    api.post('/auth/logout').catch(() => {});
     setUser(null);
     window.location.href = '/login';
   }

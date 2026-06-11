@@ -80,9 +80,8 @@ export default function UploadEmployeesPage() {
   }
 
   function downloadTemplate() {
-    const token = localStorage.getItem('token');
     const base = process.env.NEXT_PUBLIC_API_URL || '/api';
-    fetch(`${base}/employees/template`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${base}/employees/template`, { credentials: 'include' })
       .then((res) => res.blob())
       .then((blob) => {
         const a = document.createElement('a');

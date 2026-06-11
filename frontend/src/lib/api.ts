@@ -1,34 +1,15 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 class ApiClient {
-  private token: string | null = null;
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }
-
-  getToken(): string | null {
-    if (!this.token && typeof window !== 'undefined') {
-      this.token = localStorage.getItem('token');
-    }
-    return this.token;
-  }
-
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers as any };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+    const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, credentials: 'include' });
 
     if (res.status === 401) {
-      this.setToken(null);
-      if (typeof window !== 'undefined') window.location.href = '/login';
+      if (typeof window !== 'undefined' && !endpoint.includes('/auth/profile')) {
+        window.location.href = '/login';
+      }
       throw new Error('Unauthorized');
     }
 
@@ -42,8 +23,8 @@ class ApiClient {
 
   get<T>(endpoint: string) { return this.request<T>(endpoint); }
 
-  post<T>(endpoint: string, body: any) {
-    return this.request<T>(endpoint, { method: 'POST', body: JSON.stringify(body) });
+  post<T>(endpoint: string, body?: any) {
+    return this.request<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
   }
 
   put<T>(endpoint: string, body: any) {
@@ -59,14 +40,13 @@ class ApiClient {
   }
 
   async uploadFile<T>(endpoint: string, file: File, params?: Record<string, string>, fieldName = 'file') {
-    const token = this.getToken();
+    const query = params ? '?' + new URLSearchParams(params).toString() : '';
     const formData = new FormData();
     formData.append(fieldName, file);
 
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
     const res = await fetch(`${API_BASE}${endpoint}${query}`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
       body: formData,
     });
 

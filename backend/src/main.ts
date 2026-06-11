@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
@@ -15,13 +16,24 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(cookieParser());
 
-  // Serve uploaded photos as static files
-  app.useStaticAssets(join(__dirname, '..', '..', 'uploads'), { prefix: '/uploads/' });
+  // Photos served statically (images only); documents go through authenticated /api/documents/download/:id
+  app.useStaticAssets(join(__dirname, '..', '..', 'uploads', 'photos'), {
+    prefix: '/uploads/photos/',
+    setHeaders: (res) => {
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set('Content-Security-Policy', "default-src 'none'");
+    },
+  });
   app.setGlobalPrefix('api');
 
   const corsEnv = process.env.CORS_ORIGIN || process.env.CORS_ORIGINS;
-  const allowedOrigins = corsEnv ? corsEnv.split(',') : true;
+  const isProd = process.env.NODE_ENV === 'production';
+  if (isProd && !corsEnv) {
+    console.error('WARNING: CORS_ORIGIN or CORS_ORIGINS must be set in production. Defaulting to deny all.');
+  }
+  const allowedOrigins = corsEnv ? corsEnv.split(',').map(o => o.trim()) : (isProd ? false : true);
   app.enableCors({ origin: allowedOrigins, credentials: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
