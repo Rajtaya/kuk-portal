@@ -44,7 +44,8 @@ export default function SanctionedPostsPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isStateUser = user?.role === 'STATE_USER';
-  const canWrite = isSuperAdmin || isStateUser;
+  const isUniversityAdmin = user?.role === 'UNIVERSITY_ADMIN';
+  const canWrite = isSuperAdmin || isStateUser || isUniversityAdmin;
   const { toast } = useToast();
 
   const [tab, setTab] = useState<'manage' | 'vacancy'>(canWrite ? 'manage' : 'vacancy');
@@ -667,12 +668,12 @@ export default function SanctionedPostsPage() {
                 <table className="w-full text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-primary-700 text-white">
-                      <th className="sticky top-0 z-10 bg-primary-700 text-center align-middle px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10 border border-gray-300 dark:border-gray-600">#</th>
+                      <th className="sticky top-0 z-10 bg-primary-700 text-center align-middle px-2 py-3.5 font-semibold text-xs uppercase tracking-wider w-10 border border-gray-300 dark:border-gray-600">#</th>
                       {manageHeaders.map(h => (
                         <th
                           key={h.key}
                           onClick={() => toggleSort(h.key)}
-                          className={`sticky top-0 z-10 bg-primary-700 group px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
+                          className={`sticky top-0 z-10 bg-primary-700 group ${numericCols.has(h.key) ? 'px-2' : 'px-3'} py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none whitespace-nowrap border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
                         >
                           <div className={`flex items-center gap-1.5 ${numericCols.has(h.key) ? 'justify-center' : ''}`}>
                             <span>{h.label}</span>
@@ -680,19 +681,19 @@ export default function SanctionedPostsPage() {
                           </div>
                         </th>
                       ))}
-                      {canWrite && <th className="sticky top-0 z-10 bg-primary-700 px-4 py-3.5 text-center align-middle font-semibold text-xs uppercase tracking-wider border border-gray-300 dark:border-gray-600">Actions</th>}
+                      {canWrite && <th className="sticky top-0 z-10 bg-primary-700 px-2 py-3.5 text-center align-middle font-semibold text-xs uppercase tracking-wider border border-gray-300 dark:border-gray-600">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {sortedPosts.map((p, i) => (
                       <tr key={p.id} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-primary-50/40 dark:hover:bg-gray-800/60`}>
-                        <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono border border-gray-200 dark:border-gray-700">{i + 1}</td>
-                        {(isSuperAdmin || isStateUser) && <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">{p.university?.name}</td>}
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{p.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{p.department?.name}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{p.designation}</td>
-                        <td className="px-4 py-3 border border-gray-200 dark:border-gray-700"><Badge value={p.postType} /></td>
-                        <td className="px-4 py-3 text-center align-middle font-bold text-gray-900 dark:text-gray-100 tabular-nums border border-gray-200 dark:border-gray-700">{p.sanctionedCount}</td>
+                        <td className="px-2 py-3 text-center align-middle text-gray-400 text-xs font-mono border border-gray-200 dark:border-gray-700">{i + 1}</td>
+                        {(isSuperAdmin || isStateUser) && <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">{p.university?.name}</td>}
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{p.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{p.department?.name}</td>
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap border border-gray-200 dark:border-gray-700">{p.designation}</td>
+                        <td className="px-2 py-3 border border-gray-200 dark:border-gray-700"><Badge value={p.postType} /></td>
+                        <td className="px-2 py-3 text-center align-middle font-bold text-gray-900 dark:text-gray-100 tabular-nums border border-gray-200 dark:border-gray-700">{p.sanctionedCount}</td>
                         {canWrite && (
                           <td className="px-4 py-3 text-center border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-center gap-1">
@@ -734,12 +735,12 @@ export default function SanctionedPostsPage() {
                 <table className="w-full text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-primary-700 text-white">
-                      <th className="sticky top-0 z-10 bg-primary-700 text-center align-middle px-4 py-3.5 font-semibold text-xs uppercase tracking-wider w-10 border border-gray-300 dark:border-gray-600">#</th>
+                      <th className="sticky top-0 z-10 bg-primary-700 text-center align-middle px-2 py-3.5 font-semibold text-xs uppercase tracking-wider w-10 border border-gray-300 dark:border-gray-600">#</th>
                       {vacancyHeaders.map(h => (
                         <th
                           key={h.key}
                           onClick={() => toggleSort(h.key)}
-                          className={`sticky top-0 z-10 bg-primary-700 group px-4 py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
+                          className={`sticky top-0 z-10 bg-primary-700 group ${numericCols.has(h.key) ? 'px-2' : 'px-3'} py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none whitespace-nowrap border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
                         >
                           <div className={`flex items-center gap-1.5 ${numericCols.has(h.key) ? 'justify-center' : ''}`}>
                             <span>{h.label}</span>
@@ -755,18 +756,18 @@ export default function SanctionedPostsPage() {
                       const vacantPct = row.sanctioned > 0 ? row.vacant / row.sanctioned : 0;
                       return (
                         <tr key={row.id} className={`border-b border-gray-50 dark:border-gray-800 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'} hover:bg-primary-50/40 dark:hover:bg-gray-800/60`}>
-                          <td className="px-4 py-3 text-center align-middle text-gray-400 text-xs font-mono border border-gray-200 dark:border-gray-700">{i + 1}</td>
-                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">{row.university}</td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.department}</td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.designation}</td>
-                          <td className="px-4 py-3 border border-gray-200 dark:border-gray-700"><Badge value={row.postType} /></td>
-                          <td className="px-4 py-3 text-center align-middle font-semibold text-gray-900 dark:text-gray-100 tabular-nums border border-gray-200 dark:border-gray-700">{row.sanctioned}</td>
-                          <td className="px-4 py-3 text-center align-middle font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums border border-gray-200 dark:border-gray-700">{row.filled}</td>
-                          <td className={`px-4 py-3 text-center align-middle font-semibold tabular-nums border border-gray-200 dark:border-gray-700 ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-orange-50 dark:bg-orange-500/5') : ''}`}>
+                          <td className="px-2 py-3 text-center align-middle text-gray-400 text-xs font-mono border border-gray-200 dark:border-gray-700">{i + 1}</td>
+                          <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">{row.university}</td>
+                          <td className="px-3 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.subject || <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+                          <td className="px-3 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.department}</td>
+                          <td className="px-3 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap border border-gray-200 dark:border-gray-700">{row.designation}</td>
+                          <td className="px-2 py-3 border border-gray-200 dark:border-gray-700"><Badge value={row.postType} /></td>
+                          <td className="px-2 py-3 text-center align-middle font-semibold text-gray-900 dark:text-gray-100 tabular-nums border border-gray-200 dark:border-gray-700">{row.sanctioned}</td>
+                          <td className="px-2 py-3 text-center align-middle font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums border border-gray-200 dark:border-gray-700">{row.filled}</td>
+                          <td className={`px-2 py-3 text-center align-middle font-semibold tabular-nums border border-gray-200 dark:border-gray-700 ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-orange-50 dark:bg-orange-500/5') : ''}`}>
                             {row.vacant > 0 ? <span className={vacantPct >= 0.5 ? 'text-red-700 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}>{row.vacant}</span> : <span className="text-gray-400">0</span>}
                           </td>
-                          <td className="px-4 py-3 text-center align-middle font-semibold tabular-nums border border-gray-200 dark:border-gray-700">
+                          <td className="px-2 py-3 text-center align-middle font-semibold tabular-nums border border-gray-200 dark:border-gray-700">
                             {(row.excess || 0) > 0 ? <span className="text-amber-700 dark:text-amber-400">{row.excess}</span> : <span className="text-gray-400">0</span>}
                           </td>
                           <td className="px-3 py-3 text-center align-middle border border-gray-200 dark:border-gray-700">

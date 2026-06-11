@@ -58,9 +58,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').catch(() => {});
-                });
+                ${
+                  process.env.NODE_ENV === 'production'
+                    ? `window.addEventListener('load', () => {
+                         navigator.serviceWorker.register('/sw.js').catch(() => {});
+                       });`
+                    : `// Dev: never run the SW — it shadows hot-reloaded chunks with stale cached copies.
+                       navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
+                       if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)));`
+                }
               }
             `,
           }}

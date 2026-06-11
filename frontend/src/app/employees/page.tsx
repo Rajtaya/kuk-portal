@@ -17,21 +17,22 @@ interface ColDef {
   label: string;
   alwaysOn?: boolean;
   numeric?: boolean;
+  className?: string;
   render: (emp: Employee, idx: number, page: number) => React.ReactNode;
 }
 
 const ALL_COLUMNS: ColDef[] = [
-  { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, render: (_e, i, p) => i + 1 + (p - 1) * 20 },
+  { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, className: 'w-14', render: (_e, i, p) => i + 1 + (p - 1) * 20 },
   { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
   { key: 'uniName', label: 'University Name', render: (e) => e.university?.name || '-' },
-  { key: 'uniCode', label: 'University Code', render: (e) => e.university?.code || '-' },
+  { key: 'uniCode', label: 'University Code', className: 'w-24', render: (e) => e.university?.code || '-' },
   { key: 'subject', label: 'Subject', render: (e) => e.subject || '-' },
   { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
-  { key: 'category', label: 'Category', render: (e) => <Badge value={e.category} /> },
+  { key: 'category', label: 'Category', className: 'w-24', render: (e) => <Badge value={e.category} /> },
   { key: 'catSelection', label: 'Selection Category', render: (e) => <Badge value={e.categorySelection} /> },
   { key: 'presentDesig', label: 'Present Designation', render: (e) => e.designationPresent || '-' },
-  { key: 'gender', label: 'Gender', render: (e) => <Badge value={e.gender} /> },
-  { key: 'postType', label: 'Type', render: (e) => <Badge value={e.postType} /> },
+  { key: 'gender', label: 'Gender', className: 'w-20', render: (e) => <Badge value={e.gender} /> },
+  { key: 'postType', label: 'Type', className: 'w-20', render: (e) => <Badge value={e.postType} /> },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
@@ -269,68 +270,42 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: 'Employees', icon: 'employees' }]} />
-
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <svg className="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128H5.228A2 2 0 015 17.128v-.003c0-2.1 1.606-3.827 3.66-3.951C9.097 11.938 10.488 11 12 11c1.512 0 2.903.938 3.34 2.174C17.394 13.298 19 15.025 19 17.125M15 19.128H5.228M12 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Employees
-            {data.total > 0 && <span className="text-sm font-normal text-gray-400 ml-1">({data.total.toLocaleString()})</span>}
-          </h2>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`relative flex items-center justify-center w-9 h-9 rounded-lg border transition-colors ${showFilters ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300' : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'}`}
-            title="Filters"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-            {activeFilterCount > 0 && <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>}
-          </button>
+      <div className="flex items-center gap-3 mb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Employees</h1>
+        {data.total > 0 && <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">{data.total.toLocaleString()}</span>}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`relative w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${showFilters || activeFilterCount > 0 ? 'bg-primary-100 dark:bg-primary-500/20' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+          title="Toggle filters"
+        >
+          <svg className={`w-5 h-5 ${showFilters || activeFilterCount > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+          </svg>
           {activeFilterCount > 0 && (
-            <button onClick={clearAllFilters} className="text-sm text-red-500 hover:text-red-700 font-medium">Clear all</button>
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-600 text-white text-[10px] flex items-center justify-center font-bold">{activeFilterCount}</span>
           )}
-          {Object.entries(filters).filter(([k, v]) => k !== 'search' && v).map(([k, v]) => {
-            const labelMap: Record<string, string> = { universityId: 'University', gender: 'Gender', category: 'Category', postType: 'Post Type', employmentStatus: 'Status', designation: 'Designation' };
-            let displayVal = v;
-            if (k === 'universityId') { const u = universities.find((u) => u.id === v); displayVal = u ? u.code : v; }
-            if (k === 'postType') displayVal = v === 'SFS' ? 'Self Financed' : v === 'BUDGETED' ? 'Budgeted' : v === 'CONTRACTUAL' ? 'Contractual' : v;
-            if (k === 'gender') displayVal = v === 'MALE' ? 'Male' : v === 'FEMALE' ? 'Female' : 'Other';
-            return (
-            <span key={k} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
-              {labelMap[k] || k}: {displayVal}
-              <button onClick={() => applyFilter(k, '')} className="hover:text-red-500">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </span>
-            );
-          })}
+        </button>
+        <div className="relative flex-1 max-w-sm ml-auto">
+          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name, subject, designation..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="w-full pl-9 pr-8 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by name, subject, designation..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-9 pr-8 py-2.5 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg text-sm w-80 focus:outline-none focus:border-primary-500"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
           {canWrite && (
             <button onClick={openAddModal} className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -400,83 +375,178 @@ export default function EmployeesPage() {
               </div>
             )}
           </div>
-        </div>
       </div>
 
 
-      {showFilters && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 shadow-sm">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {/* University */}
+      {/* Filter sidebar */}
+      {showFilters && <div className="fixed inset-0 bg-black/30 z-40 transition-opacity" onClick={() => setShowFilters(false)} />}
+      <div
+        className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${showFilters ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 dark:border-gray-800">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h3>
+          <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <div className="flex flex-col gap-5">
             {user?.role !== 'UNIVERSITY_ADMIN' && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">University</label>
-                <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)}
-                  className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                  <option value="">All</option>
+              <div className="relative">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">University</label>
+                <select
+                  value={filters.universityId || ''}
+                  onChange={(e) => applyFilter('universityId', e.target.value)}
+                  className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                    filters.universityId
+                      ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <option value="">University</option>
                   {universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
                 </select>
+                {filters.universityId ? (
+                  <button onClick={() => applyFilter('universityId', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                ) : (
+                  <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                )}
               </div>
             )}
-            {/* Gender */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Gender</label>
-              <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                <option value="">All</option>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Gender</label>
+              <select
+                value={filters.gender || ''}
+                onChange={(e) => applyFilter('gender', e.target.value)}
+                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.gender
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Gender</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
                 <option value="OTHER">Other</option>
               </select>
+              {filters.gender ? (
+                <button onClick={() => applyFilter('gender', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
             </div>
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Category</label>
-              <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                <option value="">All</option>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Category</label>
+              <select
+                value={filters.category || ''}
+                onChange={(e) => applyFilter('category', e.target.value)}
+                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.category
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Category</option>
                 {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
+              {filters.category ? (
+                <button onClick={() => applyFilter('category', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
             </div>
-            {/* Post Type */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Post Type</label>
-              <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                <option value="">All</option>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Post Type</label>
+              <select
+                value={filters.postType || ''}
+                onChange={(e) => applyFilter('postType', e.target.value)}
+                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.postType
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Post Type</option>
                 <option value="BUDGETED">Budgeted</option>
                 <option value="SFS">Self Financed</option>
                 <option value="CONTRACTUAL">Contractual</option>
               </select>
+              {filters.postType ? (
+                <button onClick={() => applyFilter('postType', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
             </div>
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Status</label>
-              <select value={filters.employmentStatus || ''} onChange={(e) => applyFilter('employmentStatus', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                <option value="">All</option>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Status</label>
+              <select
+                value={filters.employmentStatus || ''}
+                onChange={(e) => applyFilter('employmentStatus', e.target.value)}
+                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.employmentStatus
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Status</option>
                 <option value="ACTIVE">Active</option>
                 <option value="RETIRED">Retired</option>
                 <option value="RESIGNED">Resigned</option>
                 <option value="TERMINATED">Terminated</option>
                 <option value="SUSPENDED">Suspended</option>
               </select>
+              {filters.employmentStatus ? (
+                <button onClick={() => applyFilter('employmentStatus', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
             </div>
-            {/* Designation */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Designation</label>
-              <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-primary-500">
-                <option value="">All</option>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Designation</label>
+              <select
+                value={filters.designation || ''}
+                onChange={(e) => applyFilter('designation', e.target.value)}
+                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.designation
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Designation</option>
                 <option value="Professor">Professor</option>
                 <option value="Associate Professor">Associate Professor</option>
                 <option value="Assistant Professor">Assistant Professor</option>
                 <option value="Senior Professor">Senior Professor</option>
               </select>
+              {filters.designation ? (
+                <button onClick={() => applyFilter('designation', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
             </div>
           </div>
         </div>
-      )}
+        <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={clearAllFilters} className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">RESET</button>
+            <button onClick={() => setShowFilters(false)} className="px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">APPLY</button>
+          </div>
+        </div>
+      </div>
 
       {loading && <TableSkeleton rows={10} cols={activeCols.length} />}
 
@@ -487,7 +557,7 @@ export default function EmployeesPage() {
             <thead>
               <tr className="bg-primary-700 text-white">
                 {activeCols.map((col) => (
-                  <th key={col.key} className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'}`}>{col.label}</th>
+                  <th key={col.key} className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'} ${col.className || ''}`}>{col.label}</th>
                 ))}
                 <th className="sticky top-0 z-10 px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700">Action</th>
               </tr>
@@ -508,7 +578,7 @@ export default function EmployeesPage() {
                 data.data.map((emp, i) => (
                   <tr key={emp.id} className={`border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50/50 dark:hover:bg-gray-800/50 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/40 dark:bg-gray-800/30'}`}>
                     {activeCols.map((col) => (
-                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''}`}>{col.render(emp, i, data.page)}</td>
+                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''} ${col.className || ''}`}>{col.render(emp, i, data.page)}</td>
                     ))}
                     <td className="px-3 py-2.5 sticky right-0 bg-inherit">
                       <div className="flex items-center justify-center gap-2">

@@ -1,8 +1,12 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_BUILD_STANDALONE === '1' && { output: 'standalone' as const }),
   async headers() {
+    // In dev, chunk filenames are NOT content-hashed (stable `page.js`), so caching
+    // them as immutable makes the browser serve stale client code after every edit.
+    // Only apply the long-lived cache headers in production builds.
+    if (process.env.NODE_ENV !== 'production') return [];
     // Content-hashed bundles are safe to cache forever — the filename hash changes
     // on every rebuild, so a new deploy ships new URLs and never serves stale code.
     const immutable = 'public, max-age=31536000, immutable';

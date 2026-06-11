@@ -188,10 +188,11 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: 'Reports', icon: 'report' }]} />
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Generate and export detailed reports</p>
+      <div className="flex items-center gap-3 mb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Reports</h1>
+        <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+          {allReports.length}
+        </span>
       </div>
 
       <div
@@ -258,22 +259,17 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              {/* Filter toggle */}
               {availableFilters.length > 0 && (
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                    showFilters || activeFilterCount > 0
-                      ? 'bg-primary-50 dark:bg-primary-500/10 border-primary-200 dark:border-primary-500/30 text-primary-700 dark:text-primary-300'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
+                  className={`relative w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${showFilters || activeFilterCount > 0 ? 'bg-primary-100 dark:bg-primary-500/20' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  title="Toggle filters"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <svg className={`w-5 h-5 ${showFilters || activeFilterCount > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                   </svg>
-                  Filters
                   {activeFilterCount > 0 && (
-                    <span className="ml-0.5 w-5 h-5 rounded-full bg-primary-600 text-white text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-600 text-white text-[10px] flex items-center justify-center font-bold">{activeFilterCount}</span>
                   )}
                 </button>
               )}
@@ -317,70 +313,61 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Filter panel */}
-          {showFilters && availableFilters.length > 0 && (
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/40">
-              <div className="flex flex-wrap items-end gap-3">
+          {/* Filter sidebar */}
+          {showFilters && <div className="fixed inset-0 bg-black/30 z-40 transition-opacity" onClick={() => setShowFilters(false)} />}
+          <div
+            className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${showFilters ? 'translate-x-0' : '-translate-x-full'}`}
+          >
+            <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h3>
+              <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-5">
+              <div className="flex flex-col gap-5">
                 {availableFilters.map(f => (
-                  <div key={f.key} className="min-w-[160px]">
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{f.label}</label>
+                  <div key={f.key} className="relative">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{f.label}</label>
                     <select
                       value={filters[f.key] || ''}
                       onChange={(e) => setFilters(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all ${
+                      className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                         filters[f.key]
-                          ? 'border-primary-300 dark:border-primary-500/40 bg-primary-50 dark:bg-primary-500/10 text-primary-800 dark:text-primary-200'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                          ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                          : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
                       }`}
                     >
-                      <option value="">All {f.label}s</option>
+                      <option value="">{f.label}</option>
                       {f.values.map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
+                    {filters[f.key] ? (
+                      <button
+                        onClick={() => setFilters(prev => ({ ...prev, [f.key]: '' }))}
+                        className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    )}
                   </div>
                 ))}
-                {activeFilterCount > 0 && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Clear all
-                  </button>
-                )}
               </div>
             </div>
-          )}
-
-          {/* Active filter pills */}
-          {activeFilterCount > 0 && !showFilters && (
-            <div className="px-6 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-primary-50/50 dark:bg-primary-500/5 flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtered by:</span>
-              {Object.entries(filters).filter(([, v]) => v).map(([key, val]) => {
-                const fd = availableFilters.find(f => f.key === key);
-                return (
-                  <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-100 dark:bg-primary-500/20 text-primary-800 dark:text-primary-200 rounded-full text-xs font-medium">
-                    {fd?.label}: {val}
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, [key]: '' }))}
-                      className="ml-0.5 hover:text-primary-600 dark:hover:text-primary-100"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                );
-              })}
-              <button
-                onClick={clearAllFilters}
-                className="text-xs text-red-500 dark:text-red-400 hover:underline ml-1"
-              >
-                Clear all
-              </button>
+            <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={clearAllFilters} className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">RESET</button>
+                <button onClick={() => setShowFilters(false)} className="px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">APPLY</button>
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Table */}
           {loading ? (

@@ -154,50 +154,44 @@ export default function UniversitiesPage() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: 'Universities', icon: 'university' }]} />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Universities</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{universities.length} registered universities across Haryana</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isSuperAdmin && (
+      <div className="flex items-center gap-3 mb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Universities</h1>
+        {universities.length > 0 && (
+          <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+            {universities.length}
+          </span>
+        )}
+        <div className="flex-1" />
+        {isSuperAdmin && (
+          <button
+            onClick={openCreate}
+            className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors whitespace-nowrap"
+          >
+            Add University
+          </button>
+        )}
+        <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-2 py-1.5">
+          <span className="text-xs text-gray-400 font-medium pl-1">Sort by</span>
+          {sortOptions.map((opt) => (
             <button
-              onClick={openCreate}
-              className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"
+              key={opt.key}
+              onClick={() => setSortKey(opt.key)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+                sortKey === opt.key ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
             >
-              Add University
+              {opt.label}
             </button>
-          )}
-          <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-2 py-1.5">
-            <span className="text-xs text-gray-400 font-medium pl-1">Sort by</span>
-            {sortOptions.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setSortKey(opt.key)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
-                  sortKey === opt.key ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <button
-              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-              title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
-              className="ml-0.5 p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M3 4h13M3 8h9M3 12h5m4 0l4 4 4-4m-4 4V4' : 'M3 4h13M3 8h9M3 12h9m4 8l4-4-4-4m0 8V4'} />
-              </svg>
-            </button>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
-            <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+          ))}
+          <button
+            onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+            title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+            className="ml-0.5 p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M3 4h13M3 8h9M3 12h5m4 0l4 4 4-4m-4 4V4' : 'M3 4h13M3 8h9M3 12h9m4 8l4-4-4-4m0 8V4'} />
             </svg>
-            <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">{universities.length} Total</span>
-          </div>
+          </button>
         </div>
       </div>
 

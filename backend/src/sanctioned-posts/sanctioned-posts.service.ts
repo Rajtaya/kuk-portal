@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateSanctionedPostDto } from './dto/sanctioned-post.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class SanctionedPostsService {
@@ -19,11 +20,19 @@ export class SanctionedPostsService {
     });
   }
 
-  update(id: string, dto: Partial<CreateSanctionedPostDto>) {
+  async update(id: string, dto: Partial<CreateSanctionedPostDto>, user?: any) {
+    if (user?.role === Role.UNIVERSITY_ADMIN) {
+      const post = await this.prisma.sanctionedPost.findUniqueOrThrow({ where: { id } });
+      if (post.universityId !== user.universityId) throw new ForbiddenException('Access denied');
+    }
     return this.prisma.sanctionedPost.update({ where: { id }, data: dto as any });
   }
 
-  delete(id: string) {
+  async delete(id: string, user?: any) {
+    if (user?.role === Role.UNIVERSITY_ADMIN) {
+      const post = await this.prisma.sanctionedPost.findUniqueOrThrow({ where: { id } });
+      if (post.universityId !== user.universityId) throw new ForbiddenException('Access denied');
+    }
     return this.prisma.sanctionedPost.delete({ where: { id } });
   }
 
