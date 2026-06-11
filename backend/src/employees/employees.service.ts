@@ -28,10 +28,34 @@ export class EmployeesService {
   }
 
   async findAll(filters: EmployeeFilterDto, userUniversityId?: string) {
-    const ALLOWED_SORT = ['name','employeeId','createdAt','designationPresent','retirementDate','gender','category','postType','employmentStatus'];
-    const { page = 1, limit = 20, sortBy: rawSort = 'createdAt', sortOrder = 'desc', search, ...rest } = filters;
-    const sortBy = ALLOWED_SORT.includes(rawSort) ? rawSort : 'createdAt';
+    const ALLOWED_SORT = ['name','employeeId','createdAt','subject','designationAppointed','designationPresent','retirementDate','gender','category','categorySelection','postType','employmentStatus'];
+    const { page = 1, limit = 20, sortBy: rawSort = 'createdAt', sortOrder = 'desc' } = filters;
+    const dir: Prisma.SortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
+    // Header-click sorting: scalar fields via whitelist, plus virtual sorts on the related university.
+    let orderBy: Prisma.EmployeeOrderByWithRelationInput;
+    if (rawSort === 'university') orderBy = { university: { name: dir } };
+    else if (rawSort === 'universityCode') orderBy = { university: { code: dir } };
+    else orderBy = { [ALLOWED_SORT.includes(rawSort) ? rawSort : 'createdAt']: dir };
 
+    const where = this.buildWhere(filters, userUniversityId);
+
+    const [data, total] = await Promise.all([
+      this.prisma.employee.findMany({
+        where,
+        include: { university: { select: { name: true, code: true } }, department: { select: { name: true } } },
+        orderBy,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+      }),
+      this.prisma.employee.count({ where }),
+    ]);
+
+    return { data, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) };
+  }
+
+  // Shared filter -> WHERE builder (used by findAll and the summary boxes).
+  private buildWhere(filters: EmployeeFilterDto, userUniversityId?: string): Prisma.EmployeeWhereInput {
+    const { search, ...rest } = filters;
     const where: Prisma.EmployeeWhereInput = {};
 
     if (userUniversityId) where.universityId = userUniversityId;
@@ -61,18 +85,18 @@ export class EmployeesService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.employee.findMany({
-        where,
-        include: { university: { select: { name: true, code: true } }, department: { select: { name: true } } },
-        orderBy: { [sortBy]: sortOrder },
-        skip: (Number(page) - 1) * Number(limit),
-        take: Number(limit),
-      }),
-      this.prisma.employee.count({ where }),
-    ]);
+    return where;
+  }
 
-    return { data, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) };
+  // Filtered summary for the header boxes: Total / Budgeted / SFS over the same WHERE as the table.
+  async getSummary(filters: EmployeeFilterDto, userUniversityId?: string) {
+    const where = this.buildWhere(filters, userUniversityId);
+    const [total, budgeted, sfs] = await Promise.all([
+      this.prisma.employee.count({ where }),
+      this.prisma.employee.count({ where: { ...where, postType: 'BUDGETED' as any } }),
+      this.prisma.employee.count({ where: { ...where, postType: 'SFS' as any } }),
+    ]);
+    return { total, budgeted, sfs };
   }
 
   async findOne(id: string) {
@@ -380,6 +404,7 @@ export class EmployeesService {
       male, female,
       retiringThisYear,
       totalSanctioned,
+      universityCount,
     ] = await Promise.all([
       this.prisma.employee.count({ where }),
       this.prisma.employee.count({ where: activeWhere }),
@@ -396,14 +421,12 @@ export class EmployeesService {
         where: universityId ? { universityId } : {},
         _sum: { sanctionedCount: true },
       }),
+      // Folded into the parallel batch (was a separate sequential round-trip).
+      universityId ? Promise.resolve(undefined) : this.prisma.university.count(),
     ]);
 
     const sanctioned = totalSanctioned._sum.sanctionedCount || 0;
     const vacancies = sanctioned - active;
-
-    const universityCount = universityId
-      ? undefined
-      : await this.prisma.university.count();
 
     return {
       total, active, teaching,

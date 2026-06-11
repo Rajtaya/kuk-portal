@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { UniversitiesService } from './universities.service';
@@ -6,6 +6,7 @@ import { CreateUniversityDto } from './dto/create-university.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Universities')
 @ApiBearerAuth()
@@ -26,12 +27,18 @@ export class UniversitiesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    if (user.role === Role.UNIVERSITY_ADMIN && id !== user.universityId) {
+      throw new ForbiddenException('Cannot view another university');
+    }
     return this.universitiesService.findOne(id);
   }
 
   @Get(':id/stats')
-  getStats(@Param('id') id: string) {
+  getStats(@Param('id') id: string, @CurrentUser() user: any) {
+    if (user.role === Role.UNIVERSITY_ADMIN && id !== user.universityId) {
+      throw new ForbiddenException('Cannot view another university\'s stats');
+    }
     return this.universitiesService.getStats(id);
   }
 

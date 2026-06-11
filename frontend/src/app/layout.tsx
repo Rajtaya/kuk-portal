@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { DarkModeProvider } from '@/lib/dark-mode-context';
+import { ThemeProvider } from '@/lib/theme-context';
 import { CommandPalette } from '@/components/ui/command-palette';
 
 // Prevent Railway CDN from caching stale pages
 export const dynamic = 'force-dynamic';
 
 const inter = Inter({ subsets: ['latin'] });
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: 'University Employees Management System',
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2563EB',
+  themeColor: '#C75000',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -40,20 +42,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        {/* Apply saved theme before paint to avoid a flash of the wrong mode */}
+        {/* Apply saved theme + dark mode before paint to avoid FOUC */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var d=localStorage.getItem('dark-mode');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(d==='true'||(d===null&&m)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('ui-theme');document.documentElement.classList.add('theme-'+(t||'warm'));}catch(e){document.documentElement.classList.add('theme-warm');}try{var d=localStorage.getItem('dark-mode');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(d==='true'||(d===null&&m)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
           }}
         />
       </head>
-      <body className={inter.className}>
-        <DarkModeProvider>
-          <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
-            <CommandPalette />
-          </AuthProvider>
-        </DarkModeProvider>
+      <body className={`${inter.className} ${playfair.variable}`}>
+        <ThemeProvider>
+          <DarkModeProvider>
+            <AuthProvider>
+              <ToastProvider>{children}</ToastProvider>
+              <CommandPalette />
+            </AuthProvider>
+          </DarkModeProvider>
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

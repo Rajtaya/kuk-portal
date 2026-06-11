@@ -34,9 +34,15 @@ export class EmployeesController {
   }
 
   @Get('dashboard-stats')
-  getDashboardStats(@CurrentUser() user: any) {
-    const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : undefined;
+  getDashboardStats(@Query('universityId') queryUniId: string, @CurrentUser() user: any) {
+    const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : (queryUniId || undefined);
     return this.employeesService.getDashboardStats(universityId);
+  }
+
+  @Get('summary')
+  getSummary(@Query() filters: EmployeeFilterDto, @CurrentUser() user: any) {
+    const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : undefined;
+    return this.employeesService.getSummary(filters, universityId);
   }
 
   @Get('dashboard-charts')
@@ -83,8 +89,12 @@ export class EmployeesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.employeesService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    const emp = await this.employeesService.findOne(id);
+    if (user.role === Role.UNIVERSITY_ADMIN && emp.universityId !== user.universityId) {
+      throw new ForbiddenException('Cannot view another university\'s employee');
+    }
+    return emp;
   }
 
   @Put(':id')

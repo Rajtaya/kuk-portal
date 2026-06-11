@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useDarkMode } from '@/lib/dark-mode-context';
-import { Search, LayoutDashboard, Users, Building2, ClipboardList, FileText, UserCog, Settings, Moon, Sun, LogOut } from 'lucide-react';
+import { Search, LayoutDashboard, Users, Building2, ClipboardList, UserCog, Settings, Moon, Sun, LogOut } from 'lucide-react';
 
 interface Command {
   id: string;
@@ -16,9 +16,9 @@ interface Command {
 }
 
 const navByRole: Record<string, string[]> = {
-  SUPER_ADMIN: ['dashboard', 'employees', 'universities', 'sanctioned', 'reports', 'users', 'settings'],
-  STATE_USER: ['dashboard', 'employees', 'universities', 'reports'],
-  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned', 'reports'],
+  SUPER_ADMIN: ['dashboard', 'employees', 'universities', 'sanctioned', 'users', 'settings'],
+  STATE_USER: ['dashboard', 'employees', 'universities'],
+  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned'],
 };
 
 export function CommandPalette() {
@@ -36,7 +36,6 @@ export function CommandPalette() {
       employees:    { id: 'employees', label: 'Employees', section: 'Go to', icon: <Users className="w-4 h-4" />, run: go('/employees') },
       universities: { id: 'universities', label: 'Universities', section: 'Go to', icon: <Building2 className="w-4 h-4" />, run: go('/universities') },
       sanctioned:   { id: 'sanctioned', label: 'Sanctioned Posts', section: 'Go to', icon: <ClipboardList className="w-4 h-4" />, keywords: 'posts vacancy', run: go('/sanctioned-posts') },
-      reports:      { id: 'reports', label: 'Reports', section: 'Go to', icon: <FileText className="w-4 h-4" />, run: go('/reports') },
       users:        { id: 'users', label: 'Users', section: 'Go to', icon: <UserCog className="w-4 h-4" />, run: go('/users') },
       settings:     { id: 'settings', label: 'Settings', section: 'Go to', icon: <Settings className="w-4 h-4" />, run: go('/settings') },
     };

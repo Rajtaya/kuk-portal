@@ -2,21 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  color-scheme: light;
-}
-html.dark {
-  color-scheme: dark;
+/* ═══════════════════════════════════════════════════════
+   THEME SYSTEM — Blue (original) & Warm Academic
+   Toggle: .theme-blue or .theme-warm on <html>
+   Rollback: localStorage.setItem('ui-theme','blue')
+   ═══════════════════════════════════════════════════════ */
+
+/* Warm Academic theme — burnt-orange palette (DEFAULT) */
+:root,
+.theme-warm {
+  --c-primary-50: 251 240 232;
+  --c-primary-100: 245 213 188;
+  --c-primary-200: 237 174 130;
+  --c-primary-300: 227 138 77;
+  --c-primary-400: 216 110 31;
+  --c-primary-500: 199 80 0;
+  --c-primary-600: 171 68 0;
+  --c-primary-700: 143 57 0;
+  --c-primary-800: 115 46 0;
+  --c-primary-900: 77 31 0;
 }
 
-body {
-  @apply bg-gray-50 text-gray-900;
-}
-html.dark body {
-  @apply bg-gray-950 text-gray-100;
+/* Blue theme — original MUI Blue palette (opt-in via toggle) */
+.theme-blue {
+  --c-primary-50: 227 242 253;
+  --c-primary-100: 187 222 251;
+  --c-primary-200: 144 202 242;
+  --c-primary-300: 100 181 246;
+  --c-primary-400: 66 165 245;
+  --c-primary-500: 33 150 243;
+  --c-primary-600: 30 136 229;
+  --c-primary-700: 25 118 210;
+  --c-primary-800: 21 101 192;
+  --c-primary-900: 13 71 161;
 }
 
-/* Remove focus outlines on all SVG chart elements */
+/* ─── Base color scheme ─── */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+body { @apply bg-gray-50 text-gray-900; }
+html.dark body { @apply bg-gray-950 text-gray-100; }
+
+/* Warm: cream page background */
+html.theme-warm body { background-color: #F5F0E8; }
+html.theme-warm.dark body { background-color: #1C1917; }
+
+/* ─── Warm theme: serif headings ─── */
+.theme-warm h1,
+.theme-warm h2,
+.theme-warm h3 {
+  font-family: var(--font-playfair), 'Playfair Display', serif;
+}
+
+/* The `font-serif` utility tracks the theme so serif numbers/labels stay
+   consistent with the headings: Playfair in the warm theme, normal sans elsewhere. */
+.font-serif { font-family: inherit; }
+.theme-warm .font-serif { font-family: var(--font-playfair), 'Playfair Display', Georgia, serif; }
+
+/* ─── Warm theme: sidebar dark-warm gradient ─── */
+html.theme-warm .sidebar-gradient {
+  background-image: linear-gradient(to bottom, #1F1C17, #1F1C17, #2A2620);
+}
+
+/* ─── Warm theme: login branding panel ─── */
+html.theme-warm .login-brand-panel {
+  background-image: linear-gradient(to bottom right, #1F1C17, #3D2300, #1F1C17);
+}
+
+/* ─── SVG chart focus outlines ─── */
 svg path:focus,
 svg g:focus,
 svg circle:focus,
@@ -27,14 +81,11 @@ svg rect:focus,
   outline: none !important;
   box-shadow: none !important;
 }
-svg *:focus {
-  outline: none !important;
-}
+svg *:focus { outline: none !important; }
 
+/* ─── Animations ─── */
 @keyframes slide-in {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
+.animate-slide-in { animation: slide-in 0.3s ease-out; }

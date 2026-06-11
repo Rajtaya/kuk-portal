@@ -162,12 +162,14 @@ model Employee {
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
-  @@index([universityId])
   @@index([departmentId])
   @@index([postType])
   @@index([employeeClassification])
   @@index([employmentStatus])
   @@index([retirementDate])
+  // Composite for the dominant access pattern: per-university active-employee
+  // counts/aggregations (dashboard stats, university stats, scoped vacancy/charts).
+  @@index([universityId, employmentStatus])
   @@map("employees")
 }
 
@@ -187,7 +189,6 @@ model SanctionedPost {
   updatedAt      DateTime   @updatedAt
 
   @@unique([universityId, departmentId, designation, subject, postType])
-  @@index([universityId])
   @@map("sanctioned_posts")
 }
 
@@ -204,6 +205,7 @@ model Document {
   mimeType   String?
   createdAt  DateTime     @default(now())
 
+  @@index([employeeId])
   @@map("documents")
 }
 

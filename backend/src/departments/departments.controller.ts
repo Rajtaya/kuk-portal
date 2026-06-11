@@ -29,8 +29,12 @@ export class DepartmentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.departmentsService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    const dept = await this.departmentsService.findOne(id) as any;
+    if (user.role === Role.UNIVERSITY_ADMIN && dept?.universityId !== user.universityId) {
+      throw new ForbiddenException('Cannot view another university\'s department');
+    }
+    return dept;
   }
 
   @Put(':id')

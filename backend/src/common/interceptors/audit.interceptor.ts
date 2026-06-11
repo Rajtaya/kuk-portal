@@ -24,7 +24,7 @@ export class AuditInterceptor implements NestInterceptor {
           entityId: result?.id || request.params?.id,
           changes: method !== 'DELETE' ? (() => { const { password, ...safe } = body || {}; return safe; })() : null,
           ipAddress: request.ip,
-        });
+        }).catch(() => {});
       }),
     );
   }

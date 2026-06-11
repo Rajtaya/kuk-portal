@@ -4,7 +4,6 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { StatsSkeleton } from '@/components/ui/skeleton';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
@@ -85,7 +84,7 @@ function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'v
   };
   const { bg, path } = icons[type];
   return (
-    <div className={`${bg} w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center`}>
+    <div className={`${bg} w-10 h-10 md:w-12 md:h-12 flex items-center justify-center`}>
       <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d={path} />
       </svg>
@@ -291,7 +290,7 @@ export default function DashboardPage() {
       const vacant = desigs.map((_, i) => Math.max(0, sanctioned[i] - filled[i]));
       return {
         tooltip: {
-          trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
+          trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'none' as const },
           formatter: (params: any) => {
             const idx = params[0]?.dataIndex;
             const desig = desigs[idx];
@@ -408,7 +407,7 @@ export default function DashboardPage() {
       levels: [
         {},
         { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 120, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-        { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 11, fontWeight: 500, color: '#111', padding: 2, minAngle: 3, overflow: 'break' as const, width: 55 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
+        { r0: '22%', r: '46%', label: { rotate: 0, align: 'center' as const, verticalAlign: 'middle' as const, fontSize: 12, fontWeight: 600, color: '#111', padding: 2, minAngle: 3, overflow: 'break' as const, width: 110 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
         { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 60, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
         { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 5, overflow: 'break' as const, width: 55, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
       ],
@@ -723,7 +722,7 @@ export default function DashboardPage() {
     const vacant = rows.map(r => r.vacant);
     return {
       tooltip: {
-        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
+        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'none' as const },
         formatter: (params: any) => {
           const idx = params[0]?.dataIndex;
           const dot = (c: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></span>`;
@@ -752,18 +751,21 @@ export default function DashboardPage() {
           name: 'Sanction', type: 'bar' as const, stack: 'total', barWidth: isMobile ? 30 : 55,
           data: sanctioned, itemStyle: { color: '#60A5FA' },
           label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
             formatter: (p: any) => p.value > 0 ? p.value : '' },
         },
         {
           name: 'Present', type: 'bar' as const, stack: 'total',
           data: present, itemStyle: { color: '#34D399' },
           label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
             formatter: (p: any) => p.value > 0 ? p.value : '' },
         },
         {
           name: 'Vacant', type: 'bar' as const, stack: 'total',
           data: vacant, itemStyle: { color: '#F87171' },
           label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
+            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
             formatter: (p: any) => p.value > 0 ? p.value : '' },
         },
       ],
@@ -773,7 +775,6 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <div className="space-y-6">
-        <Breadcrumb items={[{ label: 'Dashboard', icon: 'dashboard' }]} />
         <StatsSkeleton count={5} />
         <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl h-[460px]" />
       </div>
@@ -799,65 +800,53 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Breadcrumb items={[{ label: 'Dashboard', icon: 'dashboard' }]} />
-        {!isUniAdmin && (
+      {/* University scope bar — always visible (super/state); the selector lives inside it */}
+      {!isUniAdmin && (
+        <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-5 py-3 flex items-center justify-between gap-4 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-center w-8 h-8 bg-white/20 shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isAllUni ? 'Viewing' : 'Filtered View'}</p>
+              <p className="text-white text-lg font-serif font-bold truncate">{selectedUniName}</p>
+            </div>
+          </div>
           <select
             value={selectedUni}
             onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
-            className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 shadow-sm min-w-[220px]"
+            className="shrink-0 bg-white text-primary-800 border border-white/30 px-3 py-2 text-sm font-medium min-w-[200px] md:min-w-[240px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
           >
             <option value="all">All Universities</option>
             {data.universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
           </select>
-        )}
-      </div>
-
-      {/* Scope indicator — makes clear the stats below reflect the selected university */}
-      {!isUniAdmin && !isAllUni && selectedUniName && (
-        <div className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 px-5 py-3 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
-              <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white/70 text-xs font-medium uppercase tracking-wide">Filtered View</p>
-              <p className="text-white text-base font-semibold">{selectedUniName}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => { setSelectedUni('all'); setSubjectFilter(''); }}
-            className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-sm font-medium transition-colors"
-          >
-            View all universities
-          </button>
         </div>
       )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
         {!isUniAdmin && isAllUni && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
-            <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Universities</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.universityCount}</p></div>
+          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
+            <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Universities</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.universityCount}</p></div>
             <StatIcon type="university" />
           </div>
         )}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Employees</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.employeeCount.toLocaleString()}</p></div>
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Employees</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.employeeCount.toLocaleString()}</p></div>
           <StatIcon type="employees" />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Subjects</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.subjectCount}</p></div>
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Subjects</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.subjectCount}</p></div>
           <StatIcon type="subjects" />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Vacant Seats</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Vacant Seats</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
           <StatIcon type="vacant" />
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex items-center justify-between gap-2">
-          <div><p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Designations</p><p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{stats.designationCount}</p></div>
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Designations</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.designationCount}</p></div>
           <StatIcon type="designations" />
         </div>
       </div>

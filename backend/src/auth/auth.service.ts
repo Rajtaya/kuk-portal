@@ -52,7 +52,10 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { university: { select: { id: true, name: true, code: true } } },
+      select: {
+        id: true, email: true, name: true, role: true, password: true, isActive: true,
+        university: { select: { id: true, name: true, code: true } },
+      },
     });
     if (!user || !user.isActive) {
       this.recordFailure(email);

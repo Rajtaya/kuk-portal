@@ -38,24 +38,45 @@ export class SanctionedPostsService {
 
   async getVacancyReport(universityId?: string) {
     const where = universityId ? { universityId } : {};
-    const posts = await this.prisma.sanctionedPost.findMany({
-      where,
-      include: { university: { select: { name: true, code: true } }, department: { select: { name: true } } },
-    });
 
-    const result: any[] = [];
-    for (const post of posts) {
-      const filled = await this.prisma.employee.count({
-        where: {
-          universityId: post.universityId,
-          departmentId: post.departmentId,
-          designationPresent: { contains: post.designation, mode: 'insensitive' },
-          employmentStatus: 'ACTIVE',
-          ...(post.subject ? { subject: { contains: post.subject, mode: 'insensitive' } } : {}),
-        },
-      });
+    // Two queries total (was 1 + N: a count() per post → ~492 round-trips for all-universities).
+    // Fetch posts and active employees once, then compute "filled" in memory.
+    const [posts, employees] = await Promise.all([
+      this.prisma.sanctionedPost.findMany({
+        where,
+        include: { university: { select: { name: true, code: true } }, department: { select: { name: true } } },
+      }),
+      this.prisma.employee.findMany({
+        where: { employmentStatus: 'ACTIVE', ...(universityId ? { universityId } : {}) },
+        select: { universityId: true, departmentId: true, designationPresent: true, subject: true },
+      }),
+    ]);
 
-      result.push({
+    // Bucket active employees by university+department so each post only scans its own dept.
+    const buckets = new Map<string, { designation: string; subject: string }[]>();
+    for (const e of employees) {
+      if (!e.departmentId) continue;
+      const key = `${e.universityId}|${e.departmentId}`;
+      let arr = buckets.get(key);
+      if (!arr) { arr = []; buckets.set(key, arr); }
+      arr.push({ designation: (e.designationPresent || '').toLowerCase(), subject: (e.subject || '').toLowerCase() });
+    }
+
+    return posts.map((post) => {
+      const candidates = buckets.get(`${post.universityId}|${post.departmentId}`) || [];
+      const desig = post.designation.toLowerCase();
+      const subj = post.subject ? post.subject.toLowerCase() : null;
+
+      // Same matching as before: designationPresent CONTAINS post.designation (case-insensitive),
+      // and if the post has a subject, employee.subject CONTAINS it (case-insensitive).
+      let filled = 0;
+      for (const emp of candidates) {
+        if (!emp.designation.includes(desig)) continue;
+        if (subj && !emp.subject.includes(subj)) continue;
+        filled++;
+      }
+
+      return {
         id: post.id,
         university: post.university.name,
         universityCode: post.university.code,
@@ -67,10 +88,8 @@ export class SanctionedPostsService {
         filled,
         vacant: Math.max(0, post.sanctionedCount - filled),
         excess: Math.max(0, filled - post.sanctionedCount),
-      });
-    }
-
-    return result;
+      };
+    });
   }
 
   async bulkImport(rows: Record<string, any>[], universityId: string) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { University } from '@/lib/types';
@@ -50,6 +51,7 @@ const CARD_COLORS = [
 const emptyForm = { name: '', code: '', address: '', city: '', state: 'Haryana', website: '', email: '', phone: '', logoUrl: '' };
 
 export default function UniversitiesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
@@ -263,7 +265,9 @@ export default function UniversitiesPage() {
           return (
             <div
               key={uni.id}
-              className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+              onClick={() => router.push(`/sanctioned-posts?university=${uni.code}`)}
+              title={`View ${uni.code} sanctioned posts`}
+              className="group cursor-pointer bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-700"
             >
               <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
 
@@ -281,14 +285,14 @@ export default function UniversitiesPage() {
                       <h3 className="font-semibold text-sm text-gray-900 dark:text-white leading-tight line-clamp-2">{uni.name}</h3>
                       <div className="flex items-center gap-0.5 shrink-0">
                         {isSuperAdmin && (
-                          <button onClick={() => openEdit(uni)} title="Edit" className="p-0.5 text-gray-300 hover:text-primary-600 transition-colors">
+                          <button onClick={(e) => { e.stopPropagation(); openEdit(uni); }} title="Edit" className="p-0.5 text-gray-300 hover:text-primary-600 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
                         )}
                         {website && (
-                          <a href={website} target="_blank" rel="noopener noreferrer" className="p-0.5 text-gray-300 hover:text-primary-600 transition-colors" title="Website">
+                          <a href={website} onClick={(e) => e.stopPropagation()} target="_blank" rel="noopener noreferrer" className="p-0.5 text-gray-300 hover:text-primary-600 transition-colors" title="Website">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>

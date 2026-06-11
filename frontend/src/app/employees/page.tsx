@@ -7,7 +7,6 @@ import { api } from '@/lib/api';
 import { Employee, University, Department, PaginatedResponse } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { TableSkeleton } from '@/components/ui/skeleton';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState } from '@/components/ui/empty-state';
 import { exportToCSV, exportToExcel, exportToPDF } from '@/lib/export-utils';
@@ -18,21 +17,22 @@ interface ColDef {
   alwaysOn?: boolean;
   numeric?: boolean;
   className?: string;
+  sortKey?: string;
   render: (emp: Employee, idx: number, page: number) => React.ReactNode;
 }
 
 const ALL_COLUMNS: ColDef[] = [
   { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, className: 'w-14', render: (_e, i, p) => i + 1 + (p - 1) * 20 },
-  { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
-  { key: 'uniName', label: 'University Name', render: (e) => e.university?.name || '-' },
-  { key: 'uniCode', label: 'University Code', className: 'w-24', render: (e) => e.university?.code || '-' },
-  { key: 'subject', label: 'Subject', render: (e) => e.subject || '-' },
-  { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
-  { key: 'category', label: 'Category', className: 'w-24', render: (e) => <Badge value={e.category} /> },
-  { key: 'catSelection', label: 'Selection Category', render: (e) => <Badge value={e.categorySelection} /> },
-  { key: 'presentDesig', label: 'Present Designation', render: (e) => e.designationPresent || '-' },
-  { key: 'gender', label: 'Gender', className: 'w-20', render: (e) => <Badge value={e.gender} /> },
-  { key: 'postType', label: 'Type', className: 'w-20', render: (e) => <Badge value={e.postType} /> },
+  { key: 'name', label: 'Employee Name', alwaysOn: true, sortKey: 'name', render: (e) => <span className="font-medium">{e.name}</span> },
+  { key: 'uniName', label: 'University Name', sortKey: 'university', render: (e) => e.university?.name || '-' },
+  { key: 'uniCode', label: 'University Code', className: 'w-24', sortKey: 'universityCode', render: (e) => e.university?.code || '-' },
+  { key: 'subject', label: 'Subject', sortKey: 'subject', render: (e) => e.subject || '-' },
+  { key: 'designation', label: 'Designation', sortKey: 'designationAppointed', render: (e) => e.designationAppointed || '-' },
+  { key: 'category', label: 'Category', className: 'w-24', sortKey: 'category', render: (e) => <Badge value={e.category} /> },
+  { key: 'catSelection', label: 'Selection Category', sortKey: 'categorySelection', render: (e) => <Badge value={e.categorySelection} /> },
+  { key: 'presentDesig', label: 'Present Designation', sortKey: 'designationPresent', render: (e) => e.designationPresent || '-' },
+  { key: 'gender', label: 'Gender', className: 'w-20', sortKey: 'gender', render: (e) => <Badge value={e.gender} /> },
+  { key: 'postType', label: 'Type', className: 'w-20', sortKey: 'postType', render: (e) => <Badge value={e.postType} /> },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
@@ -53,6 +53,12 @@ export default function EmployeesPage() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const sortRef = useRef<{ by: string | null; dir: 'asc' | 'desc' }>({ by: null, dir: 'asc' });
+  const [total, setTotal] = useState<number | null>(null);
+  const [stats, setStats] = useState<{ budgeted: number; sfs: number } | null>(null);
 
   // Add Employee modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -120,9 +126,26 @@ export default function EmployeesPage() {
     }
   }, [user]);
 
+  // Total — scoped to the selected university only; stays fixed when other filters change.
+  useEffect(() => {
+    const q = filters.universityId ? `?universityId=${filters.universityId}` : '';
+    api.get<{ total: number }>(`/employees/summary${q}`).then((d) => setTotal(d.total)).catch(() => {});
+  }, [filters.universityId]);
+
+  // Budgeted / SFS — react to ALL applied filters.
+  useEffect(() => {
+    const params = new URLSearchParams(filters);
+    api.get<{ budgeted: number; sfs: number }>(`/employees/summary?${params}`).then((d) => setStats({ budgeted: d.budgeted, sfs: d.sfs })).catch(() => {});
+  }, [filters]);
+
   const fetchEmployees = useCallback((page: number = 1, extra: Record<string, string> = {}) => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), limit: '20', ...extra });
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: '20',
+      ...(sortRef.current.by ? { sortBy: sortRef.current.by, sortOrder: sortRef.current.dir } : {}),
+      ...extra,
+    });
     api.get<PaginatedResponse<Employee>>(`/employees?${params}`).then(setData).finally(() => setLoading(false));
   }, []);
 
@@ -156,6 +179,32 @@ export default function EmployeesPage() {
     setFilters({});
     setSearch('');
     fetchEmployees(1, {});
+  };
+
+  // Click a column header → sort server-side (across all pages), toggling asc/desc.
+  const toggleSort = (key: string) => {
+    const dir: 'asc' | 'desc' = sortRef.current.by === key && sortRef.current.dir === 'asc' ? 'desc' : 'asc';
+    sortRef.current = { by: key, dir };
+    setSortBy(key);
+    setSortDir(dir);
+    const extra: Record<string, string> = { ...filters };
+    if (search) extra.search = search;
+    fetchEmployees(1, extra);
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortBy === col) {
+      return (
+        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+        </svg>
+      );
+    }
+    return (
+      <svg className="w-3 h-3 text-primary-200 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    );
   };
 
   const activeFilterCount = Object.keys(filters).filter(k => k !== 'search' && filters[k]).length;
@@ -269,10 +318,14 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Employees</h1>
-        {data.total > 0 && <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">{data.total.toLocaleString()}</span>}
+      {/* Header — single compact row: title · total · filter · stats · view · search · actions */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 py-1">
+        <div className="flex items-center gap-2 shrink-0">
+          <svg className="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+          </svg>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Employees</h1>
+        </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`relative w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${showFilters || activeFilterCount > 0 ? 'bg-primary-100 dark:bg-primary-500/20' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
@@ -285,13 +338,50 @@ export default function EmployeesPage() {
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-600 text-white text-[10px] flex items-center justify-center font-bold">{activeFilterCount}</span>
           )}
         </button>
-        <div className="relative flex-1 max-w-sm ml-auto">
+
+        {stats && (
+          <div className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-1.5 whitespace-nowrap">
+            {[
+              { label: 'Total', value: total ?? 0, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
+              { label: 'Budgeted', value: stats.budgeted, num: 'text-indigo-600 dark:text-indigo-400', hover: 'hover:border-indigo-300 hover:bg-indigo-50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/10' },
+              { label: 'SFS', value: stats.sfs, num: 'text-orange-600 dark:text-orange-400', hover: 'hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-600 dark:hover:bg-orange-500/10' },
+            ].map((m) => (
+              <span key={m.label} className={`inline-flex flex-col items-center leading-none px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
+                <span className={`text-sm font-bold tabular-nums ${m.num}`}>{m.value.toLocaleString()}</span>
+                <span className="text-[9px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">{m.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* View mode toggle */}
+        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            title="Table view"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            title="Grid view"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+            </svg>
+          </button>
+        </div>
+        <div className="relative w-64 ml-auto">
           <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text"
-            placeholder="Search by name, subject, designation..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -310,7 +400,7 @@ export default function EmployeesPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Add Employee
+              Add
             </button>
           )}
           {canWrite && (
@@ -318,7 +408,7 @@ export default function EmployeesPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              Upload Excel
+              Upload
             </button>
           )}
           <div className="relative" ref={exportMenuRef}>
@@ -380,7 +470,7 @@ export default function EmployeesPage() {
       {/* Filter sidebar */}
       {showFilters && <div className="fixed inset-0 bg-black/30 z-40 transition-opacity" onClick={() => setShowFilters(false)} />}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${showFilters ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${showFilters ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 dark:border-gray-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h3>
@@ -547,18 +637,111 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {loading && <TableSkeleton rows={10} cols={activeCols.length} />}
+      {loading && viewMode === 'table' && <TableSkeleton rows={10} cols={activeCols.length} />}
 
-      {/* Table */}
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700" />
+                    <div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/2" /></div>
+                  </div>
+                  <div className="space-y-2"><div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-full" /><div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-2/3" /></div>
+                </div>
+              ))}
+            </div>
+          ) : data.data.length === 0 ? (
+            <EmptyState
+              icon="🧑‍🏫"
+              title="No employees found"
+              description={activeFilterCount > 0 || search ? 'No employees match your current filters.' : 'There are no employee records to show yet.'}
+              action={canWrite ? { label: 'Add Employee', onClick: () => router.push('/employees/new') } : undefined}
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {data.data.map((emp) => (
+                <div
+                  key={emp.id}
+                  onClick={() => router.push(`/employees/${emp.id}`)}
+                  className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-600 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/20 flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0">
+                        {emp.name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">{emp.name}</p>
+                        {emp.university?.code && (
+                          <span className="text-[11px] font-medium text-primary-600 dark:text-primary-400">{emp.university.code}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge value={emp.postType} />
+                  </div>
+
+                  {emp.designationAppointed && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 truncate">{emp.designationAppointed}</p>
+                  )}
+                  {emp.subject && (
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mb-3 truncate">{emp.subject}</p>
+                  )}
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge value={emp.category} />
+                    <Badge value={emp.gender} />
+                    {emp.employmentStatus && emp.employmentStatus !== 'ACTIVE' && <Badge value={emp.employmentStatus} />}
+                  </div>
+
+                  {canWrite && (
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push(`/employees/${emp.id}`); }}
+                        className="flex-1 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-colors text-center"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(emp.id, emp.name); }}
+                        className="flex-1 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors text-center"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Table View */}
+      {viewMode === 'table' && (
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         <div className="overflow-auto max-h-[75vh]">
           <table className="w-full text-sm border-separate border-spacing-0">
             <thead>
               <tr className="bg-primary-700 text-white">
                 {activeCols.map((col) => (
-                  <th key={col.key} className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide ${col.numeric ? 'text-center' : 'text-left'} ${col.className || ''}`}>{col.label}</th>
+                  <th
+                    key={col.key}
+                    onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
+                    className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${col.numeric ? 'text-center' : 'text-left'} ${col.sortKey ? 'cursor-pointer select-none group hover:bg-primary-600 transition-colors' : ''} ${col.className || ''}`}
+                  >
+                    {col.sortKey ? (
+                      <div className={`flex items-center gap-1.5 ${col.numeric ? 'justify-center' : ''}`}>
+                        <span>{col.label}</span>
+                        <SortIcon col={col.sortKey} />
+                      </div>
+                    ) : col.label}
+                  </th>
                 ))}
-                <th className="sticky top-0 z-10 px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700">Action</th>
+                <th className="sticky top-0 z-10 px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700 border border-gray-300 dark:border-gray-600">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -577,9 +760,9 @@ export default function EmployeesPage() {
                 data.data.map((emp, i) => (
                   <tr key={emp.id} className={`border-b border-gray-100 dark:border-gray-800 hover:bg-primary-50/50 dark:hover:bg-gray-800/50 transition-colors ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/40 dark:bg-gray-800/30'}`}>
                     {activeCols.map((col) => (
-                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap ${col.numeric ? 'text-center tabular-nums' : ''} ${col.className || ''}`}>{col.render(emp, i, data.page)}</td>
+                      <td key={col.key} className={`px-3 py-2.5 align-middle text-gray-700 dark:text-gray-300 whitespace-nowrap border border-gray-200 dark:border-gray-700 ${col.numeric ? 'text-center tabular-nums' : ''} ${col.className || ''}`}>{col.render(emp, i, data.page)}</td>
                     ))}
-                    <td className="px-3 py-2.5 sticky right-0 bg-inherit">
+                    <td className="px-3 py-2.5 sticky right-0 bg-inherit border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-center gap-2">
                         {/* View */}
                         <button
@@ -649,6 +832,33 @@ export default function EmployeesPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Shared Pagination for Grid */}
+      {viewMode === 'grid' && data.data.length > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Showing {data.data.length} of {data.total} records
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchEmployees(data.page - 1, filters)}
+              disabled={data.page <= 1}
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-40 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Page {data.page} of {data.totalPages}</span>
+            <button
+              onClick={() => fetchEmployees(data.page + 1, filters)}
+              disabled={data.page >= data.totalPages}
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-lg disabled:opacity-40 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
       {/* Add Employee Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
