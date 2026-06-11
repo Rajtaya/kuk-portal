@@ -12,7 +12,7 @@ const COOKIE_NAME = 'auth_token';
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: isProd,
-  sameSite: 'lax' as const,
+  sameSite: (isProd ? 'none' : 'lax') as const,
   path: '/',
   maxAge: 24 * 60 * 60 * 1000,
 };
