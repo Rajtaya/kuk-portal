@@ -7,12 +7,12 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isCrossOrigin = !!process.env.CORS_ORIGIN;
 const COOKIE_NAME = 'auth_token';
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure: isProd,
-  sameSite: (isProd ? 'none' : 'lax') as const,
+  secure: isCrossOrigin,
+  sameSite: (isCrossOrigin ? 'none' : 'lax') as const,
   path: '/',
   maxAge: 24 * 60 * 60 * 1000,
 };
