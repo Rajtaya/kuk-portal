@@ -20,7 +20,7 @@ export class SanctionedPostsController {
   constructor(private service: SanctionedPostsService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.STATE_USER, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   create(@Body() dto: CreateSanctionedPostDto, @CurrentUser() user: any) {
     if (user.role === Role.UNIVERSITY_ADMIN) dto.universityId = user.universityId;
     return this.service.create(dto);
@@ -39,19 +39,19 @@ export class SanctionedPostsController {
   }
 
   @Put(':id')
-  @Roles(Role.SUPER_ADMIN, Role.STATE_USER, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   update(@Param('id') id: string, @Body() dto: Partial<CreateSanctionedPostDto>, @CurrentUser() user: any) {
     return this.service.update(id, dto, user);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.STATE_USER, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   delete(@Param('id') id: string, @CurrentUser() user: any) {
     return this.service.delete(id, user);
   }
 
   @Post('bulk-upload')
-  @Roles(Role.SUPER_ADMIN, Role.STATE_USER, Role.UNIVERSITY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async bulkUpload(

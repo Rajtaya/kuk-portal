@@ -45,7 +45,7 @@ export default function SanctionedPostsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isStateUser = user?.role === 'STATE_USER';
   const isUniversityAdmin = user?.role === 'UNIVERSITY_ADMIN';
-  const canWrite = isSuperAdmin || isStateUser || isUniversityAdmin;
+  const canWrite = isSuperAdmin || isUniversityAdmin;
   const { toast } = useToast();
 
   const [tab, setTab] = useState<'manage' | 'vacancy'>(canWrite ? 'manage' : 'vacancy');
