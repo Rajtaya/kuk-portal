@@ -7,15 +7,18 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-const isCrossOrigin = !!(process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || process.env.RAILWAY_ENVIRONMENT);
 const COOKIE_NAME = 'auth_token';
-const COOKIE_OPTS = {
-  httpOnly: true,
-  secure: isCrossOrigin,
-  sameSite: (isCrossOrigin ? 'none' : 'lax') as const,
-  path: '/',
-  maxAge: 24 * 60 * 60 * 1000,
-};
+
+function cookieOpts() {
+  const cross = !!(process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || process.env.RAILWAY_ENVIRONMENT);
+  return {
+    httpOnly: true,
+    secure: cross,
+    sameSite: (cross ? 'none' : 'lax') as const,
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
+  };
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -26,7 +29,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    res.cookie(COOKIE_NAME, result.accessToken, COOKIE_OPTS);
+    res.cookie(COOKIE_NAME, result.accessToken, cookieOpts());
     return { user: result.user };
   }
 
