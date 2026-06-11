@@ -29,7 +29,9 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    res.cookie(COOKIE_NAME, result.accessToken, cookieOpts());
+    const opts = cookieOpts();
+    console.log('[AUTH] cookie cross-origin:', opts.sameSite, 'CORS_ORIGIN:', process.env.CORS_ORIGIN, 'RAILWAY_ENV:', process.env.RAILWAY_ENVIRONMENT);
+    res.cookie(COOKIE_NAME, result.accessToken, opts);
     return { user: result.user };
   }
 
