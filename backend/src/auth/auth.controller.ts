@@ -7,7 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-const isCrossOrigin = !!process.env.CORS_ORIGIN;
+const isCrossOrigin = !!(process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || process.env.RAILWAY_ENVIRONMENT);
 const COOKIE_NAME = 'auth_token';
 const COOKIE_OPTS = {
   httpOnly: true,
