@@ -296,16 +296,16 @@ export default function SanctionedPostsPage() {
   }
 
   const vacancyHeaders = [
-    ...((isSuperAdmin || isStateUser) ? [{ key: 'university', label: 'University Name' }] : []),
-    { key: 'subject', label: 'Subject' },
-    { key: 'department', label: 'Department' },
-    { key: 'designation', label: 'Designation' },
-    { key: 'postType', label: 'Type' },
-    { key: 'sanctioned', label: 'Sanctioned' },
-    { key: 'filled', label: 'Filled' },
-    { key: 'vacant', label: 'Vacant' },
-    { key: 'excess', label: 'Excess' },
-    { key: 'fillRate', label: 'Fill %' },
+    ...((isSuperAdmin || isStateUser) ? [{ key: 'university', label: 'University Name', tip: 'University the post belongs to' }] : []),
+    { key: 'subject', label: 'Subject', tip: 'Academic subject of the post' },
+    { key: 'department', label: 'Department', tip: 'Department the post belongs to' },
+    { key: 'designation', label: 'Designation', tip: 'Rank of the post (Professor, Associate Professor, …)' },
+    { key: 'postType', label: 'Type', tip: 'Funding type — Budgeted (government-funded) or SFS (Self-Financed Scheme)' },
+    { key: 'sanctioned', label: 'Sanctioned', tip: 'Approved positions for this post' },
+    { key: 'filled', label: 'Filled', tip: 'Approved positions currently occupied by an active employee' },
+    { key: 'vacant', label: 'Vacant', tip: 'Unfilled positions (Sanctioned − Filled)' },
+    { key: 'excess', label: 'Excess', tip: 'Staff beyond the sanctioned count (over-staffed)' },
+    { key: 'fillRate', label: 'Fill %', tip: 'Filled ÷ Sanctioned' },
   ];
 
   const activeCount = sortedVacancy.length;
@@ -335,18 +335,18 @@ export default function SanctionedPostsPage() {
         </button>
 
         {[
-          { title: 'Total', accent: 'text-gray-600 dark:text-gray-300', data: { total: totals.sanctioned, filled: totals.filled, vacant: totals.vacant } },
-          { title: 'Budgeted', accent: 'text-indigo-700 dark:text-indigo-300', data: budgeted },
-          { title: 'SFS', accent: 'text-orange-700 dark:text-orange-300', data: sfs },
+          { title: 'Total', tip: 'All post types combined', accent: 'text-gray-600 dark:text-gray-300', data: { total: totals.sanctioned, filled: totals.filled, vacant: totals.vacant } },
+          { title: 'Budgeted', tip: 'Government-funded posts', accent: 'text-indigo-700 dark:text-indigo-300', data: budgeted },
+          { title: 'SFS', tip: 'Self-Financed Scheme posts', accent: 'text-orange-700 dark:text-orange-300', data: sfs },
         ].map((box) => (
-          <div key={box.title} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2 py-1 whitespace-nowrap">
+          <div key={box.title} title={box.tip} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2 py-1 whitespace-nowrap">
             <span className={`text-[11px] font-bold uppercase tracking-wide ${box.accent}`}>{box.title}</span>
             {[
-              { label: 'Total', value: box.data.total, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
-              { label: 'Filled', value: box.data.filled, num: 'text-emerald-600 dark:text-emerald-400', hover: 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/10' },
-              { label: 'Vacant', value: box.data.vacant, num: 'text-red-500 dark:text-red-400', hover: 'hover:border-red-300 hover:bg-red-50 dark:hover:border-red-600 dark:hover:bg-red-500/10' },
+              { label: 'Total', tip: 'Sanctioned — approved positions', value: box.data.total, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
+              { label: 'Filled', tip: 'Currently occupied', value: box.data.filled, num: 'text-emerald-600 dark:text-emerald-400', hover: 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/10' },
+              { label: 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, num: 'text-red-500 dark:text-red-400', hover: 'hover:border-red-300 hover:bg-red-50 dark:hover:border-red-600 dark:hover:bg-red-500/10' },
             ].map((m) => (
-              <span key={m.label} className={`inline-flex flex-col items-center leading-none px-1.5 py-0.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
+              <span key={m.label} title={m.tip} className={`inline-flex flex-col items-center leading-none px-1.5 py-0.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
                 <span className={`text-sm font-bold tabular-nums ${m.num}`}>{m.value.toLocaleString()}</span>
                 <span className="text-[9px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">{m.label}</span>
               </span>
@@ -458,8 +458,18 @@ export default function SanctionedPostsPage() {
         </div>
       </div>
 
+      {/* Legend — plain-language definitions so a non-expert can read the figures */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+        <span className="font-semibold text-gray-600 dark:text-gray-300">What the figures mean —</span>
+        <span><b className="font-semibold text-gray-700 dark:text-gray-200">Sanctioned</b>: approved positions</span>
+        <span><b className="font-semibold text-emerald-600 dark:text-emerald-400">Filled</b>: currently occupied</span>
+        <span><b className="font-semibold text-red-500 dark:text-red-400">Vacant</b>: unfilled (Sanctioned − Filled)</span>
+        <span><b className="font-semibold text-amber-600 dark:text-amber-400">Excess</b>: staff beyond the sanctioned count</span>
+        <span><b className="font-semibold text-gray-700 dark:text-gray-200">Budgeted / SFS</b>: funding type (SFS = Self-Financed Scheme)</span>
+      </div>
+
       {/* Data Table */}
-      <div className="mt-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+      <div className="mt-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         {loading ? (
           <TableSkeleton rows={8} cols={9} />
         ) : sortedVacancy.length === 0 ? (
@@ -478,6 +488,7 @@ export default function SanctionedPostsPage() {
                     <th
                       key={h.key}
                       onClick={() => toggleSort(h.key)}
+                      title={h.tip}
                       className={`sticky top-0 z-10 bg-primary-700 group ${numericCols.has(h.key) ? 'px-2' : 'px-3'} py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none whitespace-nowrap border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
                     >
                       <div className={`flex items-center gap-1.5 ${numericCols.has(h.key) ? 'justify-center' : ''}`}>
