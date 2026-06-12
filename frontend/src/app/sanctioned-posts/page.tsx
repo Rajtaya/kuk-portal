@@ -458,16 +458,6 @@ export default function SanctionedPostsPage() {
         </div>
       </div>
 
-      {/* Legend — plain-language definitions so a non-expert can read the figures */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
-        <span className="font-semibold text-gray-600 dark:text-gray-300">What the figures mean —</span>
-        <span><b className="font-semibold text-gray-700 dark:text-gray-200">Sanctioned</b>: approved positions</span>
-        <span><b className="font-semibold text-emerald-600 dark:text-emerald-400">Filled</b>: currently occupied</span>
-        <span><b className="font-semibold text-red-500 dark:text-red-400">Vacant</b>: unfilled (Sanctioned − Filled)</span>
-        <span><b className="font-semibold text-amber-600 dark:text-amber-400">Excess</b>: staff beyond the sanctioned count</span>
-        <span><b className="font-semibold text-gray-700 dark:text-gray-200">Budgeted / SFS</b>: funding type (SFS = Self-Financed Scheme)</span>
-      </div>
-
       {/* Data Table */}
       <div className="mt-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         {loading ? (
