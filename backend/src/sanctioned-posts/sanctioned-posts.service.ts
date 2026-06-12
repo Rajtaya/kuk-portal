@@ -48,31 +48,35 @@ export class SanctionedPostsService {
       }),
       this.prisma.employee.findMany({
         where: { employmentStatus: 'ACTIVE', ...(universityId ? { universityId } : {}) },
-        select: { universityId: true, departmentId: true, designationPresent: true, subject: true },
+        select: { universityId: true, departmentId: true, designationPresent: true, subject: true, postType: true },
       }),
     ]);
 
     // Bucket active employees by university+department so each post only scans its own dept.
-    const buckets = new Map<string, { designation: string; subject: string }[]>();
+    const buckets = new Map<string, { designation: string; subject: string; postType: string }[]>();
     for (const e of employees) {
       if (!e.departmentId) continue;
       const key = `${e.universityId}|${e.departmentId}`;
       let arr = buckets.get(key);
       if (!arr) { arr = []; buckets.set(key, arr); }
-      arr.push({ designation: (e.designationPresent || '').toLowerCase(), subject: (e.subject || '').toLowerCase() });
+      arr.push({ designation: (e.designationPresent || '').toLowerCase().trim(), subject: (e.subject || '').toLowerCase().trim(), postType: e.postType });
     }
 
     return posts.map((post) => {
       const candidates = buckets.get(`${post.universityId}|${post.departmentId}`) || [];
-      const desig = post.designation.toLowerCase();
-      const subj = post.subject ? post.subject.toLowerCase() : null;
+      const desig = post.designation.toLowerCase().trim();
+      const subj = post.subject ? post.subject.toLowerCase().trim() : null;
 
-      // Same matching as before: designationPresent CONTAINS post.designation (case-insensitive),
-      // and if the post has a subject, employee.subject CONTAINS it (case-insensitive).
+      // An employee fills this post only on an EXACT match: same present designation, same
+      // post type, and (when the post specifies one) the same subject. The old substring match
+      // over-counted — a "Professor" post also caught Associate/Assistant/Senior Professors,
+      // and with no post-type filter, SFS staff could fill Budgeted posts — which is why
+      // filled + vacant exceeded the sanctioned total (excess) instead of equalling it.
       let filled = 0;
       for (const emp of candidates) {
-        if (!emp.designation.includes(desig)) continue;
-        if (subj && !emp.subject.includes(subj)) continue;
+        if (emp.designation !== desig) continue;
+        if (emp.postType !== post.postType) continue;
+        if (subj && emp.subject !== subj) continue;
         filled++;
       }
 
