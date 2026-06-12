@@ -35,8 +35,13 @@ const ALL_COLUMNS: ColDef[] = [
   { key: 'postType', label: 'Type', className: 'w-20', sortKey: 'postType', render: (e) => <Badge value={e.postType} /> },
 ];
 
-const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
+// Hidden by default to keep the table compact and readable (still toggleable in the Columns
+// menu): Selection Category duplicates Category, and Present Designation duplicates Designation
+// in nearly every row.
+const DEFAULT_HIDDEN = ['catSelection', 'presentDesig'];
+const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key).filter((k) => !DEFAULT_HIDDEN.includes(k));
 const UNI_ADMIN_HIDDEN = ['uniName', 'uniCode'];
+const COLS_STORAGE_KEY = 'emp-visible-cols-v2';
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -58,7 +63,7 @@ export default function EmployeesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const sortRef = useRef<{ by: string | null; dir: 'asc' | 'desc' }>({ by: null, dir: 'asc' });
   const [total, setTotal] = useState<number | null>(null);
-  const [stats, setStats] = useState<{ budgeted: number; sfs: number } | null>(null);
+  const [stats, setStats] = useState<{ budgeted: number; sfs: number; contractual: number } | null>(null);
 
   // Add Employee modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -87,12 +92,14 @@ export default function EmployeesPage() {
   const uploadFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('emp-visible-cols');
+    const saved = localStorage.getItem(COLS_STORAGE_KEY);
     if (saved) {
       try {
         const parsed: string[] = JSON.parse(saved);
         const allKeys = ALL_COLUMNS.map((c) => c.key);
-        const merged = [...new Set([...parsed, ...allKeys.filter((k) => !parsed.includes(k))])];
+        // Auto-show genuinely new columns added in a later release, but never force the
+        // default-hidden duplicate columns back on.
+        const merged = [...new Set([...parsed, ...allKeys.filter((k) => !parsed.includes(k) && !DEFAULT_HIDDEN.includes(k))])];
         setVisibleCols(merged);
       } catch { /* ignore */ }
     }
@@ -112,7 +119,7 @@ export default function EmployeesPage() {
     if (col?.alwaysOn) return;
     const next = visibleCols.includes(key) ? visibleCols.filter((k) => k !== key) : [...visibleCols, key];
     setVisibleCols(next);
-    localStorage.setItem('emp-visible-cols', JSON.stringify(next));
+    localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(next));
   };
 
   const hiddenKeys = user?.role === 'UNIVERSITY_ADMIN' ? UNI_ADMIN_HIDDEN : [];
@@ -135,7 +142,7 @@ export default function EmployeesPage() {
   // Budgeted / SFS — react to ALL applied filters.
   useEffect(() => {
     const params = new URLSearchParams(filters);
-    api.get<{ budgeted: number; sfs: number }>(`/employees/summary?${params}`).then((d) => setStats({ budgeted: d.budgeted, sfs: d.sfs })).catch(() => {});
+    api.get<{ budgeted: number; sfs: number; contractual: number }>(`/employees/summary?${params}`).then((d) => setStats({ budgeted: d.budgeted, sfs: d.sfs, contractual: d.contractual ?? 0 })).catch(() => {});
   }, [filters]);
 
   const fetchEmployees = useCallback((page: number = 1, extra: Record<string, string> = {}) => {
@@ -345,6 +352,7 @@ export default function EmployeesPage() {
               { label: 'Total', value: total ?? 0, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
               { label: 'Budgeted', value: stats.budgeted, num: 'text-indigo-600 dark:text-indigo-400', hover: 'hover:border-indigo-300 hover:bg-indigo-50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/10' },
               { label: 'SFS', value: stats.sfs, num: 'text-orange-600 dark:text-orange-400', hover: 'hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-600 dark:hover:bg-orange-500/10' },
+              { label: 'Contractual', value: stats.contractual, num: 'text-emerald-600 dark:text-emerald-400', hover: 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/10' },
             ].map((m) => (
               <span key={m.label} className={`inline-flex flex-col items-center leading-none px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
                 <span className={`text-sm font-bold tabular-nums ${m.num}`}>{m.value.toLocaleString()}</span>
@@ -456,7 +464,7 @@ export default function EmployeesPage() {
                 ))}
                 <hr className="my-1" />
                 <button
-                  onClick={() => { setVisibleCols(DEFAULT_VISIBLE); localStorage.setItem('emp-visible-cols', JSON.stringify(DEFAULT_VISIBLE)); }}
+                  onClick={() => { setVisibleCols(DEFAULT_VISIBLE); localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE)); }}
                   className="w-full text-left px-4 py-2 text-xs text-primary-600 hover:bg-gray-50 font-medium"
                 >
                   Reset to default

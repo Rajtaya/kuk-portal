@@ -92,12 +92,13 @@ export class EmployeesService {
   // Filtered summary for the header boxes: Total / Budgeted / SFS over the same WHERE as the table.
   async getSummary(filters: EmployeeFilterDto, userUniversityId?: string) {
     const where = this.buildWhere(filters, userUniversityId);
-    const [total, budgeted, sfs] = await Promise.all([
+    const [total, budgeted, sfs, contractual] = await Promise.all([
       this.prisma.employee.count({ where }),
       this.prisma.employee.count({ where: { ...where, postType: 'BUDGETED' as any } }),
       this.prisma.employee.count({ where: { ...where, postType: 'SFS' as any } }),
+      this.prisma.employee.count({ where: { ...where, postType: 'CONTRACTUAL' as any } }),
     ]);
-    return { total, budgeted, sfs };
+    return { total, budgeted, sfs, contractual };
   }
 
   async findOne(id: string) {
