@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
+import { totalVacant } from '../common/vacancy.util';
 
 @Injectable()
 export class EmployeesService {
@@ -220,11 +221,12 @@ export class EmployeesService {
     const empWhere: Prisma.EmployeeWhereInput = { employmentStatus: 'ACTIVE' };
     if (universityId) empWhere.universityId = universityId;
 
-    const [employees, allUniversities, subjectCount, designationCount, sanctionedPosts, sanctionedTotal] = await Promise.all([
+    const [employees, allUniversities, subjectCount, designationCount, sanctionedPosts] = await Promise.all([
       this.prisma.employee.findMany({
         where: empWhere,
         select: {
           universityId: true,
+          departmentId: true,
           university: { select: { name: true } },
           subject: true,
           designationPresent: true,
@@ -238,11 +240,7 @@ export class EmployeesService {
       this.prisma.designation.count(),
       this.prisma.sanctionedPost.findMany({
         where: universityId ? { universityId } : {},
-        select: { subject: true, designation: true, postType: true, sanctionedCount: true },
-      }),
-      this.prisma.sanctionedPost.aggregate({
-        where: universityId ? { universityId } : {},
-        _sum: { sanctionedCount: true },
+        select: { universityId: true, departmentId: true, subject: true, designation: true, postType: true, sanctionedCount: true },
       }),
     ]);
 
@@ -346,7 +344,10 @@ export class EmployeesService {
     }
     const allSubjs = new Set([...sMap.keys(), ...pMap.keys()]);
 
-    const vacantSeats = (sanctionedTotal._sum.sanctionedCount || 0) - employees.length;
+    // Exact-match vacancy (shared helper — same source of truth as the Sanctioned Posts report),
+    // NOT a crude sanctioned-minus-headcount, which wrongly assumes every employee fills a
+    // sanctioned post and so under-states the true vacancy.
+    const vacantSeats = totalVacant(sanctionedPosts, employees);
 
     return {
       stats: {

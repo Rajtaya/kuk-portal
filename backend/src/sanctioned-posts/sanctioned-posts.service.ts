@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateSanctionedPostDto } from './dto/sanctioned-post.dto';
 import { Role } from '@prisma/client';
+import { computePostFill } from '../common/vacancy.util';
 
 @Injectable()
 export class SanctionedPostsService {
@@ -52,48 +53,23 @@ export class SanctionedPostsService {
       }),
     ]);
 
-    // Bucket active employees by university+department so each post only scans its own dept.
-    const buckets = new Map<string, { designation: string; subject: string; postType: string }[]>();
-    for (const e of employees) {
-      if (!e.departmentId) continue;
-      const key = `${e.universityId}|${e.departmentId}`;
-      let arr = buckets.get(key);
-      if (!arr) { arr = []; buckets.set(key, arr); }
-      arr.push({ designation: (e.designationPresent || '').toLowerCase().trim(), subject: (e.subject || '').toLowerCase().trim(), postType: e.postType });
-    }
+    // Exact-match occupancy via the shared helper — the single source of truth the dashboard
+    // "Vacant Seats" KPI also uses, so the two pages can never report different vacancy numbers.
+    const fills = computePostFill(posts, employees);
 
-    return posts.map((post) => {
-      const candidates = buckets.get(`${post.universityId}|${post.departmentId}`) || [];
-      const desig = post.designation.toLowerCase().trim();
-      const subj = post.subject ? post.subject.toLowerCase().trim() : null;
-
-      // An employee fills this post only on an EXACT match: same present designation, same
-      // post type, and (when the post specifies one) the same subject. The old substring match
-      // over-counted — a "Professor" post also caught Associate/Assistant/Senior Professors,
-      // and with no post-type filter, SFS staff could fill Budgeted posts — which is why
-      // filled + vacant exceeded the sanctioned total (excess) instead of equalling it.
-      let filled = 0;
-      for (const emp of candidates) {
-        if (emp.designation !== desig) continue;
-        if (emp.postType !== post.postType) continue;
-        if (subj && emp.subject !== subj) continue;
-        filled++;
-      }
-
-      return {
-        id: post.id,
-        university: post.university.name,
-        universityCode: post.university.code,
-        department: post.department.name,
-        subject: post.subject,
-        designation: post.designation,
-        postType: post.postType,
-        sanctioned: post.sanctionedCount,
-        filled,
-        vacant: Math.max(0, post.sanctionedCount - filled),
-        excess: Math.max(0, filled - post.sanctionedCount),
-      };
-    });
+    return posts.map((post, i) => ({
+      id: post.id,
+      university: post.university.name,
+      universityCode: post.university.code,
+      department: post.department.name,
+      subject: post.subject,
+      designation: post.designation,
+      postType: post.postType,
+      sanctioned: post.sanctionedCount,
+      filled: fills[i].filled,
+      vacant: fills[i].vacant,
+      excess: fills[i].excess,
+    }));
   }
 
   async bulkImport(rows: Record<string, any>[], universityId: string) {
