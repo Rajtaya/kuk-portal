@@ -731,7 +731,7 @@ export default function DashboardPage() {
 
   const desigPostTypeOption = useMemo(() => {
     if (!activeData?.designationPostType?.length || !dpPostTypes.length) return null;
-    const desigOrder = ['Professor', 'Associate Professor', 'Assistant Professor', 'Senior Professor', 'Other Teaching Posts'];
+    const desigOrder = ['Senior Professor', 'Professor', 'Associate Professor', 'Assistant Professor', 'Other Teaching Posts'];
     const rows = activeData.designationPostType
       .filter(r => r.postType === dpEffective)
       .sort((a, b) => {
@@ -745,7 +745,7 @@ export default function DashboardPage() {
     const vacant = rows.map(r => r.vacant);
     return {
       tooltip: {
-        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
+        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'none' as const },
         formatter: (params: any) => {
           const idx = params[0]?.dataIndex;
           const s = sanctioned[idx]; const f = filled[idx]; const v = vacant[idx];
