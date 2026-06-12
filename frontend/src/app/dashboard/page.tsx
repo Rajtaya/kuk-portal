@@ -14,7 +14,7 @@ interface HierarchyNode {
 }
 
 interface ChartData {
-  stats: { universityCount: number; employeeCount: number; subjectCount: number; vacantSeats: number; designationCount: number };
+  stats: { universityCount: number; employeeCount: number; sanctionedPosts: number; filledPosts: number; subjectCount: number; vacantSeats: number; designationCount: number };
   designationByUniversity: Record<string, any>[];
   hierarchy: { universityId: string; universityName: string; children: HierarchyNode[] }[];
   categoryDesignation: Record<string, any>[];
@@ -74,9 +74,11 @@ function barTooltipFormatter(params: any) {
   return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${params.name}</p><div style="display:flex;align-items:center">${dot}${params.seriesName}: <b>${params.value}</b></div></div>`;
 }
 
-function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'vacant' | 'designations' }) {
+function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'vacant' | 'designations' | 'sanctioned' | 'filled' }) {
   const icons: Record<string, { bg: string; path: string }> = {
     university: { bg: 'bg-primary-500', path: 'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4' },
+    sanctioned: { bg: 'bg-blue-500', path: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h6' },
+    filled: { bg: 'bg-green-500', path: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
     employees: { bg: 'bg-green-500', path: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
     subjects: { bg: 'bg-orange-500', path: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
     vacant: { bg: 'bg-yellow-500', path: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
@@ -838,8 +840,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
+      {/* Stat Cards — sanctioned-post occupancy: Sanctioned = Filled + Vacant */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         {!isUniAdmin && isAllUni && (
           <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
             <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Universities</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.universityCount}</p></div>
@@ -847,20 +849,16 @@ export default function DashboardPage() {
           </div>
         )}
         <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Employees</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.employeeCount.toLocaleString()}</p></div>
-          <StatIcon type="employees" />
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Sanctioned Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{(stats.sanctionedPosts ?? 0).toLocaleString()}</p></div>
+          <StatIcon type="sanctioned" />
         </div>
         <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Subjects</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.subjectCount}</p></div>
-          <StatIcon type="subjects" />
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Filled Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{(stats.filledPosts ?? 0).toLocaleString()}</p></div>
+          <StatIcon type="filled" />
         </div>
         <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Vacant Seats</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
+          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Vacant Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
           <StatIcon type="vacant" />
-        </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Designations</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.designationCount}</p></div>
-          <StatIcon type="designations" />
         </div>
       </div>
 

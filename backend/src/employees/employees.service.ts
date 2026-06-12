@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
-import { totalVacant } from '../common/vacancy.util';
+import { computePostFill } from '../common/vacancy.util';
 
 @Injectable()
 export class EmployeesService {
@@ -344,19 +344,24 @@ export class EmployeesService {
     }
     const allSubjs = new Set([...sMap.keys(), ...pMap.keys()]);
 
-    // Exact-match vacancy (shared helper — same source of truth as the Sanctioned Posts report),
-    // NOT a crude sanctioned-minus-headcount, which wrongly assumes every employee fills a
-    // sanctioned post and so under-states the true vacancy.
-    const vacantSeats = totalVacant(sanctionedPosts, employees);
+    // Exact-match occupancy (shared helper — same source of truth as the Sanctioned Posts
+    // report). Sanctioned = Filled + Vacant, so the dashboard's post triple reconciles instead
+    // of mixing in raw headcount (1,328 employees) that don't all map to a sanctioned post.
+    const fills = computePostFill(sanctionedPosts, employees);
+    const sanctionedPostsTotal = sanctionedPosts.reduce((s, p) => s + p.sanctionedCount, 0);
+    const filledPosts = fills.reduce((s, p) => s + p.filled, 0);
+    const vacantSeats = fills.reduce((s, p) => s + p.vacant, 0);
 
     return {
       stats: {
         universityCount: allUniversities.length,
         employeeCount: employees.length,
+        sanctionedPosts: sanctionedPostsTotal,
+        filledPosts,
         // When scoped to a university, report that university's distinct subjects/designations
         // (from its active employees) rather than the global master counts.
         subjectCount: universityId ? subjectSet.size : subjectCount,
-        vacantSeats: Math.max(0, vacantSeats),
+        vacantSeats,
         designationCount: universityId ? designationSet.size : designationCount,
       },
       designationByUniversity: [...uniMap.entries()].map(([university, desigs]) => ({ university, ...desigs })),
