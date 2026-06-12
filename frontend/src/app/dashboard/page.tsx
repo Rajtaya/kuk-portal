@@ -201,6 +201,7 @@ export default function DashboardPage() {
   const [selectedUni, setSelectedUni] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
+  const [dpPostType, setDpPostType] = useState<string>('BUDGETED');
   const genderInstance = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -711,66 +712,78 @@ export default function DashboardPage() {
     };
   }, [activeData, isMobile]);
 
-  // --- Chart 8: Designation × PostType → Sanction / Present / Vacant (stacked bar) ---
+  // --- Chart 8: Sanctioned vs Filled by Designation (one post type at a time) ---
+  // Post types that actually have sanctioned posts in the current scope — these drive the switch.
+  const dpPostTypes = useMemo(() => {
+    if (!activeData?.designationPostType?.length) return [] as string[];
+    const set = new Set<string>();
+    activeData.designationPostType.forEach(r => { if (r.sanctioned > 0) set.add(r.postType); });
+    return ['BUDGETED', 'SFS', 'CONTRACTUAL'].filter(p => set.has(p));
+  }, [activeData]);
+
+  // The selected post type, snapped to one that exists in the current scope.
+  const dpEffective = useMemo(
+    () => (dpPostTypes.includes(dpPostType) ? dpPostType : (dpPostTypes[0] || 'BUDGETED')),
+    [dpPostTypes, dpPostType],
+  );
+
   const desigPostTypeOption = useMemo(() => {
-    if (!activeData?.designationPostType?.length) return null;
-    const rows = activeData.designationPostType;
-    const ptLabels: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'SFS', CONTRACTUAL: 'Contractual' };
-    const categories = rows.map(r => `${r.designation} ${ptLabels[r.postType] || r.postType}`);
+    if (!activeData?.designationPostType?.length || !dpPostTypes.length) return null;
+    const desigOrder = ['Professor', 'Associate Professor', 'Assistant Professor', 'Senior Professor', 'Other Teaching Posts'];
+    const rows = activeData.designationPostType
+      .filter(r => r.postType === dpEffective)
+      .sort((a, b) => {
+        const ia = desigOrder.indexOf(a.designation); const ib = desigOrder.indexOf(b.designation);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+    if (!rows.length) return null;
+    const categories = rows.map(r => r.designation);
     const sanctioned = rows.map(r => r.sanctioned);
-    const present = rows.map(r => r.present);
+    const filled = rows.map(r => r.present);
     const vacant = rows.map(r => r.vacant);
     return {
       tooltip: {
-        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'none' as const },
+        trigger: 'axis' as const, ...TOOLTIP_BASE, axisPointer: { type: 'shadow' as const },
         formatter: (params: any) => {
           const idx = params[0]?.dataIndex;
+          const s = sanctioned[idx]; const f = filled[idx]; const v = vacant[idx];
+          const pct = s > 0 ? Math.round((f / s) * 100) : 0;
           const dot = (c: string) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></span>`;
-          return `<div style="min-width:180px">
-            <p style="font-weight:600;margin:0 0 8px;color:#111827">${categories[idx]}</p>
-            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#60A5FA')}Sanction</span><b>${sanctioned[idx]}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#34D399')}Present</span><b>${present[idx]}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0"><span>${dot('#F87171')}Vacant</span><b>${vacant[idx]}</b></div>
+          return `<div style="min-width:210px">
+            <p style="font-weight:600;margin:0 0 8px;color:#111827">${categories[idx]} — ${PT_LABELS[dpEffective] || dpEffective}</p>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#3B82F6')}Sanctioned</span><b>${s}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#10B981')}Filled</span><b>${f}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span>${dot('#EF4444')}Vacant</span><b>${v}</b></div>
+            <hr style="border:none;border-top:1px solid #E5E7EB;margin:6px 0"/>
+            <p style="text-align:center;font-size:12px;color:#6B7280;margin:0">Fill Rate: <b style="color:${pct >= 75 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444'}">${pct}%</b></p>
           </div>`;
         },
       },
-      legend: { top: 30, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
-      grid: { top: 70, right: 20, bottom: isMobile ? 100 : 60, left: 50, containLabel: true },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
+      grid: { top: 30, right: 20, bottom: 50, left: 50, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { rotate: isMobile ? -45 : -25, fontSize: isMobile ? 9 : 11, interval: 0, color: '#374151', fontWeight: 500 },
+        axisLabel: { fontSize: isMobile ? 10 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -20 : 0 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
         type: 'value' as const,
-        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: [
-        {
-          name: 'Sanction', type: 'bar' as const, stack: 'total', barWidth: isMobile ? 30 : 55,
-          data: sanctioned, itemStyle: { color: '#60A5FA' },
-          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
-            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
-        {
-          name: 'Present', type: 'bar' as const, stack: 'total',
-          data: present, itemStyle: { color: '#34D399' },
-          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
-            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
-        {
-          name: 'Vacant', type: 'bar' as const, stack: 'total',
-          data: vacant, itemStyle: { color: '#F87171' },
-          label: { show: true, position: 'inside' as const, fontSize: 11, fontWeight: 700, color: '#fff',
-            textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 3,
-            formatter: (p: any) => p.value > 0 ? p.value : '' },
-        },
+        { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 16 : 38,
+          data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 16 : 38,
+          data: filled, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 16 : 38,
+          data: vacant, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
+          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
       ],
     };
-  }, [activeData, isMobile]);
+  }, [activeData, dpEffective, dpPostTypes, isMobile]);
 
   if (!data) {
     return (
@@ -863,16 +876,31 @@ export default function DashboardPage() {
 
       {desigPostTypeOption && (
         <ChartCard
-          title="Designation → Employment Type → Sanction / Present / Vacant"
+          title="Sanctioned vs Filled by Designation"
           tableData={{
-            headers: ['Category', 'Sanctioned', 'Present', 'Vacant'],
-            rows: activeData!.designationPostType.map(r => {
-              const ptL: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'SFS', CONTRACTUAL: 'Contractual' };
-              return [`${r.designation} ${ptL[r.postType] || r.postType}`, r.sanctioned, r.present, r.vacant];
-            }),
+            headers: ['Designation', 'Sanctioned', 'Filled', 'Vacant'],
+            rows: activeData!.designationPostType
+              .filter(r => r.postType === dpEffective)
+              .map(r => [r.designation, r.sanctioned, r.present, r.vacant]),
           }}
         >
-          <ReactECharts option={desigPostTypeOption} style={{ height: isMobile ? '400px' : '500px' }} notMerge={true} lazyUpdate={true} />
+          {dpPostTypes.length > 0 && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-xs font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Post type</span>
+              <div className="inline-flex border border-gray-300 dark:border-gray-700">
+                {dpPostTypes.map((pt) => (
+                  <button
+                    key={pt}
+                    onClick={() => setDpPostType(pt)}
+                    className={`px-4 py-1.5 text-sm font-medium transition-colors ${dpEffective === pt ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  >
+                    {PT_LABELS[pt] || pt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <ReactECharts option={desigPostTypeOption} style={{ height: isMobile ? '360px' : '460px' }} notMerge={true} lazyUpdate={true} />
         </ChartCard>
       )}
 
