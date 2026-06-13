@@ -489,14 +489,14 @@ export default function EmployeesPage() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3">
             {user?.role !== 'UNIVERSITY_ADMIN' && (
               <div className="relative">
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">University</label>
                 <select
                   value={filters.universityId || ''}
                   onChange={(e) => applyFilter('universityId', e.target.value)}
-                  className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                     filters.universityId
                       ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                       : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -506,11 +506,11 @@ export default function EmployeesPage() {
                   {universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
                 </select>
                 {filters.universityId ? (
-                  <button onClick={() => applyFilter('universityId', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <button onClick={() => applyFilter('universityId', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 ) : (
-                  <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                  <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                 )}
               </div>
             )}
@@ -519,7 +519,7 @@ export default function EmployeesPage() {
               <select
                 value={filters.gender || ''}
                 onChange={(e) => applyFilter('gender', e.target.value)}
-                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                   filters.gender
                     ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                     : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -531,11 +531,11 @@ export default function EmployeesPage() {
                 <option value="OTHER">Other</option>
               </select>
               {filters.gender ? (
-                <button onClick={() => applyFilter('gender', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => applyFilter('gender', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
-                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
             <div className="relative">
@@ -543,7 +543,7 @@ export default function EmployeesPage() {
               <select
                 value={filters.category || ''}
                 onChange={(e) => applyFilter('category', e.target.value)}
-                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                   filters.category
                     ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                     : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -553,11 +553,11 @@ export default function EmployeesPage() {
                 {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               {filters.category ? (
-                <button onClick={() => applyFilter('category', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => applyFilter('category', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
-                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
             <div className="relative">
@@ -565,7 +565,7 @@ export default function EmployeesPage() {
               <select
                 value={filters.postType || ''}
                 onChange={(e) => applyFilter('postType', e.target.value)}
-                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                   filters.postType
                     ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                     : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -577,11 +577,11 @@ export default function EmployeesPage() {
                 <option value="CONTRACTUAL">Contractual</option>
               </select>
               {filters.postType ? (
-                <button onClick={() => applyFilter('postType', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => applyFilter('postType', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
-                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
             <div className="relative">
@@ -589,7 +589,7 @@ export default function EmployeesPage() {
               <select
                 value={filters.employmentStatus || ''}
                 onChange={(e) => applyFilter('employmentStatus', e.target.value)}
-                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                   filters.employmentStatus
                     ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                     : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -603,11 +603,11 @@ export default function EmployeesPage() {
                 <option value="SUSPENDED">Suspended</option>
               </select>
               {filters.employmentStatus ? (
-                <button onClick={() => applyFilter('employmentStatus', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => applyFilter('employmentStatus', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
-                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
             <div className="relative">
@@ -615,7 +615,7 @@ export default function EmployeesPage() {
               <select
                 value={filters.designation || ''}
                 onChange={(e) => applyFilter('designation', e.target.value)}
-                className={`w-full px-3 py-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
                   filters.designation
                     ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
                     : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
@@ -628,11 +628,11 @@ export default function EmployeesPage() {
                 <option value="Senior Professor">Senior Professor</option>
               </select>
               {filters.designation ? (
-                <button onClick={() => applyFilter('designation', '')} className="absolute right-2.5 bottom-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => applyFilter('designation', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
-                <svg className="absolute right-2.5 bottom-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
           </div>
