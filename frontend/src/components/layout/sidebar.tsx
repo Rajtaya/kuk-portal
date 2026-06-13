@@ -61,12 +61,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-xl font-extrabold text-white tracking-tight">UEMS</h1>
-              <p className="text-[11px] text-slate-400 mt-0.5 truncate whitespace-nowrap">University Employees Management</p>
+              <p className="text-[11px] text-stone-400 mt-0.5 truncate whitespace-nowrap">University Employees Management</p>
             </div>
           )}
           <button
             onClick={mobile ? onMobileClose : cycleMode}
-            className="p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
+            className="p-2 rounded-lg text-stone-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
             title={mobile ? 'Close menu' : collapsed ? 'Hide sidebar' : 'Collapse sidebar'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -93,17 +93,17 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
                   collapsed ? 'justify-center px-2 py-3' : 'px-3 py-2.5',
                   isActive
                     ? 'bg-white/15 text-white shadow-lg shadow-black/10'
-                    : 'text-slate-400 hover:bg-white/8 hover:text-white'
+                    : 'text-stone-400 hover:bg-white/8 hover:text-white hover:translate-x-0.5'
                 )}
               >
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-primary-400 to-primary-600 rounded-r-full" />
                 )}
                 <span className={clsx(
-                  'w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all',
+                  'w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition-all group-hover:scale-110',
                   isActive ? `bg-gradient-to-br ${link.color} shadow-md` : 'bg-white/5 group-hover:bg-white/10'
                 )}>
-                  <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
                   </svg>
                 </span>
@@ -127,19 +127,19 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
           ) : (
             <>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
                   {user?.name?.charAt(0) || 'U'}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
+                  <p className="text-[11px] text-stone-400 truncate">{user?.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mb-3">
                 {user?.university && (
                   <span className="px-2 py-0.5 bg-primary-500/15 text-primary-300 text-[10px] font-medium rounded-full whitespace-nowrap">{user.university.code}</span>
                 )}
-                <span className="px-2 py-0.5 bg-white/8 text-slate-400 text-[10px] font-medium rounded-full whitespace-nowrap">
+                <span className="px-2 py-0.5 bg-white/8 text-stone-400 text-[10px] font-medium rounded-full whitespace-nowrap">
                   {user?.role?.replace(/_/g, ' ')}
                 </span>
               </div>
