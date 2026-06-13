@@ -843,26 +843,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Top-right account controls: theme / dark mode / logout */}
-      <div className="hidden md:flex items-center justify-end -mb-2">
-        <div className="inline-flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-1.5 py-1 shadow-sm">
-          <ThemeToggle />
-          <DarkModeToggle />
-          <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-          <button
-            onClick={logout}
-            title="Sign out"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* University scope bar — funnel (left), university name, and post-occupancy stats in one header */}
+      {/* University scope bar — funnel (left), university name, post-occupancy stats, account controls (right) */}
       {!isUniAdmin && (
         <div className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
           {/* Filter — opens the university drawer (slides in from the left) */}
@@ -922,6 +903,17 @@ export default function DashboardPage() {
             >
               <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
               <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Vacant</span>
+            </button>
+          </div>
+
+          {/* Account controls — part of the bar, far right */}
+          <div className="flex items-center gap-0.5 shrink-0 pl-2 ml-1 border-l border-white/25">
+            <ThemeToggle variant="sidebar" />
+            <DarkModeToggle variant="sidebar" />
+            <button onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         </div>
