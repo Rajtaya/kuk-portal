@@ -160,12 +160,14 @@ export default function SanctionedPostsPage() {
   );
 
   // Headline box figures: sanctioned from post data (exact), filled from headcount (= dashboard / Employees page).
+  // Total = Budgeted + SFS only (Contractual has no sanctioned posts so is excluded from headline).
   const boxSanctionedBudgeted = uniOnlyVacancy.filter(r => r.postType === 'BUDGETED').reduce((s, r) => s + r.sanctioned, 0);
   const boxSanctionedSfs      = uniOnlyVacancy.filter(r => r.postType === 'SFS').reduce((s, r) => s + r.sanctioned, 0);
-  const boxFilledTotal    = empSummary?.total    ?? 0;
+  const boxSanctionedTotal    = boxSanctionedBudgeted + boxSanctionedSfs;
   const boxFilledBudgeted = empSummary?.budgeted ?? 0;
   const boxFilledSfs      = empSummary?.sfs      ?? 0;
-  const boxVacantTotal    = Math.max(0, totals.sanctioned - boxFilledTotal);
+  const boxFilledTotal    = boxFilledBudgeted + boxFilledSfs;
+  const boxVacantTotal    = Math.max(0, boxSanctionedTotal - boxFilledTotal);
   const boxVacantBudgeted = Math.max(0, boxSanctionedBudgeted - boxFilledBudgeted);
   const boxVacantSfs      = Math.max(0, boxSanctionedSfs - boxFilledSfs);
 
@@ -347,7 +349,7 @@ export default function SanctionedPostsPage() {
         </button>
 
         {[
-          { title: 'Total',    tip: 'All post types combined',      accent: 'text-gray-600 dark:text-gray-300',   data: { total: totals.sanctioned,     filled: boxFilledTotal,    vacant: boxVacantTotal    } },
+          { title: 'Total',    tip: 'Budgeted + SFS combined',       accent: 'text-gray-600 dark:text-gray-300',   data: { total: boxSanctionedTotal,    filled: boxFilledTotal,    vacant: boxVacantTotal    } },
           { title: 'Budgeted', tip: 'Government-funded posts',      accent: 'text-indigo-700 dark:text-indigo-300', data: { total: boxSanctionedBudgeted, filled: boxFilledBudgeted, vacant: boxVacantBudgeted } },
           { title: 'SFS',      tip: 'Self-Financed Scheme posts',   accent: 'text-orange-700 dark:text-orange-300', data: { total: boxSanctionedSfs,      filled: boxFilledSfs,      vacant: boxVacantSfs      } },
         ].map((box) => (
