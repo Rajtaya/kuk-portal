@@ -915,14 +915,20 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Account controls — part of the bar, far right */}
-          <div className="flex items-center gap-0.5 shrink-0 pl-2 ml-1 border-l border-white/25">
-            <ThemeToggle variant="sidebar" />
-            <DarkModeToggle variant="sidebar" />
-            <button onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+          {/* Account controls — styled as colored boxes matching the stat blocks */}
+          <div className="flex items-center gap-2 shrink-0 pl-2 ml-1 border-l border-white/25">
+            <ThemeToggle variant="scopebar" />
+            <DarkModeToggle variant="scopebar" />
+            <button
+              onClick={logout}
+              title="Sign out"
+              aria-label="Sign out"
+              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[72px] bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1">Sign Out</span>
             </button>
           </div>
         </div>
