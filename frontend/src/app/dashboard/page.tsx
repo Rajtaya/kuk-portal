@@ -4,7 +4,8 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import { StatsSkeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
+import { CountUp } from '@/components/ui/count-up';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -74,25 +75,6 @@ function barTooltipFormatter(params: any) {
   return `<div style="font-size:12px"><p style="color:#9CA3AF;margin:0 0 3px">${params.name}</p><div style="display:flex;align-items:center">${dot}${params.seriesName}: <b>${params.value}</b></div></div>`;
 }
 
-function StatIcon({ type }: { type: 'university' | 'employees' | 'subjects' | 'vacant' | 'designations' | 'sanctioned' | 'filled' }) {
-  const icons: Record<string, { bg: string; path: string }> = {
-    university: { bg: 'bg-primary-500', path: 'M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4' },
-    sanctioned: { bg: 'bg-blue-500', path: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h6' },
-    filled: { bg: 'bg-green-500', path: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    employees: { bg: 'bg-green-500', path: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-    subjects: { bg: 'bg-orange-500', path: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-    vacant: { bg: 'bg-yellow-500', path: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-    designations: { bg: 'bg-red-500', path: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' },
-  };
-  const { bg, path } = icons[type];
-  return (
-    <div className={`${bg} w-10 h-10 md:w-12 md:h-12 flex items-center justify-center`}>
-      <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d={path} />
-      </svg>
-    </div>
-  );
-}
 
 function ChartCard({ title, children, className = '', tableData }: {
   title: string; children: React.ReactNode; className?: string;
@@ -198,6 +180,7 @@ function ChartCard({ title, children, className = '', tableData }: {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<ChartData | null>(null);
   const [uniData, setUniData] = useState<ChartData | null>(null);
   const [selectedUni, setSelectedUni] = useState<string>('');
@@ -798,14 +781,26 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <div className="space-y-6">
-        <StatsSkeleton count={5} />
+        {/* scope bar skeleton */}
+        <div className="animate-pulse bg-gradient-to-r from-primary-600/40 to-primary-800/40 h-[88px]" />
+        {/* main chart skeleton */}
         <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl h-[460px]" />
+        {/* secondary charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl h-[360px]" />
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl h-[360px]" />
+        </div>
       </div>
     );
   }
 
   // Top stat cards reflect the selected university (fall back to global totals for "all" or while its data loads)
   const stats = (!isAllUni && uniData) ? uniData.stats : data.stats;
+  const selectedUniCode = isAllUni ? undefined : data.universities.find((u) => u.id === selectedUni)?.code;
+  const goToSanctioned = () => router.push(selectedUniCode ? `/sanctioned-posts?university=${selectedUniCode}` : '/sanctioned-posts');
+  // A specific university's stats arrive a moment after the page data. Until they do, count from 0
+  // instead of flashing the all-university totals (which made the header look out of scope).
+  const scopeReady = isAllUni || !!uniData;
 
   // Click a university's bar in the main chart → drill the rest of the dashboard to that university
   const handleUniversityBarClick = (params: any) => {
@@ -823,20 +818,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* University scope bar — always visible (super/state); the selector lives inside it */}
+      {/* University scope bar — funnel (left), university name, and post-occupancy stats in one header */}
       {!isUniAdmin && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-5 py-3 flex items-center justify-between gap-4 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 bg-white/20 shrink-0">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isAllUni ? 'Viewing' : 'Filtered View'}</p>
-              <p className="text-white text-lg font-serif font-bold truncate">{selectedUniName}</p>
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
+          {/* Filter — moved to the left */}
           <div className="relative shrink-0" ref={uniMenuRef}>
             <button
               onClick={() => setUniMenuOpen((o) => !o)}
@@ -850,7 +835,7 @@ export default function DashboardPage() {
               <svg className={`w-4 h-4 transition-transform ${uniMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
             </button>
             {uniMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-2xl z-50">
+              <div className="absolute left-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-2xl z-50">
                 <button
                   onClick={() => { setSelectedUni('all'); setSubjectFilter(''); setUniMenuOpen(false); }}
                   className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${isAllUni ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : ''}`}
@@ -867,30 +852,56 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* University name */}
+          <div className="min-w-0">
+            <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isAllUni ? 'Viewing' : 'Filtered View'}</p>
+            <p className="text-white text-lg font-serif font-bold truncate">{selectedUniName}</p>
+          </div>
+
+          {/* Post-occupancy stats — colorful, clickable blocks (Sanctioned = Filled + Vacant) */}
+          <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            {isAllUni && (
+              <button
+                type="button"
+                onClick={() => router.push('/universities')}
+                title="View universities"
+                className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              >
+                <CountUp value={stats.universityCount} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
+                <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Universities</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={goToSanctioned}
+              title="View sanctioned posts"
+              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+            >
+              <CountUp value={scopeReady ? (stats.sanctionedPosts ?? 0) : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Sanctioned</span>
+            </button>
+            <button
+              type="button"
+              onClick={goToSanctioned}
+              title="View sanctioned posts"
+              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+            >
+              <CountUp value={scopeReady ? (stats.filledPosts ?? 0) : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Filled</span>
+            </button>
+            <button
+              type="button"
+              onClick={goToSanctioned}
+              title="View sanctioned posts"
+              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+            >
+              <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Vacant</span>
+            </button>
+          </div>
         </div>
       )}
-
-      {/* Stat Cards — sanctioned-post occupancy: Sanctioned = Filled + Vacant */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-        {!isUniAdmin && isAllUni && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-            <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Universities</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.universityCount}</p></div>
-            <StatIcon type="university" />
-          </div>
-        )}
-        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Sanctioned Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{(stats.sanctionedPosts ?? 0).toLocaleString()}</p></div>
-          <StatIcon type="sanctioned" />
-        </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Filled Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{(stats.filledPosts ?? 0).toLocaleString()}</p></div>
-          <StatIcon type="filled" />
-        </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-3 md:p-5 flex items-center justify-between gap-2 shadow-[4px_4px_0_0_#1c1917] dark:shadow-[4px_4px_0_0_#000]">
-          <div><p className="text-xs md:text-sm font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Vacant Posts</p><p className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">{stats.vacantSeats.toLocaleString()}</p></div>
-          <StatIcon type="vacant" />
-        </div>
-      </div>
 
       {/* 1. Employee Distribution by Designation */}
       <div className={isUniAdmin ? 'max-w-5xl' : ''}>
