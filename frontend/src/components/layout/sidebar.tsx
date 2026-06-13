@@ -120,10 +120,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
               {!isDashboard && <ThemeToggle variant="sidebar" />}
               {!isDashboard && <DarkModeToggle variant="sidebar" />}
               {!isDashboard && (
-                <button onClick={logout} title="Sign Out" className="w-full flex justify-center items-center p-2 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none">
+                <button onClick={logout} title="Sign Out" className="w-full flex flex-col items-center justify-center py-2 px-1 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
+                  <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1">Sign Out</span>
                 </button>
               )}
             </div>
@@ -150,12 +151,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
                 <div className="flex items-center gap-2">
                   <button
                     onClick={logout}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none"
+                    className="flex-1 flex flex-col items-center justify-center py-2 px-3 text-white bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
                   >
-                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span className="whitespace-nowrap">Sign Out</span>
+                    <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1">Sign Out</span>
                   </button>
                   <ThemeToggle variant="sidebar" />
                   <DarkModeToggle variant="sidebar" />
