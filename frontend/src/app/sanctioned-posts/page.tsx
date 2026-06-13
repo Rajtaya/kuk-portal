@@ -36,6 +36,7 @@ export default function SanctionedPostsPage() {
 
   const [vacancyData, setVacancyData] = useState<VacancyRow[]>([]);
   const [universities, setUniversities] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [empSummary, setEmpSummary] = useState<{ total: number; budgeted: number; sfs: number; contractual: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -58,8 +59,24 @@ export default function SanctionedPostsPage() {
 
   useEffect(() => {
     loadData();
-    if (isSuperAdmin) api.get<{ id: string; name: string; code: string }[]>('/universities').then(setUniversities);
-  }, [isSuperAdmin]);
+    if (isSuperAdmin || isStateUser) {
+      api.get<{ id: string; name: string; code: string }[]>('/universities').then(setUniversities);
+    }
+  }, [isSuperAdmin, isStateUser]);
+
+  // Fetch headcount-based summary for headline boxes — same source as Dashboard + Employees page.
+  useEffect(() => {
+    if ((isSuperAdmin || isStateUser) && filters.university && !universities.length) return;
+    const uniId = (isSuperAdmin || isStateUser)
+      ? universities.find(u => u.code === filters.university)?.id
+      : undefined;
+    if ((isSuperAdmin || isStateUser) && filters.university && !uniId) return;
+    const params = new URLSearchParams({ employmentStatus: 'ACTIVE' });
+    if (uniId) params.set('universityId', uniId);
+    api.get<{ total: number; budgeted: number; sfs: number; contractual: number }>(
+      `/employees/summary?${params}`
+    ).then(setEmpSummary).catch(() => {});
+  }, [filters.university, universities, isSuperAdmin, isStateUser, isUniversityAdmin]);
 
   // Deep-link from the Universities page: /sanctioned-posts?university=CODE pre-filters to that university.
   useEffect(() => {
@@ -141,6 +158,17 @@ export default function SanctionedPostsPage() {
     (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
+
+  // Headline box figures: sanctioned from post data (exact), filled from headcount (= dashboard / Employees page).
+  const boxSanctionedBudgeted = uniOnlyVacancy.filter(r => r.postType === 'BUDGETED').reduce((s, r) => s + r.sanctioned, 0);
+  const boxSanctionedSfs      = uniOnlyVacancy.filter(r => r.postType === 'SFS').reduce((s, r) => s + r.sanctioned, 0);
+  const boxFilledTotal    = empSummary?.total    ?? 0;
+  const boxFilledBudgeted = empSummary?.budgeted ?? 0;
+  const boxFilledSfs      = empSummary?.sfs      ?? 0;
+  const boxVacantTotal    = Math.max(0, totals.sanctioned - boxFilledTotal);
+  const boxVacantBudgeted = Math.max(0, boxSanctionedBudgeted - boxFilledBudgeted);
+  const boxVacantSfs      = Math.max(0, boxSanctionedSfs - boxFilledSfs);
+
   // Available filter options. Subject/Designation/Department cascade off the other active
   // filters, so picking a university narrows them to that university's values (and so on).
   const availableFilters = useMemo(() => {
@@ -218,17 +246,6 @@ export default function SanctionedPostsPage() {
     }
     return data;
   }, [uniFilteredVacancy, search, filters]);
-
-  // Budgeted / SFS boxes react to ALL filters (computed from the filtered rows).
-  // The Total box stays on the university scope (`totals`), so it doesn't move with the other filters.
-  const budgeted = filteredVacancy.filter(r => r.postType === 'BUDGETED').reduce(
-    (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
-    { total: 0, filled: 0, vacant: 0 },
-  );
-  const sfs = filteredVacancy.filter(r => r.postType === 'SFS').reduce(
-    (acc, r) => ({ total: acc.total + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant }),
-    { total: 0, filled: 0, vacant: 0 },
-  );
 
   // Footer "Total" row sums the filtered rows so it matches the visible table.
   const filteredTotals = filteredVacancy.reduce(
@@ -330,9 +347,9 @@ export default function SanctionedPostsPage() {
         </button>
 
         {[
-          { title: 'Total', tip: 'All post types combined', accent: 'text-gray-600 dark:text-gray-300', data: { total: totals.sanctioned, filled: totals.filled, vacant: totals.vacant } },
-          { title: 'Budgeted', tip: 'Government-funded posts', accent: 'text-indigo-700 dark:text-indigo-300', data: budgeted },
-          { title: 'SFS', tip: 'Self-Financed Scheme posts', accent: 'text-orange-700 dark:text-orange-300', data: sfs },
+          { title: 'Total',    tip: 'All post types combined',      accent: 'text-gray-600 dark:text-gray-300',   data: { total: totals.sanctioned,     filled: boxFilledTotal,    vacant: boxVacantTotal    } },
+          { title: 'Budgeted', tip: 'Government-funded posts',      accent: 'text-indigo-700 dark:text-indigo-300', data: { total: boxSanctionedBudgeted, filled: boxFilledBudgeted, vacant: boxVacantBudgeted } },
+          { title: 'SFS',      tip: 'Self-Financed Scheme posts',   accent: 'text-orange-700 dark:text-orange-300', data: { total: boxSanctionedSfs,      filled: boxFilledSfs,      vacant: boxVacantSfs      } },
         ].map((box) => (
           <div key={box.title} title={box.tip} className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2.5 py-1.5 whitespace-nowrap">
             <span className={`text-[11px] font-bold uppercase tracking-wide ${box.accent}`}>{box.title}</span>
