@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
 
-      <main className="flex-1 min-w-0 overflow-x-hidden">
+      <main className="flex-1 min-w-0 h-screen overflow-y-auto overflow-x-hidden">
         <div className="p-4 md:p-8 mt-14 md:mt-0">{children}</div>
       </main>
     </div>

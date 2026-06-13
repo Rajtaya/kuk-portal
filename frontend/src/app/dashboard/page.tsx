@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { CountUp } from '@/components/ui/count-up';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -179,7 +181,7 @@ function ChartCard({ title, children, className = '', tableData }: {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<ChartData | null>(null);
   const [uniData, setUniData] = useState<ChartData | null>(null);
@@ -188,13 +190,6 @@ export default function DashboardPage() {
   const [subjectFilter, setSubjectFilter] = useState<string>('');
   const [dpPostType, setDpPostType] = useState<string>('BUDGETED');
   const [uniMenuOpen, setUniMenuOpen] = useState(false);
-  const uniMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!uniMenuOpen) return;
-    const onDown = (e: MouseEvent) => { if (uniMenuRef.current && !uniMenuRef.current.contains(e.target as Node)) setUniMenuOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [uniMenuOpen]);
   const genderInstance = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -818,40 +813,69 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* University filter drawer — slides in from the left (matches Employees / Sanctioned Posts) */}
+      {!isUniAdmin && (
+        <>
+          {uniMenuOpen && <div className="fixed inset-0 bg-black/30 z-40 transition-opacity" onClick={() => setUniMenuOpen(false)} />}
+          <div className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${uniMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">University</h3>
+              <button onClick={() => setUniMenuOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors" aria-label="Close">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              <button
+                onClick={() => { setSelectedUni('all'); setSubjectFilter(''); setUniMenuOpen(false); }}
+                className={`w-full text-left px-5 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${isAllUni ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : 'text-gray-700 dark:text-gray-200'}`}
+              >All Universities</button>
+              {data.universities.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => { setSelectedUni(u.id); setSubjectFilter(''); setUniMenuOpen(false); }}
+                  className={`w-full text-left px-5 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${selectedUni === u.id ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : 'text-gray-700 dark:text-gray-200'}`}
+                >
+                  <span className="font-mono text-xs text-gray-400 mr-2">{u.code}</span>{u.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Top-right account controls: theme / dark mode / logout */}
+      <div className="hidden md:flex items-center justify-end -mb-2">
+        <div className="inline-flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-1.5 py-1 shadow-sm">
+          <ThemeToggle />
+          <DarkModeToggle />
+          <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </div>
+
       {/* University scope bar — funnel (left), university name, and post-occupancy stats in one header */}
       {!isUniAdmin && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
-          {/* Filter — moved to the left */}
-          <div className="relative shrink-0" ref={uniMenuRef}>
-            <button
-              onClick={() => setUniMenuOpen((o) => !o)}
-              aria-label="Filter by university"
-              title="Filter by university"
-              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/40 px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-              </svg>
-              <svg className={`w-4 h-4 transition-transform ${uniMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-            </button>
-            {uniMenuOpen && (
-              <div className="absolute left-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-2xl z-50">
-                <button
-                  onClick={() => { setSelectedUni('all'); setSubjectFilter(''); setUniMenuOpen(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${isAllUni ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : ''}`}
-                >All Universities</button>
-                {data.universities.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => { setSelectedUni(u.id); setSubjectFilter(''); setUniMenuOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${selectedUni === u.id ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : ''}`}
-                  >
-                    <span className="font-mono text-xs text-gray-400 mr-2">{u.code}</span>{u.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
+          {/* Filter — opens the university drawer (slides in from the left) */}
+          <button
+            onClick={() => setUniMenuOpen(true)}
+            aria-label="Filter by university"
+            title="Filter by university"
+            className="shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/40 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+          </button>
 
           {/* University name */}
           <div className="min-w-0">
