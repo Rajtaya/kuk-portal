@@ -204,6 +204,14 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
   const [dpPostType, setDpPostType] = useState<string>('BUDGETED');
+  const [uniMenuOpen, setUniMenuOpen] = useState(false);
+  const uniMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!uniMenuOpen) return;
+    const onDown = (e: MouseEvent) => { if (uniMenuRef.current && !uniMenuRef.current.contains(e.target as Node)) setUniMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [uniMenuOpen]);
   const genderInstance = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -829,14 +837,36 @@ export default function DashboardPage() {
               <p className="text-white text-lg font-serif font-bold truncate">{selectedUniName}</p>
             </div>
           </div>
-          <select
-            value={selectedUni}
-            onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
-            className="shrink-0 bg-white text-primary-800 border border-white/30 px-3 py-2 text-sm font-medium min-w-[200px] md:min-w-[240px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
-          >
-            <option value="all">All Universities</option>
-            {data.universities.map((u) => <option key={u.id} value={u.id}>{u.code} - {u.name}</option>)}
-          </select>
+          <div className="relative shrink-0" ref={uniMenuRef}>
+            <button
+              onClick={() => setUniMenuOpen((o) => !o)}
+              aria-label="Filter by university"
+              title="Filter by university"
+              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/40 px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+              </svg>
+              <svg className={`w-4 h-4 transition-transform ${uniMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </button>
+            {uniMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-2xl z-50">
+                <button
+                  onClick={() => { setSelectedUni('all'); setSubjectFilter(''); setUniMenuOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${isAllUni ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : ''}`}
+                >All Universities</button>
+                {data.universities.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => { setSelectedUni(u.id); setSubjectFilter(''); setUniMenuOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${selectedUni === u.id ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold' : ''}`}
+                  >
+                    <span className="font-mono text-xs text-gray-400 mr-2">{u.code}</span>{u.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
