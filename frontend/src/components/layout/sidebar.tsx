@@ -51,6 +51,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
   const isHidden = mode === 'hidden';
   const isCollapsed = mode === 'collapsed';
 
+  const isDashboard = pathname === '/dashboard';
   const links = (roleLinks[user?.role || 'UNIVERSITY_ADMIN'] || []).map((k) => navItems[k as keyof typeof navItems]);
 
   const renderNav = (mobile: boolean) => {
@@ -116,13 +117,15 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
         <div className={clsx('border-t border-white/10 shrink-0', collapsed ? 'p-2' : 'p-4')}>
           {collapsed ? (
             <div className="flex flex-col items-center gap-1">
-              <ThemeToggle variant="sidebar" />
-              <DarkModeToggle variant="sidebar" />
-              <button onClick={logout} title="Sign Out" className="w-full flex justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
+              {!isDashboard && <ThemeToggle variant="sidebar" />}
+              {!isDashboard && <DarkModeToggle variant="sidebar" />}
+              {!isDashboard && (
+                <button onClick={logout} title="Sign Out" className="w-full flex justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -143,19 +146,21 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
                   {user?.role?.replace(/_/g, ' ')}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={logout}
-                  className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                >
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="whitespace-nowrap">Sign Out</span>
-                </button>
-                <ThemeToggle variant="sidebar" />
-                <DarkModeToggle variant="sidebar" />
-              </div>
+              {!isDashboard && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={logout}
+                    className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="whitespace-nowrap">Sign Out</span>
+                  </button>
+                  <ThemeToggle variant="sidebar" />
+                  <DarkModeToggle variant="sidebar" />
+                </div>
+              )}
             </>
           )}
         </div>
