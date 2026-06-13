@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
-import { computePostFill } from '../common/vacancy.util';
 
 @Injectable()
 export class EmployeesService {
@@ -345,13 +344,12 @@ export class EmployeesService {
     }
     const allSubjs = new Set([...sMap.keys(), ...pMap.keys()]);
 
-    // Exact-match occupancy (shared helper — same source of truth as the Sanctioned Posts
-    // report). Sanctioned = Filled + Vacant, so the dashboard's post triple reconciles instead
-    // of mixing in raw headcount (1,328 employees) that don't all map to a sanctioned post.
-    const fills = computePostFill(sanctionedPosts, employees);
+    // "Filled" = headcount of all active employees (incl contractual), so the figure matches the
+    // employee-distribution chart and counts contractual staff as occupying a post.
+    // Vacant = Sanctioned − Filled.
     const sanctionedPostsTotal = sanctionedPosts.reduce((s, p) => s + p.sanctionedCount, 0);
-    const filledPosts = fills.reduce((s, p) => s + p.filled, 0);
-    const vacantSeats = fills.reduce((s, p) => s + p.vacant, 0);
+    const filledPosts = employees.length;
+    const vacantSeats = Math.max(0, sanctionedPostsTotal - filledPosts);
 
     return {
       stats: {
