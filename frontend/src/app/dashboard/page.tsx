@@ -792,7 +792,7 @@ export default function DashboardPage() {
   // Top stat cards reflect the selected university (fall back to global totals for "all" or while its data loads)
   const stats = (!isAllUni && uniData) ? uniData.stats : data.stats;
   const selectedUniCode = isAllUni ? undefined : data.universities.find((u) => u.id === selectedUni)?.code;
-  const goToSanctioned = () => router.push(selectedUniCode ? `/sanctioned-posts?university=${selectedUniCode}` : '/sanctioned-posts');
+  const goToSanctioned = () => router.push((!isUniAdmin && selectedUniCode) ? `/sanctioned-posts?university=${selectedUniCode}` : '/sanctioned-posts');
   // A specific university's stats arrive a moment after the page data. Until they do, count from 0
   // instead of flashing the all-university totals (which made the header look out of scope).
   const scopeReady = isAllUni || !!uniData;
@@ -843,25 +843,34 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* University scope bar — funnel (left), university name, post-occupancy stats, account controls (right) */}
-      {!isUniAdmin && (
+      {/* Scope bar — super/state: funnel + filtered scope. University admin: their own university (locked, no filter). */}
+      {(
         <div className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
-          {/* Filter — opens the university drawer (slides in from the left) */}
-          <button
-            onClick={() => setUniMenuOpen(true)}
-            aria-label="Filter by university"
-            title="Filter by university"
-            className="shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/40 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-          </button>
+          {!isUniAdmin ? (
+            /* Filter — opens the university drawer (slides in from the left) */
+            <button
+              onClick={() => setUniMenuOpen(true)}
+              aria-label="Filter by university"
+              title="Filter by university"
+              className="shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/40 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+              </svg>
+            </button>
+          ) : (
+            /* University admin: a fixed building badge (locked to their own university) */
+            <div className="shrink-0 flex items-center justify-center bg-white/15 border border-white/40 p-2" aria-hidden="true">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
+              </svg>
+            </div>
+          )}
 
-          {/* University name */}
+          {/* University name — super/state shows the filtered scope; admin shows their own university */}
           <div className="min-w-0">
-            <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isAllUni ? 'Viewing' : 'Filtered View'}</p>
-            <p className="text-white text-lg font-serif font-bold truncate">{selectedUniName}</p>
+            <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isUniAdmin ? 'Logged in as' : (isAllUni ? 'Viewing' : 'Filtered View')}</p>
+            <p className="text-white text-lg font-serif font-bold truncate">{isUniAdmin ? (user?.university?.name || 'My University') : selectedUniName}</p>
           </div>
 
           {/* Post-occupancy stats — colorful, clickable blocks (Sanctioned = Filled + Vacant) */}
