@@ -339,16 +339,16 @@ export default function SanctionedPostsPage() {
           { title: 'Budgeted', tip: 'Government-funded posts', accent: 'text-indigo-700 dark:text-indigo-300', data: budgeted },
           { title: 'SFS', tip: 'Self-Financed Scheme posts', accent: 'text-orange-700 dark:text-orange-300', data: sfs },
         ].map((box) => (
-          <div key={box.title} title={box.tip} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2 py-1 whitespace-nowrap">
+          <div key={box.title} title={box.tip} className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2.5 py-1.5 whitespace-nowrap">
             <span className={`text-[11px] font-bold uppercase tracking-wide ${box.accent}`}>{box.title}</span>
             {[
-              { label: 'Total', tip: 'Sanctioned — approved positions', value: box.data.total, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
-              { label: 'Filled', tip: 'Currently occupied', value: box.data.filled, num: 'text-emerald-600 dark:text-emerald-400', hover: 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/10' },
-              { label: 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, num: 'text-red-500 dark:text-red-400', hover: 'hover:border-red-300 hover:bg-red-50 dark:hover:border-red-600 dark:hover:bg-red-500/10' },
+              { label: 'Total', tip: 'Sanctioned — approved positions', value: box.data.total, grad: 'from-blue-500 to-blue-700' },
+              { label: 'Filled', tip: 'Currently occupied', value: box.data.filled, grad: 'from-emerald-500 to-emerald-700' },
+              { label: 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, grad: 'from-red-500 to-red-700' },
             ].map((m) => (
-              <span key={m.label} title={m.tip} className={`inline-flex flex-col items-center leading-none px-1.5 py-0.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
-                <span className={`text-sm font-bold tabular-nums ${m.num}`}>{m.value.toLocaleString()}</span>
-                <span className="text-[9px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">{m.label}</span>
+              <span key={m.label} title={m.tip} className={`inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
+                <span className="text-sm font-bold tabular-nums text-white">{m.value.toLocaleString()}</span>
+                <span className="text-[9px] uppercase tracking-wide text-white/80 mt-0.5">{m.label}</span>
               </span>
             ))}
           </div>
@@ -501,7 +501,7 @@ export default function SanctionedPostsPage() {
                       <td className="px-3 py-3 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">{row.department}</td>
                       <td className="px-3 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap border border-gray-200 dark:border-gray-700">{row.designation}</td>
                       <td className="px-2 py-3 border border-gray-200 dark:border-gray-700"><Badge value={row.postType} /></td>
-                      <td className="px-2 py-3 text-center align-middle font-semibold text-gray-900 dark:text-gray-100 tabular-nums border border-gray-200 dark:border-gray-700">{row.sanctioned}</td>
+                      <td className="px-2 py-3 text-center align-middle font-semibold text-blue-700 dark:text-blue-400 tabular-nums border border-gray-200 dark:border-gray-700">{row.sanctioned}</td>
                       <td className="px-2 py-3 text-center align-middle font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums border border-gray-200 dark:border-gray-700">{row.filled}</td>
                       <td className={`px-2 py-3 text-center align-middle font-semibold tabular-nums border border-gray-200 dark:border-gray-700 ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-orange-50 dark:bg-orange-500/5') : ''}`}>
                         {row.vacant > 0 ? <span className={vacantPct >= 0.5 ? 'text-red-700 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}>{row.vacant}</span> : <span className="text-gray-400">0</span>}
@@ -525,7 +525,7 @@ export default function SanctionedPostsPage() {
                 <tr className="bg-slate-50 dark:bg-gray-800/60 border-t-2 border-slate-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">
                   <td className="px-4 py-3 border border-gray-200 dark:border-gray-700" />
                   <td className="px-4 py-3 border border-gray-200 dark:border-gray-700" colSpan={(isSuperAdmin || isStateUser) ? 5 : 4}>Total</td>
-                  <td className="px-4 py-3 text-center tabular-nums border border-gray-200 dark:border-gray-700">{filteredTotals.sanctioned.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-center text-blue-700 dark:text-blue-400 tabular-nums border border-gray-200 dark:border-gray-700">{filteredTotals.sanctioned.toLocaleString()}</td>
                   <td className="px-4 py-3 text-center text-emerald-700 dark:text-emerald-400 tabular-nums border border-gray-200 dark:border-gray-700">{filteredTotals.filled.toLocaleString()}</td>
                   <td className="px-4 py-3 text-center text-red-700 dark:text-red-400 tabular-nums border border-gray-200 dark:border-gray-700">{filteredTotals.vacant.toLocaleString()}</td>
                   <td className="px-4 py-3 text-center text-amber-700 dark:text-amber-400 tabular-nums border border-gray-200 dark:border-gray-700">{filteredTotals.excess.toLocaleString()}</td>
