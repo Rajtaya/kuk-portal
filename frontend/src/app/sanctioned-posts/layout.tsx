@@ -18,7 +18,7 @@ export default function SanctionedPostsLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-8 min-w-0 overflow-x-hidden">{children}</main>
+      <main className="flex-1 px-4 py-6 min-w-0 overflow-x-hidden">{children}</main>
     </div>
   );
 }
