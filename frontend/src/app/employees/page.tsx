@@ -347,16 +347,16 @@ export default function EmployeesPage() {
         </button>
 
         {stats && (
-          <div className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-1.5 whitespace-nowrap">
+          <div className="shrink-0 flex items-center gap-2">
             {[
-              { label: 'Total', value: total ?? 0, num: 'text-gray-900 dark:text-gray-100', hover: 'hover:border-primary-300 hover:bg-primary-50 dark:hover:border-primary-600 dark:hover:bg-primary-500/10' },
-              { label: 'Budgeted', value: stats.budgeted, num: 'text-indigo-600 dark:text-indigo-400', hover: 'hover:border-indigo-300 hover:bg-indigo-50 dark:hover:border-indigo-600 dark:hover:bg-indigo-500/10' },
-              { label: 'SFS', value: stats.sfs, num: 'text-orange-600 dark:text-orange-400', hover: 'hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-600 dark:hover:bg-orange-500/10' },
-              { label: 'Contractual', value: stats.contractual, num: 'text-emerald-600 dark:text-emerald-400', hover: 'hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-emerald-500/10' },
+              { label: 'Total', value: total ?? 0, grad: 'from-gray-500 to-gray-700' },
+              { label: 'Budgeted', value: stats.budgeted, grad: 'from-indigo-500 to-indigo-700' },
+              { label: 'SFS', value: stats.sfs, grad: 'from-amber-500 to-amber-700' },
+              { label: 'Contractual', value: stats.contractual, grad: 'from-emerald-500 to-emerald-700' },
             ].map((m) => (
-              <span key={m.label} className={`inline-flex flex-col items-center leading-none px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-transparent transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:rounded-xl hover:shadow-sm ${m.hover}`}>
-                <span className={`text-sm font-bold tabular-nums ${m.num}`}>{m.value.toLocaleString()}</span>
-                <span className="text-[9px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">{m.label}</span>
+              <span key={m.label} className={`inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 min-w-[64px] bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
+                <span className="text-sm font-bold tabular-nums text-white">{m.value.toLocaleString()}</span>
+                <span className="text-[9px] uppercase tracking-wide text-white/80 mt-0.5">{m.label}</span>
               </span>
             ))}
           </div>
