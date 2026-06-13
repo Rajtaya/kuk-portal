@@ -52,6 +52,7 @@ export default function EmployeesPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [universities, setUniversities] = useState<University[]>([]);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_VISIBLE);
   const [colMenuOpen, setColMenuOpen] = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
@@ -132,6 +133,10 @@ export default function EmployeesPage() {
       api.get<University[]>('/universities').then(setUniversities);
     }
   }, [user]);
+
+  useEffect(() => {
+    api.get<{ id: string; name: string }[]>('/masters/subjects').then(setSubjects).catch(() => {});
+  }, []);
 
   // Total — scoped to the selected university only; stays fixed when other filters change.
   useEffect(() => {
@@ -629,6 +634,28 @@ export default function EmployeesPage() {
               </select>
               {filters.designation ? (
                 <button onClick={() => applyFilter('designation', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
+            </div>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Subject</label>
+              <select
+                value={filters.subject || ''}
+                onChange={(e) => applyFilter('subject', e.target.value)}
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.subject
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Subject</option>
+                {subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+              </select>
+              {filters.subject ? (
+                <button onClick={() => applyFilter('subject', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               ) : (
