@@ -80,7 +80,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="p-3 space-y-1">
           {links.map((link) => {
             const isActive = pathname.startsWith(link.href);
             return (
