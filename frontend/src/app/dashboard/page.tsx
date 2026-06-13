@@ -6,8 +6,6 @@ import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { CountUp } from '@/components/ui/count-up';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
@@ -181,7 +179,7 @@ function ChartCard({ title, children, className = '', tableData }: {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<ChartData | null>(null);
   const [uniData, setUniData] = useState<ChartData | null>(null);
@@ -915,16 +913,6 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Account controls — part of the bar, far right */}
-          <div className="flex items-center gap-0.5 shrink-0 pl-2 ml-1 border-l border-white/25">
-            <ThemeToggle variant="sidebar" />
-            <DarkModeToggle variant="sidebar" />
-            <button onClick={logout} title="Sign out" aria-label="Sign out" className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </div>
         </div>
       )}
 
