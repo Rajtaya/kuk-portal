@@ -11,6 +11,40 @@ import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
+function BarChart({ option, style }: { option: any; style?: React.CSSProperties }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const instanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let ec: any;
+    import('echarts').then((mod) => {
+      ec = mod;
+      if (!containerRef.current) return;
+      const inst = ec.init(containerRef.current);
+      instanceRef.current = inst;
+      inst.setOption(option);
+      inst.clear();
+      inst.setOption(option);
+    });
+    const onResize = () => instanceRef.current?.resize();
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      instanceRef.current?.dispose();
+      instanceRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (instanceRef.current) {
+      instanceRef.current.setOption(option, true);
+    }
+  }, [option]);
+
+  return <div ref={containerRef} style={style} />;
+}
+
 interface HierarchyNode {
   name: string;
   children: { name: string; children: { name: string; value: number }[] }[];
@@ -50,7 +84,7 @@ const RING_COLORS = [
   '#0EA5E9', '#D946EF', '#84CC16', '#E11D48', '#0891B2', '#7C3AED',
 ];
 
-const PT_LABELS: Record<string, string> = { BUDGETED: 'Budgeted', SFS: 'Self Financed', CONTRACTUAL: 'Contractual' };
+const PT_LABELS: Record<string, string> = { TOTAL: 'Total', BUDGETED: 'Budgeted', SFS: 'Self Financed', CONTRACTUAL: 'Contractual' };
 
 const UNI_LOGOS: Record<string, string> = {
   KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
@@ -196,7 +230,7 @@ export default function DashboardPage() {
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [sanctionSubjectFilter, setSanctionSubjectFilter] = useState<string>('');
   const [showSanctionSubjectDropdown, setShowSanctionSubjectDropdown] = useState(false);
-  const [dpPostType, setDpPostType] = useState<string>('BUDGETED');
+  const [dpPostType, setDpPostType] = useState<string>('TOTAL');
   const [uniMenuOpen, setUniMenuOpen] = useState(false);
   const genderInstance = useRef<any>(null);
   const subjectDropdownRef = useRef<HTMLDivElement>(null);
@@ -217,22 +251,27 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
+
   useEffect(() => {
     api.get<ChartData>('/employees/dashboard-charts').then((d) => {
       setData(d);
-      setSelectedUni('all');
+      if (isUniAdmin && d.hierarchy.length === 1) {
+        setSelectedUni(d.hierarchy[0].universityId);
+      } else {
+        setSelectedUni('all');
+      }
     });
-  }, []);
+  }, [isUniAdmin]);
 
   useEffect(() => {
-    if (!selectedUni || selectedUni === 'all') { setUniData(null); return; }
+    if (!selectedUni || selectedUni === 'all' || isUniAdmin) { setUniData(null); return; }
     api.get<ChartData>(`/employees/dashboard-charts?universityId=${selectedUni}`).then(setUniData);
-  }, [selectedUni]);
+  }, [selectedUni, isUniAdmin]);
 
-  const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
   const desigList = useMemo(() => data?.designations || [], [data]);
   const isAllUni = selectedUni === 'all';
-  const activeData = (!isAllUni && uniData) ? uniData : data;
+  const activeData = isUniAdmin ? data : ((!isAllUni && uniData) ? uniData : data);
 
   const allSubjectsMerged = useMemo(() => {
     if (!data) return [];
@@ -741,7 +780,8 @@ export default function DashboardPage() {
     if (!activeData?.designationPostType?.length) return [] as string[];
     const set = new Set<string>();
     activeData.designationPostType.forEach(r => { if (r.sanctioned > 0) set.add(r.postType); });
-    return ['BUDGETED', 'SFS', 'CONTRACTUAL'].filter(p => set.has(p));
+    const types = ['BUDGETED', 'SFS', 'CONTRACTUAL'].filter(p => set.has(p));
+    return types.length > 0 ? [...types, 'TOTAL'] : [];
   }, [activeData]);
 
   // The selected post type, snapped to one that exists in the current scope.
@@ -753,12 +793,23 @@ export default function DashboardPage() {
   const desigPostTypeOption = useMemo(() => {
     if (!activeData?.designationPostType?.length || !dpPostTypes.length) return null;
     const desigOrder = ['Senior Professor', 'Professor', 'Associate Professor', 'Assistant Professor', 'Other Teaching Posts'];
-    const rows = activeData.designationPostType
-      .filter(r => r.postType === dpEffective)
-      .sort((a, b) => {
-        const ia = desigOrder.indexOf(a.designation); const ib = desigOrder.indexOf(b.designation);
-        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    const isTotal = dpEffective === 'TOTAL';
+    let rows: { designation: string; sanctioned: number; present: number; vacant: number; postType: string }[];
+    if (isTotal) {
+      const agg = new Map<string, { sanctioned: number; present: number; vacant: number }>();
+      activeData.designationPostType.forEach(r => {
+        const cur = agg.get(r.designation) || { sanctioned: 0, present: 0, vacant: 0 };
+        cur.sanctioned += r.sanctioned; cur.present += r.present; cur.vacant += r.vacant;
+        agg.set(r.designation, cur);
       });
+      rows = [...agg.entries()].map(([designation, v]) => ({ designation, ...v, postType: 'TOTAL' }));
+    } else {
+      rows = activeData.designationPostType.filter(r => r.postType === dpEffective);
+    }
+    rows.sort((a, b) => {
+      const ia = desigOrder.indexOf(a.designation); const ib = desigOrder.indexOf(b.designation);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
     if (!rows.length) return null;
     const categories = rows.map(r => r.designation);
     const sanctioned = rows.map(r => r.sanctioned);
@@ -783,10 +834,10 @@ export default function DashboardPage() {
         },
       },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 50, left: 50, containLabel: true },
+      grid: { top: 30, right: 20, bottom: 60, left: 50, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { fontSize: isMobile ? 10 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -20 : 0 },
+        axisLabel: { fontSize: isMobile ? 10 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -20 : 0, margin: 12 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
@@ -825,12 +876,12 @@ export default function DashboardPage() {
   }
 
   // Top stat cards reflect the selected university (fall back to global totals for "all" or while its data loads)
-  const stats = (!isAllUni && uniData) ? uniData.stats : data.stats;
+  const stats = isUniAdmin ? data.stats : ((!isAllUni && uniData) ? uniData.stats : data.stats);
   const selectedUniCode = isAllUni ? undefined : data.universities.find((u) => u.id === selectedUni)?.code;
   const goToSanctioned = () => router.push((!isUniAdmin && selectedUniCode) ? `/sanctioned-posts?university=${selectedUniCode}` : '/sanctioned-posts');
   // A specific university's stats arrive a moment after the page data. Until they do, count from 0
   // instead of flashing the all-university totals (which made the header look out of scope).
-  const scopeReady = isAllUni || !!uniData;
+  const scopeReady = isUniAdmin || isAllUni || !!uniData;
 
   // Click a university's bar in the main chart → drill the rest of the dashboard to that university
   const handleUniversityBarClick = (params: any) => {
@@ -970,24 +1021,30 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 1. Employee Distribution by Designation */}
-      <div className={isUniAdmin ? 'max-w-5xl' : ''}>
+      {/* 1. Employee Distribution by Designation — hidden for uni admin (redundant with the Sanctioned vs Filled chart below) */}
+      {!isUniAdmin && (
         <ChartCard
-          title={isUniAdmin ? "Sanctioned Posts vs Filled Posts (Designation-wise)" : "Employee Distribution by Designation Across Universities"}
+          title="Employee Distribution by Designation Across Universities"
           tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
         >
           <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '420px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
         </ChartCard>
-      </div>
+      )}
 
       {desigPostTypeOption && (
         <ChartCard
           title="Sanctioned vs Filled by Designation"
           tableData={{
             headers: ['Designation', 'Sanctioned', 'Filled', 'Vacant'],
-            rows: activeData!.designationPostType
-              .filter(r => r.postType === dpEffective)
-              .map(r => [r.designation, r.sanctioned, r.present, r.vacant]),
+            rows: dpEffective === 'TOTAL'
+              ? [...activeData!.designationPostType.reduce((m, r) => {
+                  const c = m.get(r.designation) || { s: 0, p: 0, v: 0 };
+                  c.s += r.sanctioned; c.p += r.present; c.v += r.vacant;
+                  m.set(r.designation, c); return m;
+                }, new Map<string, { s: number; p: number; v: number }>()).entries()].map(([d, v]) => [d, v.s, v.p, v.v])
+              : activeData!.designationPostType
+                .filter(r => r.postType === dpEffective)
+                .map(r => [r.designation, r.sanctioned, r.present, r.vacant]),
           }}
         >
           {dpPostTypes.length > 0 && (
@@ -1006,7 +1063,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          <ReactECharts option={desigPostTypeOption} style={{ height: isMobile ? '360px' : '460px' }} notMerge={true} lazyUpdate={true} />
+          <BarChart option={desigPostTypeOption} style={{ height: isMobile ? '360px' : '460px' }} />
         </ChartCard>
       )}
 

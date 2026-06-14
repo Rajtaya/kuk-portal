@@ -354,7 +354,7 @@ export class EmployeesService {
 
     return {
       stats: {
-        universityCount: allUniversities.length,
+        universityCount: universityId ? 1 : allUniversities.length,
         employeeCount: employees.length,
         sanctionedPosts: sanctionedPostsTotal,
         filledPosts,
@@ -391,7 +391,7 @@ export class EmployeesService {
         subject: subj, ...(sMap.get(subj) || {}), ...(pMap.get(subj) || {}),
       })),
       designationPostType,
-      universities: allUniversities,
+      universities: universityId ? allUniversities.filter(u => u.id === universityId) : allUniversities,
       designations: [...designationSet].sort(),
       subjects: [...subjectSet].sort(),
     };

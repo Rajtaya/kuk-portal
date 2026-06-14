@@ -35,8 +35,8 @@ const ALL_COLUMNS: ColDef[] = [
   { key: 'gender', label: 'Gender', className: 'w-20', render: (e) => <Badge value={e.gender} /> },
   { key: 'postType', label: 'Type', className: 'w-20', render: (e) => <Badge value={e.postType} /> },
   { key: 'status', label: 'Status', className: 'w-24', render: (e) => <Badge value={e.employmentStatus} /> },
-  { key: 'doj', label: 'Joining', className: 'w-28', render: (e) => e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-' },
-  { key: 'retirement', label: 'Retirement', className: 'w-28', render: (e) => e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN') : '-' },
+  { key: 'doj', label: 'Joining', className: 'w-28', render: (e) => e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-' },
+  { key: 'retirement', label: 'Retirement', className: 'w-28', render: (e) => e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-' },
   { key: 'mobile', label: 'Mobile', className: 'w-28', render: (e) => e.mobileNumber || '-' },
   { key: 'email', label: 'Email', render: (e) => e.email || '-' },
 ];

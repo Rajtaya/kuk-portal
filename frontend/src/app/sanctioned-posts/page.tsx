@@ -40,12 +40,9 @@ export default function SanctionedPostsPage() {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
-  const [sortCol, setSortCol] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [exportOpen, setExportOpen] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedType, setSelectedType] = useState<string>('all');
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Import modal
@@ -147,12 +144,7 @@ export default function SanctionedPostsPage() {
     return vacancyData.filter(r => r.universityCode === filters.university);
   }, [vacancyData, filters.university]);
 
-  // University + type filter (for table data)
-  const uniFilteredVacancy = useMemo(() => {
-    let data = uniOnlyVacancy;
-    if (selectedType !== 'all') data = data.filter(r => r.postType === selectedType);
-    return data;
-  }, [uniOnlyVacancy, selectedType]);
+  const uniFilteredVacancy = uniOnlyVacancy;
 
   const totals = uniOnlyVacancy.reduce(
     (acc, r) => ({ sanctioned: acc.sanctioned + r.sanctioned, filled: acc.filled + r.filled, vacant: acc.vacant + r.vacant, excess: acc.excess + (r.excess || 0) }),
@@ -257,26 +249,6 @@ export default function SanctionedPostsPage() {
   );
   const filteredFillRate = filteredTotals.sanctioned > 0 ? Math.round((filteredTotals.filled / filteredTotals.sanctioned) * 100) : 0;
 
-  const sortedVacancy = useMemo(() => {
-    if (!sortCol) return filteredVacancy;
-    return [...filteredVacancy].sort((a, b) => {
-      const av = (a as any)[sortCol] ?? '';
-      const bv = (b as any)[sortCol] ?? '';
-      const an = Number(av), bn = Number(bv);
-      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an;
-      return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-    });
-  }, [filteredVacancy, sortCol, sortDir]);
-
-  function toggleSort(col: string) {
-    if (sortCol === col) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortCol(col);
-      setSortDir('asc');
-    }
-  }
-
   const numericCols = new Set(['sanctioned', 'filled', 'vacant', 'excess', 'fillRate']);
 
   const vacancyExportCols: ExportColumn[] = [
@@ -292,7 +264,7 @@ export default function SanctionedPostsPage() {
   ];
 
   function doExport(fmt: 'csv' | 'excel' | 'pdf') {
-    const data = sortedVacancy;
+    const data = filteredVacancy;
     if (!data.length) { toast('Nothing to export', 'error'); return; }
     setExportOpen(false);
     if (fmt === 'csv') exportToCSV('vacancy-report', vacancyExportCols, data);
@@ -300,35 +272,12 @@ export default function SanctionedPostsPage() {
     else exportToPDF('Vacancy Report', vacancyExportCols, data);
   }
 
-  function SortIcon({ col }: { col: string }) {
-    if (sortCol === col) {
-      return (
-        <svg className="w-3.5 h-3.5 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-        </svg>
-      );
-    }
-    return (
-      <svg className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-      </svg>
-    );
-  }
+  // Unique filter options from the (optionally university-filtered) data
+  const filterSubjects = useMemo(() => [...new Set(uniFilteredVacancy.map(r => r.subject).filter(Boolean) as string[])].sort(), [uniFilteredVacancy]);
+  const filterDepts = useMemo(() => [...new Set(uniFilteredVacancy.map(r => r.department).filter(Boolean))].sort(), [uniFilteredVacancy]);
+  const filterDesigs = useMemo(() => [...new Set(uniFilteredVacancy.map(r => r.designation))].sort(), [uniFilteredVacancy]);
 
-  const vacancyHeaders = [
-    ...((isSuperAdmin || isStateUser) ? [{ key: 'university', label: 'University Name', tip: 'University the post belongs to' }] : []),
-    { key: 'subject', label: 'Subject', tip: 'Academic subject of the post' },
-    { key: 'department', label: 'Department', tip: 'Department the post belongs to' },
-    { key: 'designation', label: 'Designation', tip: 'Rank of the post (Professor, Associate Professor, …)' },
-    { key: 'postType', label: 'Type', tip: 'Funding type — Budgeted (government-funded) or SFS (Self-Financed Scheme)' },
-    { key: 'sanctioned', label: 'Sanctioned', tip: 'Approved positions for this post' },
-    { key: 'filled', label: 'Filled', tip: 'Approved positions currently occupied by an active employee' },
-    { key: 'vacant', label: 'Vacant', tip: 'Unfilled positions (Sanctioned − Filled)' },
-    { key: 'excess', label: 'Excess', tip: 'Staff beyond the sanctioned count (over-staffed)' },
-    { key: 'fillRate', label: 'Fill %', tip: 'Filled ÷ Sanctioned' },
-  ];
-
-  const activeCount = sortedVacancy.length;
+  const activeCount = filteredVacancy.length;
   const totalCount = uniFilteredVacancy.length;
 
   return (
@@ -477,7 +426,7 @@ export default function SanctionedPostsPage() {
       <div className="mt-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         {loading ? (
           <TableSkeleton rows={8} cols={9} />
-        ) : sortedVacancy.length === 0 ? (
+        ) : filteredVacancy.length === 0 ? (
           <EmptyState
             icon={search ? '🔍' : '📊'}
             title={search ? 'No matching records' : 'No vacancy data'}
@@ -485,27 +434,67 @@ export default function SanctionedPostsPage() {
           />
         ) : (
           <div className="overflow-auto max-h-[70vh]">
+            <style>{`
+              .sp-header-select option { color: #1f2937; background: #fff; font-size: 13px; padding: 6px 10px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+              .sp-header-select option:checked { background: #e0e7ff; color: #3730a3; }
+              .sp-header-select option:hover { background: #f3f4f6; }
+              @media (prefers-color-scheme: dark) { .sp-header-select option { color: #e5e7eb; background: #1f2937; } .sp-header-select option:checked { background: #312e81; color: #c7d2fe; } }
+            `}</style>
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead>
-                <tr className="bg-primary-700 text-white">
-                  <th className="sticky top-0 z-10 bg-primary-700 text-center align-middle px-2 py-3.5 font-semibold text-xs uppercase tracking-wider w-10 border border-gray-300 dark:border-gray-600">#</th>
-                  {vacancyHeaders.map(h => (
-                    <th
-                      key={h.key}
-                      onClick={() => toggleSort(h.key)}
-                      title={h.tip}
-                      className={`sticky top-0 z-10 bg-primary-700 group ${numericCols.has(h.key) ? 'px-2' : 'px-3'} py-3.5 align-middle font-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-primary-600 transition-colors select-none whitespace-nowrap border border-gray-300 dark:border-gray-600 ${numericCols.has(h.key) ? 'text-center' : 'text-left'}`}
-                    >
-                      <div className={`flex items-center gap-1.5 ${numericCols.has(h.key) ? 'justify-center' : ''}`}>
-                        <span>{h.label}</span>
-                        <SortIcon col={h.key} />
-                      </div>
-                    </th>
-                  ))}
-                </tr>
+                {(() => {
+                  const scls = 'sp-header-select w-full pl-1.5 pr-6 py-1.5 text-[12px] font-semibold bg-white/15 text-white border border-white/25 rounded focus:outline-none focus:ring-1 focus:ring-white/40 cursor-pointer appearance-none uppercase tracking-wide bg-no-repeat bg-[length:14px_14px] bg-[position:right_6px_center]';
+                  const filterIcon = { backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'/%3E%3C/svg%3E")` };
+                  const thCls = (numeric?: boolean) => `sticky top-0 z-10 bg-primary-700 px-1.5 py-2 align-middle font-semibold text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${numeric ? 'text-center' : 'text-left'}`;
+                  const plain = (label: string) => <span className="px-1 text-white">{label}</span>;
+                  return (
+                    <tr className="bg-primary-700 text-white">
+                      <th className={thCls(true) + ' w-10'}>{plain('#')}</th>
+                      {(isSuperAdmin || isStateUser) && (
+                        <th className={thCls()}>
+                          <select value={filters.university || ''} onChange={(e) => onFilterChange('university', e.target.value)} className={scls} style={filterIcon}>
+                            <option value="">University</option>
+                            {universities.map(u => <option key={u.id} value={u.code}>{u.name}</option>)}
+                          </select>
+                        </th>
+                      )}
+                      <th className={thCls()}>
+                        <select value={filters.subject || ''} onChange={(e) => onFilterChange('subject', e.target.value)} className={scls} style={filterIcon}>
+                          <option value="">Subject</option>
+                          {filterSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </th>
+                      <th className={thCls()}>
+                        <select value={filters.department || ''} onChange={(e) => onFilterChange('department', e.target.value)} className={scls} style={filterIcon}>
+                          <option value="">Department</option>
+                          {filterDepts.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </th>
+                      <th className={thCls()}>
+                        <select value={filters.designation || ''} onChange={(e) => onFilterChange('designation', e.target.value)} className={scls} style={filterIcon}>
+                          <option value="">Designation</option>
+                          {filterDesigs.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </th>
+                      <th className={thCls()}>
+                        <select value={filters.postType || ''} onChange={(e) => onFilterChange('postType', e.target.value)} className={scls} style={filterIcon}>
+                          <option value="">Type</option>
+                          <option value="BUDGETED">Budgeted</option>
+                          <option value="SFS">SFS</option>
+                          <option value="CONTRACTUAL">Contractual</option>
+                        </select>
+                      </th>
+                      <th className={thCls(true)}>{plain('Sanctioned')}</th>
+                      <th className={thCls(true)}>{plain('Filled')}</th>
+                      <th className={thCls(true)}>{plain('Vacant')}</th>
+                      <th className={thCls(true)}>{plain('Excess')}</th>
+                      <th className={thCls(true)}>{plain('Fill %')}</th>
+                    </tr>
+                  );
+                })()}
               </thead>
               <tbody>
-                {sortedVacancy.map((row, i) => {
+                {filteredVacancy.map((row, i) => {
                   const rowFill = row.sanctioned > 0 ? Math.round((row.filled / row.sanctioned) * 100) : 0;
                   const vacantPct = row.sanctioned > 0 ? row.vacant / row.sanctioned : 0;
                   return (
@@ -555,7 +544,7 @@ export default function SanctionedPostsPage() {
         {activeCount > 0 && (
           <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>Showing {activeCount} of {totalCount} records</span>
-            <span>Click column headers to sort</span>
+            <span>Use column headers to filter</span>
           </div>
         )}
       </div>

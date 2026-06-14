@@ -150,6 +150,7 @@ model Employee {
   designationAppointed   String?
   designationPresent     String?
 
+  dateOfBirth            DateTime?
   dateOfJoining          DateTime?
   retirementDate         DateTime?
   employmentStatus       EmploymentStatus       @default(ACTIVE)
