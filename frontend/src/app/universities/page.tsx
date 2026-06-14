@@ -156,7 +156,7 @@ export default function UniversitiesPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Universities</h1>
         {universities.length > 0 && (
           <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">
@@ -253,7 +253,7 @@ export default function UniversitiesPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {loading && Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
         {!loading && sorted.map((uni, idx) => {
           const empCount = uni._count?.employees || 0;

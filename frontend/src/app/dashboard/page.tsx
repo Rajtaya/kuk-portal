@@ -78,9 +78,10 @@ function barTooltipFormatter(params: any) {
 }
 
 
-function ChartCard({ title, children, className = '', tableData }: {
+function ChartCard({ title, children, className = '', tableData, actions }: {
   title: string; children: React.ReactNode; className?: string;
   tableData?: { headers: string[]; rows: (string | number)[][] };
+  actions?: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTable, setShowTable] = useState(false);
@@ -116,11 +117,14 @@ function ChartCard({ title, children, className = '', tableData }: {
 
   return (
     <div className={`bg-white rounded-xl border border-gray-200 p-3 md:p-6 ${className}`} ref={chartRef}>
-      <div className="flex items-center justify-between mb-4">
-        <div />
-        <h3 className="font-bold text-gray-800">{title}</h3>
-        <div className="relative" ref={menuRef}>
-          <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-gray-400 hover:text-gray-600">
+      <div className="relative flex items-center justify-center mb-4">
+        <div className={`inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-blue-600 px-3 md:px-4 py-1 md:py-0 min-h-8 md:h-10 rounded-lg shadow-[4px_4px_0_0_#312e81] dark:shadow-[4px_4px_0_0_#000] hover:shadow-[2px_2px_0_0_#312e81] hover:translate-x-[2px] hover:translate-y-[2px] transition-all ${actions ? 'max-w-[calc(100%-90px)]' : 'max-w-[calc(100%-50px)]'}`}>
+          <h3 className="font-semibold text-xs md:text-base tracking-tight text-white text-center leading-tight md:truncate">{title}</h3>
+        </div>
+        <div className="absolute right-0 flex items-center gap-1">
+          {actions}
+          <div className="relative" ref={menuRef}>
+          <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-gray-800 transition-colors">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth={2} strokeLinecap="round" fill="none" />
             </svg>
@@ -141,6 +145,7 @@ function ChartCard({ title, children, className = '', tableData }: {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
       {children}
@@ -188,9 +193,14 @@ export default function DashboardPage() {
   const [selectedUni, setSelectedUni] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'summary'>('hierarchy');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const [sanctionSubjectFilter, setSanctionSubjectFilter] = useState<string>('');
+  const [showSanctionSubjectDropdown, setShowSanctionSubjectDropdown] = useState(false);
   const [dpPostType, setDpPostType] = useState<string>('BUDGETED');
   const [uniMenuOpen, setUniMenuOpen] = useState(false);
   const genderInstance = useRef<any>(null);
+  const subjectDropdownRef = useRef<HTMLDivElement>(null);
+  const sanctionFilterRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -198,12 +208,19 @@ export default function DashboardPage() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(e.target as Node)) setShowSubjectDropdown(false);
+      if (sanctionFilterRef.current && !sanctionFilterRef.current.contains(e.target as Node)) setShowSanctionSubjectDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   useEffect(() => {
     api.get<ChartData>('/employees/dashboard-charts').then((d) => {
       setData(d);
-      const kuk = d.universities.find((u) => u.code === 'KUK');
-      setSelectedUni(kuk ? kuk.id : d.universities[0]?.id || 'all');
+      setSelectedUni('all');
     });
   }, []);
 
@@ -266,7 +283,8 @@ export default function DashboardPage() {
   const employeeDistOption = useMemo(() => {
     if (!data) return {};
     const rows = data.designationByUniversity;
-    const categories = rows.map(r => r.university);
+    const uniCodeMap = Object.fromEntries((data.universities || []).map(u => [u.name, u.code]));
+    const categories = rows.map(r => uniCodeMap[r.university] || r.university);
     const totals = rows.map(r => desigList.reduce((s, d) => s + (Number(r[d]) || 0), 0));
 
     if (isUniAdmin && activeData?.sanctionVsPresent) {
@@ -296,28 +314,29 @@ export default function DashboardPage() {
             </div>`;
           },
         },
-        legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+        legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
         grid: { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
         xAxis: {
           type: 'category' as const, data: desigs,
           axisLabel: { fontSize: isMobile ? 9 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -30 : 0 },
-          axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+          axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
         },
         yAxis: {
           type: 'value' as const,
-          name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-          axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+          name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+          axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
+          axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
         },
         series: [
-          { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 25 : 50, barGap: '15%',
+          { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 35 : 80, barGap: '15%',
             data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-          { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
+            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 35 : 80,
             data: filled, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-          { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 25 : 50,
+            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 35 : 80,
             data: vacant, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
         ],
       };
     }
@@ -325,17 +344,18 @@ export default function DashboardPage() {
     // Super Admin / State User: stacked bars
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 50, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
-        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 9 : 11, interval: 0, color: '#374151', fontWeight: 500, width: isMobile ? 60 : 100, overflow: 'truncate' as const },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 10 : 13, interval: 0, color: '#1f2937', fontWeight: 700, width: isMobile ? 60 : 100, overflow: 'truncate' as const },
+        axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
       },
       yAxis: {
         type: 'value' as const,
-        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 14, fontWeight: 'bold', color: '#111827' },
+        axisLabel: { fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
       },
       series: desigList.map((d, i) => ({
         name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
@@ -343,7 +363,7 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigList.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+          label: { show: true, position: 'top' as const, fontSize: isMobile ? 11 : 14, fontWeight: 800, color: '#111827',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -352,9 +372,14 @@ export default function DashboardPage() {
 
   // --- Chart 2: Sunburst data ---
   const sunburstEchartsData = useMemo(() => {
-    let subjects = activeSubjects;
+    let subjects = [...activeSubjects];
     if (subjectFilter) subjects = subjects.filter(s => s.name === subjectFilter);
     if (!subjects.length) return [];
+    subjects.sort((a, b) => {
+      const totalA = a.children.reduce((s, d) => s + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0);
+      const totalB = b.children.reduce((s, d) => s + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0);
+      return totalB - totalA;
+    });
     return [{
       name: selectedUniName,
       itemStyle: { color: '#2563EB' },
@@ -396,9 +421,9 @@ export default function DashboardPage() {
       levels: [
         {},
         { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 120, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-        { r0: '22%', r: '46%', label: { rotate: 0, align: 'center' as const, verticalAlign: 'middle' as const, fontSize: 12, fontWeight: 600, color: '#111', padding: 2, minAngle: 3, overflow: 'break' as const, width: 110 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
-        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 60, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
-        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 5, overflow: 'break' as const, width: 55, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 11, fontWeight: 600, color: '#fff', padding: 2, minAngle: 3, overflow: 'break' as const, width: 90, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
+        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 70, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 5, overflow: 'break' as const, width: 60, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
       ],
     }],
   }), [sunburstEchartsData]);
@@ -413,16 +438,18 @@ export default function DashboardPage() {
     const totals = subjects.map(s => s.children.reduce((sum, d) => sum + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0));
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 110 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
         axisLabel: { rotate: isMobile ? -55 : -35, fontSize: isMobile ? 8 : (isAllUni ? 10 : 11), interval: 0, color: '#374151', fontWeight: 500 },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+        axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
       },
       yAxis: {
         type: 'value' as const,
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+        name: 'Employee Count', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+        axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
+        axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
       },
       ...(isAllUni && subjects.length > 15 ? {
         dataZoom: [
@@ -439,47 +466,52 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigs.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+          label: { show: true, position: 'top' as const, fontSize: isMobile ? 11 : 14, fontWeight: 800, color: '#111827',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
     };
   }, [activeSubjects, subjectFilter, isAllUni, isMobile]);
 
-  // --- Charts 4 & 5: Category-wise and Employment Type ---
+  // --- Charts 4 & 5: Category-wise (sunburst) and Employment Type ---
+  const CATEGORY_COLORS: Record<string, string> = { SC: '#3B82F6', BCA: '#10B981', GENERAL: '#F59E0B', EWS: '#8B5CF6', BCB: '#EF4444', BCA_BACKLOG: '#06B6D4', ESM: '#EC4899', PH: '#14B8A6', FF: '#F97316' };
   const categoryOption = useMemo(() => {
     if (!activeData) return null;
     const rows = activeData.categoryDesignation;
     const udDesigs = activeData.designations || [];
-    const categories = rows.map(r => r.category);
-    const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
+    const sunburstData = rows.map((r, ci) => ({
+      name: r.category,
+      itemStyle: { color: CATEGORY_COLORS[r.category] || RING_COLORS[ci % RING_COLORS.length] },
+      children: udDesigs.map((d, di) => {
+        const val = Number(r[d]) || 0;
+        if (val === 0) return null;
+        return { name: d, value: val, itemStyle: { color: getDesigColor(d, di) } };
+      }).filter(Boolean),
+    })).filter(r => r.children.length > 0);
     return {
-      tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 95 : 85, left: isMobile ? 10 : 20, containLabel: true },
-      xAxis: {
-        type: 'category' as const, data: categories,
-        axisLabel: { interval: 0, rotate: isMobile ? -45 : -28, fontSize: isMobile ? 9 : 11, fontWeight: 600, color: '#374151' },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-        name: 'Category', nameLocation: 'middle' as const, nameGap: isMobile ? 64 : 56, nameTextStyle: { fontSize: isMobile ? 11 : 14, fontWeight: 'bold', color: '#374151' },
+      tooltip: {
+        ...TOOLTIP_BASE, trigger: 'item' as const,
+        formatter: (params: any) => {
+          if (!params.value) return `<div style="font-size:13px"><b>${params.name}</b></div>`;
+          return `<div style="font-size:13px"><b>${params.name}</b>: ${params.value}</div>`;
+        },
       },
-      yAxis: {
-        type: 'value' as const,
-        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
-      },
-      series: udDesigs.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
-        data: rows.map(r => Number(r[d]) || 0),
-        itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
-        emphasis: { focus: 'series' as const },
-        ...(i === udDesigs.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
-            formatter: (p: any) => totals[p.dataIndex] || '' },
-        } : {}),
-      })),
+      series: [{
+        type: 'sunburst' as const,
+        data: [{ name: 'Category', itemStyle: { color: '#2563EB' }, children: sunburstData }],
+        radius: ['0%', '90%'],
+        sort: undefined,
+        nodeClick: 'rootToNode' as const,
+        emphasis: { focus: 'none' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+        levels: [
+          {},
+          { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+          { r0: '22%', r: '55%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+          { r0: '55%', r: '90%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 70, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        ],
+      }],
     };
-  }, [activeData, isMobile]);
+  }, [activeData]);
 
   const employmentTypeOption = useMemo(() => {
     if (!activeData) return null;
@@ -617,7 +649,8 @@ export default function DashboardPage() {
   // --- Chart 7: Sanction vs Present ---
   const sanctionOption = useMemo(() => {
     if (!activeData) return null;
-    const rows = activeData.sanctionVsPresent;
+    const allRows = activeData.sanctionVsPresent;
+    const rows = sanctionSubjectFilter ? allRows.filter(r => r.subject === sanctionSubjectFilter) : allRows;
     const allKeys = [...new Set(rows.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort();
     const sanctionKeys = allKeys.filter(k => k.startsWith('Sanction'));
     const presentKeys = allKeys.filter(k => k.startsWith('Present'));
@@ -698,7 +731,9 @@ export default function DashboardPage() {
         })),
       ],
     };
-  }, [activeData, isMobile]);
+  }, [activeData, isMobile, sanctionSubjectFilter]);
+
+  const sanctionSubjects = useMemo(() => activeData?.sanctionVsPresent?.map(r => r.subject) || [], [activeData]);
 
   // --- Chart 8: Sanctioned vs Filled by Designation (one post type at a time) ---
   // Post types that actually have sanctioned posts in the current scope — these drive the switch.
@@ -845,7 +880,7 @@ export default function DashboardPage() {
 
       {/* Scope bar — super/state: funnel + filtered scope. University admin: their own university (locked, no filter). */}
       {(
-        <div className="sticky top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-4 md:px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
+        <div className="md:sticky md:top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-3 md:px-5 py-2 md:py-3 flex flex-wrap items-center gap-x-3 md:gap-x-4 gap-y-2 md:gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
           {!isUniAdmin ? (
             /* Filter — opens the university drawer (slides in from the left) */
             <button
@@ -874,61 +909,62 @@ export default function DashboardPage() {
           </div>
 
           {/* Post-occupancy stats — colorful, clickable blocks (Sanctioned = Filled + Vacant) */}
-          <div className="flex items-center gap-2 md:gap-3 ml-auto">
+          <div className="flex items-center gap-1.5 md:gap-3 ml-auto overflow-x-auto">
             {isAllUni && (
               <button
                 type="button"
                 onClick={() => router.push('/universities')}
                 title="View universities"
-                className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+                className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
               >
-                <CountUp value={stats.universityCount} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
-                <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Universities</span>
+                <CountUp value={stats.universityCount} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
+                <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Unis</span>
               </button>
             )}
             <button
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
-              <CountUp value={scopeReady ? (stats.sanctionedPosts ?? 0) : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Sanctioned</span>
+              <CountUp value={scopeReady ? (stats.sanctionedPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Sanct.</span>
             </button>
             <button
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
-              <CountUp value={scopeReady ? (stats.filledPosts ?? 0) : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Filled</span>
+              <CountUp value={scopeReady ? (stats.filledPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Filled</span>
             </button>
             <button
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[78px] bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
-              <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-xl md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] md:text-[10px] mt-1">Vacant</span>
+              <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Vacant</span>
             </button>
           </div>
 
           {/* Account controls — styled as colored boxes matching the stat blocks */}
-          <div className="flex items-center gap-2 shrink-0 pl-2 ml-1 border-l border-white/25">
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0 pl-2 ml-1 border-l border-white/25">
             <ThemeToggle variant="scopebar" />
-            <DarkModeToggle variant="scopebar" />
+            {/* Dark toggle lives in the mobile top bar already — avoid duplicating it on mobile */}
+            <span className="hidden md:flex"><DarkModeToggle variant="scopebar" /></span>
             <button
               onClick={logout}
               title="Sign out"
               aria-label="Sign out"
-              className="flex flex-col items-center justify-center px-3 py-1.5 min-w-[72px] bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-0 md:min-w-[72px] bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1">Sign Out</span>
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1 hidden md:block">Sign Out</span>
             </button>
           </div>
         </div>
@@ -987,31 +1023,33 @@ export default function DashboardPage() {
               className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >Summary Chart</button>
           </div>
-          <div className="flex gap-2 md:gap-3 flex-wrap">
-            {!isUniAdmin && (
-              <select
-                value={selectedUni}
-                onChange={(e) => { setSelectedUni(e.target.value); setSubjectFilter(''); }}
-                className="border border-gray-300 rounded-lg px-2 md:px-3 py-1.5 text-sm flex-1 min-w-0 md:flex-none"
-              >
-                <option value="all">All Universities</option>
-                {data.universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            )}
-            <select
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-2 md:px-3 py-1.5 text-sm flex-1 min-w-0 md:flex-none"
+          <div className="relative" ref={subjectDropdownRef}>
+            <button
+              onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
+              className="flex items-center gap-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              title="Filter by Subject"
             >
-              <option value="">Filter Subjects</option>
-              {uniSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              {subjectFilter && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+            </button>
+            {showSubjectDropdown && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[200px] max-h-60 overflow-y-auto">
+                <button onClick={() => { setSubjectFilter(''); setShowSubjectDropdown(false); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!subjectFilter ? 'font-semibold text-indigo-600' : 'text-gray-700'}`}>All Subjects</button>
+                {uniSubjects.map((s) => (
+                  <button key={s} onClick={() => { setSubjectFilter(s); setShowSubjectDropdown(false); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${subjectFilter === s ? 'font-semibold text-indigo-600' : 'text-gray-700'}`}>{s}</button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {activeTab === 'hierarchy' ? (
           <div>
-            <h4 className="font-bold text-gray-800 text-center mb-2">Employee Breakdown - {selectedUniName}</h4>
+            <div className="flex justify-center mb-3">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-blue-600 px-3 md:px-4 py-1 md:py-0 min-h-8 md:h-10 rounded-lg shadow-[4px_4px_0_0_#312e81] hover:shadow-[2px_2px_0_0_#312e81] hover:translate-x-[2px] hover:translate-y-[2px] transition-all max-w-[90%]">
+                <h4 className="font-semibold text-xs md:text-base tracking-tight text-white text-center leading-tight md:truncate">Employee Breakdown - {selectedUniName}</h4>
+              </div>
+            </div>
             {sunburstEchartsData.length > 0 && sunburstEchartsData[0].children?.length > 0 ? (
               <>
                 <ReactECharts option={sunburstOption} style={{ height: isMobile ? '380px' : '680px' }} notMerge={true} lazyUpdate={true} />
@@ -1056,6 +1094,12 @@ export default function DashboardPage() {
                 tableData={{ headers: ['Category', ...(activeData.designations || [])], rows: activeData.categoryDesignation.map(row => [row.category, ...(activeData.designations || []).map(d => row[d] || 0)]) }}
               >
                 <ReactECharts option={categoryOption} style={{ height: isMobile ? '320px' : '420px' }} notMerge={true} lazyUpdate={true} />
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 pb-3 text-xs">
+                  <span className="font-semibold text-gray-600">Center: Category</span>
+                  <span className="font-semibold text-gray-600">Ring 1: Categories</span>
+                  <span className="font-semibold text-gray-600">Ring 2: Designations</span>
+                  <span className="italic text-gray-400">Click a segment to drill down</span>
+                </div>
               </ChartCard>
             )}
             {employmentTypeOption && (
@@ -1134,6 +1178,26 @@ export default function DashboardPage() {
             {sanctionOption && (
               <ChartCard
                 title="Sanction vs Present (Designation-wise)"
+                actions={
+                  <div className="relative" ref={sanctionFilterRef}>
+                    <button
+                      onClick={() => setShowSanctionSubjectDropdown(!showSanctionSubjectDropdown)}
+                      className="flex items-center gap-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                      title="Filter by Subject"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                      {sanctionSubjectFilter && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                    </button>
+                    {showSanctionSubjectDropdown && (
+                      <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[200px] max-h-60 overflow-y-auto">
+                        <button onClick={() => { setSanctionSubjectFilter(''); setShowSanctionSubjectDropdown(false); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!sanctionSubjectFilter ? 'font-semibold text-indigo-600' : 'text-gray-700'}`}>All Subjects</button>
+                        {sanctionSubjects.map((s) => (
+                          <button key={s} onClick={() => { setSanctionSubjectFilter(s); setShowSanctionSubjectDropdown(false); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sanctionSubjectFilter === s ? 'font-semibold text-indigo-600' : 'text-gray-700'}`}>{s}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                }
                 tableData={{
                   headers: ['Subject', ...([...new Set(activeData.sanctionVsPresent.flatMap(r => Object.keys(r).filter(k => k !== 'subject')))].sort())],
                   rows: activeData.sanctionVsPresent.map(row => {
@@ -1142,7 +1206,9 @@ export default function DashboardPage() {
                   }),
                 }}
               >
-                <ReactECharts option={sanctionOption} style={{ height: isMobile ? '380px' : '480px' }} notMerge={true} lazyUpdate={true} />
+                <div className={isMobile ? 'overflow-x-auto -mx-3' : ''}>
+                  <ReactECharts option={sanctionOption} style={{ height: isMobile ? '380px' : '480px', minWidth: isMobile ? '700px' : undefined }} notMerge={true} lazyUpdate={true} />
+                </div>
               </ChartCard>
             )}
 

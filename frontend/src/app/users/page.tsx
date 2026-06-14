@@ -168,7 +168,8 @@ export default function UsersPage() {
         {users.length === 0 ? (
           <EmptyState icon="👤" title="No users yet" description="Add a user to grant access to the portal." action={{ label: 'Add User', onClick: openCreate }} />
         ) : (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800">
               <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400">Name</th>
@@ -211,6 +212,7 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
+        </div>
         )}
       </div>
     </div>

@@ -1,8 +1,12 @@
 node_modules
 dist
 .next
+.next 2/
 .env
+.env*.local
+*.tsbuildinfo
 *.log
 uploads/
 .DS_Store
+.claude/
 package-lock.json

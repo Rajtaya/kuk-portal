@@ -60,6 +60,10 @@ export default function EmployeesPage() {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  // On phones the wide table gets clipped — default to the card/grid view (user can still switch back)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setViewMode('grid');
+  }, []);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const sortRef = useRef<{ by: string | null; dir: 'asc' | 'desc' }>({ by: null, dir: 'asc' });
@@ -762,21 +766,48 @@ export default function EmployeesPage() {
           <table className="w-full text-sm border-separate border-spacing-0">
             <thead>
               <tr className="bg-primary-700 text-white">
-                {activeCols.map((col) => (
-                  <th
-                    key={col.key}
-                    onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
-                    className={`sticky top-0 z-10 bg-primary-700 px-3 py-3 align-middle font-semibold whitespace-nowrap text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${col.numeric ? 'text-center' : 'text-left'} ${col.sortKey ? 'cursor-pointer select-none group hover:bg-primary-600 transition-colors' : ''} ${col.className || ''}`}
-                  >
-                    {col.sortKey ? (
-                      <div className={`flex items-center gap-1.5 ${col.numeric ? 'justify-center' : ''}`}>
-                        <span>{col.label}</span>
-                        <SortIcon col={col.sortKey} />
+                {activeCols.map((col) => {
+                  const fcls = 'w-full px-1.5 py-1 text-[11px] bg-white/15 text-white border border-white/25 rounded focus:outline-none focus:ring-1 focus:ring-white/40';
+                  const scls = fcls + ' cursor-pointer';
+                  let filterEl: React.ReactNode = null;
+                  if (col.key === 'name') filterEl = <input type="text" placeholder="Type to search..." value={search} onChange={(e) => setSearch(e.target.value)} className={fcls + ' placeholder-white/40'} />;
+                  else if (col.key === 'uniName') filterEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls}><option value="">All</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>;
+                  else if (col.key === 'uniCode') filterEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls}><option value="">All</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}</select>;
+                  else if (col.key === 'subject') filterEl = <select value={filters.subject || ''} onChange={(e) => applyFilter('subject', e.target.value)} className={scls}><option value="">All</option>{subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>;
+                  else if (col.key === 'designation') filterEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls}><option value="">All</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'category') filterEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls}><option value="">All</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'catSelection') filterEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls}><option value="">All</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'presentDesig') filterEl = <select value={filters.designationPresent || ''} onChange={(e) => applyFilter('designationPresent', e.target.value)} className={scls}><option value="">All</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'gender') filterEl = <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)} className={scls}><option value="">All</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select>;
+                  else if (col.key === 'postType') filterEl = <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)} className={scls}><option value="">All</option><option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option></select>;
+                  return (
+                    <th
+                      key={col.key}
+                      className={`sticky top-0 z-10 bg-primary-700 px-2 pt-2 pb-1.5 align-top font-semibold whitespace-nowrap text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${col.numeric ? 'text-center' : 'text-left'} ${col.className || ''}`}
+                    >
+                      <div className="flex flex-col gap-1.5">
+                        <div
+                          className={`flex items-center gap-1.5 ${col.numeric ? 'justify-center' : ''} ${col.sortKey ? 'cursor-pointer select-none hover:text-primary-200 transition-colors' : ''}`}
+                          onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
+                        >
+                          <span>{col.label}</span>
+                          {col.sortKey && <SortIcon col={col.sortKey} />}
+                        </div>
+                        {filterEl && <div onClick={(e) => e.stopPropagation()}>{filterEl}</div>}
                       </div>
-                    ) : col.label}
-                  </th>
-                ))}
-                <th className="sticky top-0 z-10 px-3 py-3 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700 border border-gray-300 dark:border-gray-600">Action</th>
+                    </th>
+                  );
+                })}
+                <th className="sticky top-0 z-10 px-2 pt-2 pb-1.5 text-center font-semibold text-xs uppercase tracking-wide sticky right-0 bg-primary-700 border border-gray-300 dark:border-gray-600 align-top">
+                  <div className="flex flex-col gap-1.5 items-center">
+                    <span>Action</span>
+                    {activeFilterCount > 0 && (
+                      <button onClick={clearAllFilters} className="px-2 py-0.5 text-[10px] bg-red-500/30 text-red-200 hover:bg-red-500/50 hover:text-white rounded transition-colors" title="Clear all filters">
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>

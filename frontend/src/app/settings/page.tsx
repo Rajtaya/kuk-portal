@@ -171,7 +171,7 @@ export default function SettingsPage() {
       </h2>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-6">
+      <div className="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-6">
         {tabs.map((tab) => (
           <button
             key={tab.key}
