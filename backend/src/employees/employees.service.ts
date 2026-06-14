@@ -61,13 +61,14 @@ export class EmployeesService {
     if (userUniversityId) where.universityId = userUniversityId;
     if (rest.universityId) where.universityId = rest.universityId;
     if (rest.departmentId) where.departmentId = rest.departmentId;
+    if (rest.department) where.department = { is: { name: { equals: rest.department, mode: 'insensitive' } } };
     if (rest.subject) where.subject = { contains: rest.subject, mode: 'insensitive' };
     if (rest.postType) where.postType = rest.postType;
     if (rest.employeeClassification) where.employeeClassification = rest.employeeClassification;
     if (rest.gender) where.gender = rest.gender;
     if (rest.category) where.category = rest.category;
     if (rest.employmentStatus) where.employmentStatus = rest.employmentStatus;
-    if (rest.designation) where.designationPresent = { contains: rest.designation, mode: 'insensitive' };
+    if (rest.designation) where.designationPresent = { equals: rest.designation, mode: 'insensitive' };
 
     if (rest.retirementYear) {
       const year = Number(rest.retirementYear);

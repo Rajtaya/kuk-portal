@@ -17,29 +17,31 @@ interface ColDef {
   alwaysOn?: boolean;
   numeric?: boolean;
   className?: string;
-  sortKey?: string;
   render: (emp: Employee, idx: number, page: number) => React.ReactNode;
 }
 
 const ALL_COLUMNS: ColDef[] = [
-  { key: 'srno', label: 'Sr.No.', alwaysOn: true, numeric: true, className: 'w-14', render: (_e, i, p) => i + 1 + (p - 1) * 20 },
-  { key: 'name', label: 'Employee Name', alwaysOn: true, sortKey: 'name', render: (e) => <span className="font-medium">{e.name}</span> },
-  { key: 'uniName', label: 'University Name', sortKey: 'university', render: (e) => e.university?.name || '-' },
-  { key: 'uniCode', label: 'University Code', className: 'w-24', sortKey: 'universityCode', render: (e) => e.university?.code || '-' },
-  { key: 'subject', label: 'Subject', sortKey: 'subject', render: (e) => e.subject || '-' },
-  { key: 'designation', label: 'Designation', sortKey: 'designationAppointed', render: (e) => e.designationAppointed || '-' },
-  { key: 'category', label: 'Category', className: 'w-24', sortKey: 'category', render: (e) => <Badge value={e.category} /> },
-  { key: 'catSelection', label: 'Selection Category', sortKey: 'categorySelection', render: (e) => <Badge value={e.categorySelection} /> },
-  { key: 'presentDesig', label: 'Present Designation', sortKey: 'designationPresent', render: (e) => e.designationPresent || '-' },
-  { key: 'gender', label: 'Gender', className: 'w-20', sortKey: 'gender', render: (e) => <Badge value={e.gender} /> },
-  { key: 'postType', label: 'Type', className: 'w-20', sortKey: 'postType', render: (e) => <Badge value={e.postType} /> },
+  { key: 'srno', label: 'SN', alwaysOn: true, numeric: true, className: 'w-10', render: (_e, i, p) => i + 1 + (p - 1) * 20 },
+  { key: 'empId', label: 'Emp ID', className: 'w-24', render: (e) => e.employeeId || '-' },
+  { key: 'name', label: 'Employee Name', alwaysOn: true, render: (e) => <span className="font-medium">{e.name}</span> },
+  { key: 'uniName', label: 'University', render: (e) => e.university?.name || '-' },
+  { key: 'uniCode', label: 'Uni Code', className: 'w-20', render: (e) => e.university?.code || '-' },
+  { key: 'department', label: 'Department', render: (e) => e.department?.name || '-' },
+  { key: 'subject', label: 'Subject', render: (e) => e.subject || '-' },
+  { key: 'designation', label: 'Designation', render: (e) => e.designationAppointed || '-' },
+  { key: 'presentDesig', label: 'Present Desig.', render: (e) => e.designationPresent || '-' },
+  { key: 'category', label: 'Category', className: 'w-20', render: (e) => <Badge value={e.category} /> },
+  { key: 'catSelection', label: 'Sel. Category', render: (e) => <Badge value={e.categorySelection} /> },
+  { key: 'gender', label: 'Gender', className: 'w-20', render: (e) => <Badge value={e.gender} /> },
+  { key: 'postType', label: 'Type', className: 'w-20', render: (e) => <Badge value={e.postType} /> },
+  { key: 'status', label: 'Status', className: 'w-24', render: (e) => <Badge value={e.employmentStatus} /> },
+  { key: 'doj', label: 'Joining', className: 'w-28', render: (e) => e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '-' },
+  { key: 'retirement', label: 'Retirement', className: 'w-28', render: (e) => e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN') : '-' },
+  { key: 'mobile', label: 'Mobile', className: 'w-28', render: (e) => e.mobileNumber || '-' },
+  { key: 'email', label: 'Email', render: (e) => e.email || '-' },
 ];
 
-// Hidden by default to keep the table compact and readable (still toggleable in the Columns
-// menu): Selection Category duplicates Category, and Present Designation duplicates Designation
-// in nearly every row.
-const DEFAULT_HIDDEN = ['catSelection', 'presentDesig'];
-const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key).filter((k) => !DEFAULT_HIDDEN.includes(k));
+const DEFAULT_VISIBLE = ALL_COLUMNS.map((c) => c.key);
 const UNI_ADMIN_HIDDEN = ['uniName', 'uniCode'];
 const COLS_STORAGE_KEY = 'emp-visible-cols-v2';
 
@@ -53,6 +55,7 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [universities, setUniversities] = useState<University[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_VISIBLE);
   const [colMenuOpen, setColMenuOpen] = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
@@ -64,9 +67,6 @@ export default function EmployeesPage() {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) setViewMode('grid');
   }, []);
-  const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const sortRef = useRef<{ by: string | null; dir: 'asc' | 'desc' }>({ by: null, dir: 'asc' });
   const [total, setTotal] = useState<number | null>(null);
   const [stats, setStats] = useState<{ budgeted: number; sfs: number; contractual: number } | null>(null);
 
@@ -102,9 +102,7 @@ export default function EmployeesPage() {
       try {
         const parsed: string[] = JSON.parse(saved);
         const allKeys = ALL_COLUMNS.map((c) => c.key);
-        // Auto-show genuinely new columns added in a later release, but never force the
-        // default-hidden duplicate columns back on.
-        const merged = [...new Set([...parsed, ...allKeys.filter((k) => !parsed.includes(k) && !DEFAULT_HIDDEN.includes(k))])];
+        const merged = [...new Set([...parsed, ...allKeys.filter((k) => !parsed.includes(k))])];
         setVisibleCols(merged);
       } catch { /* ignore */ }
     }
@@ -140,6 +138,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     api.get<{ id: string; name: string }[]>('/masters/subjects').then(setSubjects).catch(() => {});
+    api.get<Department[]>('/departments').then(setDepartments).catch(() => {});
   }, []);
 
   // Total — scoped to the selected university only; stays fixed when other filters change.
@@ -159,7 +158,6 @@ export default function EmployeesPage() {
     const params = new URLSearchParams({
       page: String(page),
       limit: '20',
-      ...(sortRef.current.by ? { sortBy: sortRef.current.by, sortOrder: sortRef.current.dir } : {}),
       ...extra,
     });
     api.get<PaginatedResponse<Employee>>(`/employees?${params}`).then(setData).finally(() => setLoading(false));
@@ -197,32 +195,6 @@ export default function EmployeesPage() {
     fetchEmployees(1, {});
   };
 
-  // Click a column header → sort server-side (across all pages), toggling asc/desc.
-  const toggleSort = (key: string) => {
-    const dir: 'asc' | 'desc' = sortRef.current.by === key && sortRef.current.dir === 'asc' ? 'desc' : 'asc';
-    sortRef.current = { by: key, dir };
-    setSortBy(key);
-    setSortDir(dir);
-    const extra: Record<string, string> = { ...filters };
-    if (search) extra.search = search;
-    fetchEmployees(1, extra);
-  };
-
-  const SortIcon = ({ col }: { col: string }) => {
-    if (sortBy === col) {
-      return (
-        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d={sortDir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-        </svg>
-      );
-    }
-    return (
-      <svg className="w-3 h-3 text-primary-200 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-      </svg>
-    );
-  };
-
   const activeFilterCount = Object.keys(filters).filter(k => k !== 'search' && filters[k]).length;
 
   const handleDelete = async (id: string, name: string) => {
@@ -236,18 +208,24 @@ export default function EmployeesPage() {
 
   const buildExportRows = () =>
     data.data.map((e, i) => ({
-      'Sr.No.': i + 1 + (data.page - 1) * 20,
-      'University Name': e.university?.name || '',
-      'University Code': e.university?.code || '',
+      'SN': i + 1 + (data.page - 1) * 20,
+      'Emp ID': e.employeeId || '',
       'Employee Name': e.name,
+      'University': e.university?.name || '',
+      'Uni Code': e.university?.code || '',
+      'Department': e.department?.name || '',
       'Subject': e.subject || '',
-      'Category': e.category,
-      'Selection Category': e.categorySelection,
       'Designation': e.designationAppointed || '',
       'Present Designation': e.designationPresent || '',
+      'Category': e.category,
+      'Selection Category': e.categorySelection,
       'Gender': e.gender,
       'Post Type': e.postType,
       'Status': e.employmentStatus,
+      'Date of Joining': e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '',
+      'Retirement': e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN') : '',
+      'Mobile': e.mobileNumber || '',
+      'Email': e.email || '',
     }));
 
   const handleExport = (fmt: 'csv' | 'excel' | 'pdf') => {
@@ -762,39 +740,38 @@ export default function EmployeesPage() {
       {/* Table View */}
       {viewMode === 'table' && (
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+        <style>{`
+          .emp-header-select option { color: #1f2937; background: #fff; font-size: 13px; padding: 6px 10px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+          .emp-header-select option:checked { background: #e0e7ff; color: #3730a3; }
+          .emp-header-select option:hover { background: #f3f4f6; }
+          @media (prefers-color-scheme: dark) { .emp-header-select option { color: #e5e7eb; background: #1f2937; } .emp-header-select option:checked { background: #312e81; color: #c7d2fe; } }
+        `}</style>
         <div className="overflow-auto max-h-[75vh]">
           <table className="w-full text-sm border-separate border-spacing-0">
             <thead>
               <tr className="bg-primary-700 text-white">
                 {activeCols.map((col) => {
-                  const fcls = 'w-full px-1.5 py-1 text-[11px] bg-white/15 text-white border border-white/25 rounded focus:outline-none focus:ring-1 focus:ring-white/40';
-                  const scls = fcls + ' cursor-pointer';
-                  let filterEl: React.ReactNode = null;
-                  if (col.key === 'name') filterEl = <input type="text" placeholder="Type to search..." value={search} onChange={(e) => setSearch(e.target.value)} className={fcls + ' placeholder-white/40'} />;
-                  else if (col.key === 'uniName') filterEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls}><option value="">All</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>;
-                  else if (col.key === 'uniCode') filterEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls}><option value="">All</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}</select>;
-                  else if (col.key === 'subject') filterEl = <select value={filters.subject || ''} onChange={(e) => applyFilter('subject', e.target.value)} className={scls}><option value="">All</option>{subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>;
-                  else if (col.key === 'designation') filterEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls}><option value="">All</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
-                  else if (col.key === 'category') filterEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls}><option value="">All</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
-                  else if (col.key === 'catSelection') filterEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls}><option value="">All</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
-                  else if (col.key === 'presentDesig') filterEl = <select value={filters.designationPresent || ''} onChange={(e) => applyFilter('designationPresent', e.target.value)} className={scls}><option value="">All</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
-                  else if (col.key === 'gender') filterEl = <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)} className={scls}><option value="">All</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select>;
-                  else if (col.key === 'postType') filterEl = <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)} className={scls}><option value="">All</option><option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option></select>;
+                  const scls = 'emp-header-select w-full pl-1.5 pr-6 py-1.5 text-[12px] font-semibold bg-white/15 text-white border border-white/25 rounded focus:outline-none focus:ring-1 focus:ring-white/40 cursor-pointer appearance-none uppercase tracking-wide bg-no-repeat bg-[length:14px_14px] bg-[position:right_6px_center]';
+                  const filterIcon = { backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'/%3E%3C/svg%3E")` };
+                  let headerEl: React.ReactNode = null;
+                  if (col.key === 'name') headerEl = <input type="text" placeholder="Search name..." value={search} onChange={(e) => setSearch(e.target.value)} className={scls + ' placeholder-white/50 font-normal normal-case tracking-normal !bg-none'} />;
+                  else if (col.key === 'uniName') headerEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls} style={filterIcon}><option value="">University</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>;
+                  else if (col.key === 'uniCode') headerEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls} style={filterIcon}><option value="">Uni Code</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}</select>;
+                  else if (col.key === 'department') { const uniqueDepts = [...new Map(departments.map(d => [d.name.toUpperCase(), d.name])).values()].sort(); headerEl = <select value={filters.department || ''} onChange={(e) => applyFilter('department', e.target.value)} className={scls} style={filterIcon}><option value="">Department</option>{uniqueDepts.map((n) => <option key={n} value={n}>{n}</option>)}</select>; }
+                  else if (col.key === 'subject') headerEl = <select value={filters.subject || ''} onChange={(e) => applyFilter('subject', e.target.value)} className={scls} style={filterIcon}><option value="">Subject</option>{subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>;
+                  else if (col.key === 'designation') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Designation</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'category') headerEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls} style={filterIcon}><option value="">Category</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'catSelection') headerEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls} style={filterIcon}><option value="">Sel. Category</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'presentDesig') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Present Desig.</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'gender') headerEl = <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)} className={scls} style={filterIcon}><option value="">Gender</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select>;
+                  else if (col.key === 'postType') headerEl = <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)} className={scls} style={filterIcon}><option value="">Type</option><option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option></select>;
+                  else if (col.key === 'status') headerEl = <select value={filters.employmentStatus || ''} onChange={(e) => applyFilter('employmentStatus', e.target.value)} className={scls} style={filterIcon}><option value="">Status</option><option value="ACTIVE">Active</option><option value="RETIRED">Retired</option><option value="RESIGNED">Resigned</option><option value="TERMINATED">Terminated</option><option value="SUSPENDED">Suspended</option></select>;
                   return (
                     <th
                       key={col.key}
-                      className={`sticky top-0 z-10 bg-primary-700 px-2 pt-2 pb-1.5 align-top font-semibold whitespace-nowrap text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${col.numeric ? 'text-center' : 'text-left'} ${col.className || ''}`}
+                      className={`sticky top-0 z-10 bg-primary-700 px-1.5 py-2 align-middle font-semibold text-xs uppercase tracking-wide border border-gray-300 dark:border-gray-600 ${col.numeric ? 'text-center' : 'text-left'} ${col.className || ''}`}
                     >
-                      <div className="flex flex-col gap-1.5">
-                        <div
-                          className={`flex items-center gap-1.5 ${col.numeric ? 'justify-center' : ''} ${col.sortKey ? 'cursor-pointer select-none hover:text-primary-200 transition-colors' : ''}`}
-                          onClick={col.sortKey ? () => toggleSort(col.sortKey!) : undefined}
-                        >
-                          <span>{col.label}</span>
-                          {col.sortKey && <SortIcon col={col.sortKey} />}
-                        </div>
-                        {filterEl && <div onClick={(e) => e.stopPropagation()}>{filterEl}</div>}
-                      </div>
+                      {headerEl || <span className="px-1 text-white">{col.label}</span>}
                     </th>
                   );
                 })}

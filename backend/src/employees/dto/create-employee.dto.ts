@@ -92,6 +92,7 @@ export class UpdateEmployeeDto extends PartialType(CreateEmployeeDto) {}
 export class EmployeeFilterDto {
   @IsOptional() @IsString() universityId?: string;
   @IsOptional() @IsString() departmentId?: string;
+  @IsOptional() @IsString() department?: string;
   @IsOptional() @IsString() subject?: string;
   @IsOptional() @IsString() designation?: string;
   @IsOptional() @IsEnum(PostType) postType?: PostType;
