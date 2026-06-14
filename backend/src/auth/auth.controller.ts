@@ -10,8 +10,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 const COOKIE_NAME = 'auth_token';
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'none' as const,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
   path: '/',
   maxAge: 24 * 60 * 60 * 1000,
 };
