@@ -7,72 +7,53 @@ import { LoginDto } from './dto/login.dto';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
-interface AttemptRecord { count: number; lockedUntil: number | null }
-
 @Injectable()
 export class AuthService {
-  private attempts = new Map<string, AttemptRecord>();
-
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
 
-  private getAttempt(email: string): AttemptRecord {
-    return this.attempts.get(email) || { count: 0, lockedUntil: null };
-  }
-
-  private checkLockout(email: string) {
-    const rec = this.getAttempt(email);
-    if (rec.lockedUntil) {
-      if (Date.now() < rec.lockedUntil) {
-        const mins = Math.ceil((rec.lockedUntil - Date.now()) / 60000);
-        throw new UnauthorizedException(`Account temporarily locked. Try again in ${mins} minute(s).`);
-      }
-      this.attempts.delete(email);
-    }
-  }
-
-  private recordFailure(email: string) {
-    const rec = this.getAttempt(email);
-    rec.count++;
-    if (rec.count >= MAX_ATTEMPTS) {
-      rec.lockedUntil = Date.now() + LOCKOUT_MS;
-    }
-    this.attempts.set(email, rec);
-  }
-
-  private clearAttempts(email: string) {
-    this.attempts.delete(email);
-  }
-
   async login(dto: LoginDto) {
     const email = dto.email.toLowerCase();
-    this.checkLockout(email);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
       select: {
         id: true, email: true, name: true, role: true, password: true, isActive: true,
+        loginAttempts: true, lockedUntil: true,
         university: { select: { id: true, name: true, code: true } },
       },
     });
+
+    if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      const mins = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      throw new UnauthorizedException(`Account temporarily locked. Try again in ${mins} minute(s).`);
+    }
+
     if (!user || !user.isActive) {
-      this.recordFailure(email);
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.lockedUntil && user.lockedUntil.getTime() <= Date.now()) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null } });
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) {
-      this.recordFailure(email);
-      const rec = this.getAttempt(email);
-      if (rec.lockedUntil) {
+      const attempts = (user.loginAttempts || 0) + 1;
+      const lockedUntil = attempts >= MAX_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
+      await this.prisma.user.update({ where: { id: user.id }, data: { loginAttempts: attempts, lockedUntil } });
+      if (lockedUntil) {
         throw new UnauthorizedException('Account temporarily locked. Try again later.');
       }
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    this.clearAttempts(email);
+    if (user.loginAttempts > 0) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null } });
+    }
+
     const token = this.jwtService.sign({ sub: user.id, role: user.role });
 
     return {

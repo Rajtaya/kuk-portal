@@ -8,6 +8,7 @@ import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto, UpdateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
+import { validateFileSignature } from '../common/file-validation.util';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -90,18 +91,14 @@ export class EmployeesController {
   @Put(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
   async update(@Param('id') id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: any) {
-    const emp = await this.employeesService.findOne(id);
-    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
     delete dto.universityId;
-    return this.employeesService.update(id, dto);
+    return this.employeesService.update(id, dto, user);
   }
 
   @Delete(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
   async delete(@Param('id') id: string, @CurrentUser() user: any) {
-    const emp = await this.employeesService.findOne(id);
-    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot delete another university\'s employee');
-    return this.employeesService.delete(id);
+    return this.employeesService.delete(id, user);
   }
 
   @Post(':id/photo')
@@ -125,6 +122,7 @@ export class EmployeesController {
     const emp = await this.employeesService.findOne(id);
     if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
     if (!photo) throw new ForbiddenException('No photo uploaded');
+    validateFileSignature(photo.buffer, photo.mimetype, 'photo');
 
     const fs = await import('fs');
     const path = await import('path');
@@ -136,7 +134,7 @@ export class EmployeesController {
     fs.writeFileSync(path.join(uploadDir, filename), photo.buffer);
 
     const photoUrl = `/uploads/photos/${filename}`;
-    return this.employeesService.update(id, { photoUrl } as any);
+    return this.employeesService.update(id, { photoUrl } as any, user);
   }
 
   @Post('bulk-upload')
@@ -157,6 +155,8 @@ export class EmployeesController {
   ) {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
+
+    validateFileSignature(file.buffer, file.mimetype, 'spreadsheet');
 
     const { Workbook } = await import('exceljs');
     const wb = new Workbook();

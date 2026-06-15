@@ -67,10 +67,12 @@ model User {
   role         Role
   university   University? @relation(fields: [universityId], references: [id])
   universityId String?
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  auditLogs    AuditLog[]
+  isActive      Boolean     @default(true)
+  loginAttempts Int         @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  auditLogs     AuditLog[]
 
   @@map("users")
 }

@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
 
@@ -110,7 +110,11 @@ export class EmployeesService {
     return employee;
   }
 
-  update(id: string, dto: Partial<CreateEmployeeDto>) {
+  async update(id: string, dto: Partial<CreateEmployeeDto>, user?: { role: Role; universityId?: string }) {
+    if (user?.role === Role.UNIVERSITY_ADMIN) {
+      const emp = await this.prisma.employee.findUniqueOrThrow({ where: { id } });
+      if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
+    }
     return this.prisma.employee.update({
       where: { id },
       data: this.coerceDates(dto) as any,
@@ -118,7 +122,11 @@ export class EmployeesService {
     });
   }
 
-  delete(id: string) {
+  async delete(id: string, user?: { role: Role; universityId?: string }) {
+    if (user?.role === Role.UNIVERSITY_ADMIN) {
+      const emp = await this.prisma.employee.findUniqueOrThrow({ where: { id } });
+      if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot delete another university\'s employee');
+    }
     return this.prisma.employee.delete({ where: { id } });
   }
 

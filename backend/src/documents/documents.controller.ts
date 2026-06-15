@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { DocumentType, Role } from '@prisma/client';
 import { Response } from 'express';
 import { DocumentsService } from './documents.service';
+import { validateFileSignature } from '../common/file-validation.util';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -34,6 +35,7 @@ export class DocumentsController {
     @CurrentUser() user: any,
   ) {
     if (!file) throw new BadRequestException('Only PDF, JPEG, PNG, and WebP files are allowed');
+    validateFileSignature(file.buffer, file.mimetype, 'document');
     await this.documentsService.verifyEmployeeOwnership(employeeId, user.universityId);
     return this.documentsService.upload(employeeId, file, type);
   }

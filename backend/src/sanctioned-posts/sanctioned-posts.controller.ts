@@ -7,6 +7,7 @@ import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { SanctionedPostsService } from './sanctioned-posts.service';
 import { CreateSanctionedPostDto, UpdateSanctionedPostDto } from './dto/sanctioned-post.dto';
+import { validateFileSignature } from '../common/file-validation.util';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -68,6 +69,8 @@ export class SanctionedPostsController {
   ) {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
+
+    validateFileSignature(file.buffer, file.mimetype, 'spreadsheet');
 
     const { Workbook } = await import('exceljs');
     const wb = new Workbook();
