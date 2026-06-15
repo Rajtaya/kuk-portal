@@ -18,7 +18,7 @@ export default function UniversitiesLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-8 min-w-0 overflow-x-hidden">{children}</main>
+      <main className="flex-1 p-4 md:p-8 min-w-0 overflow-x-hidden mt-14 md:mt-0">{children}</main>
     </div>
   );
 }

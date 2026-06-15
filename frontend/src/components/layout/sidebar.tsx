@@ -25,10 +25,11 @@ const roleLinks = {
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
 
-export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
+export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mode, setMode] = useState<SidebarMode>('expanded');
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-mode') as SidebarMode;
@@ -169,8 +170,26 @@ export default function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: bo
     );
   };
 
+  const onMobileClose = () => setMobileOpen(false);
+
   return (
     <>
+      {/* Mobile top bar — visible on all pages */}
+      <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 gap-3 md:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-1.5 -ml-1 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">UEMS</h1>
+        <div className="ml-auto">
+          <DarkModeToggle />
+        </div>
+      </header>
+
       {/* Mobile: overlay sidebar with backdrop */}
       {mobileOpen && (
         <>
