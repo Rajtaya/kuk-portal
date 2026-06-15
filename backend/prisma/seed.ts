@@ -243,19 +243,19 @@ async function main() {
 
   // ─── Sample Sanctioned Posts (KUK) ─────────────────────
   const sanctionedPosts = [
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 3 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Associate Professor', category: Category.UR, sanctionedCount: 5 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Assistant Professor', category: Category.DSC, sanctionedCount: 2 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 3 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Associate Professor', category: Category.BCA, sanctionedCount: 4 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 2 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Assistant Professor', category: Category.EWS, sanctionedCount: 3 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 2 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Associate Professor', category: Category.UR, sanctionedCount: 4 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 6 },
-    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 4 },
-    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 6 },
-    { universityId: cdlu.id, departmentId: otherDepts['CDLU-History'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Professor', sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Associate Professor', sanctionedCount: 5 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Assistant Professor', sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Professor', sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Associate Professor', sanctionedCount: 4 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Professor', sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Assistant Professor', sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Professor', sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Associate Professor', sanctionedCount: 4 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Assistant Professor', sanctionedCount: 6 },
+    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Professor', sanctionedCount: 4 },
+    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Assistant Professor', sanctionedCount: 6 },
+    { universityId: cdlu.id, departmentId: otherDepts['CDLU-History'].id, designation: 'Assistant Professor', sanctionedCount: 3 },
   ];
 
   for (const sp of sanctionedPosts) {
