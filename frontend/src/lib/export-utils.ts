@@ -1,4 +1,4 @@
-// Dependency-free export helpers (CSV + Excel via the already-installed `xlsx`,
+// Export helpers (CSV + Excel via `exceljs`,
 // PDF via the browser's print-to-PDF — no jsPDF/html2canvas needed).
 
 export interface ExportColumn {
@@ -28,17 +28,17 @@ export function exportToCSV(filename: string, columns: ExportColumn[], data: any
 }
 
 export async function exportToExcel(filename: string, columns: ExportColumn[], data: any[]) {
-  const XLSX = await import('xlsx');
-  const rows = data.map((row) =>
-    columns.reduce<Record<string, string>>((acc, col) => {
-      acc[col.label] = cellValue(col, row);
-      return acc;
-    }, {})
-  );
-  const sheet = XLSX.utils.json_to_sheet(rows, { header: columns.map((c) => c.label) });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet, 'Data');
-  XLSX.writeFile(wb, `${filename}.xlsx`);
+  const { Workbook } = await import('exceljs');
+  const wb = new Workbook();
+  const ws = wb.addWorksheet('Data');
+  ws.columns = columns.map((c) => ({ header: c.label, key: c.label, width: Math.max(c.label.length + 2, 14) }));
+  data.forEach((row) => {
+    const r: Record<string, string> = {};
+    columns.forEach((col) => { r[col.label] = cellValue(col, row); });
+    ws.addRow(r);
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${filename}.xlsx`);
 }
 
 /** Opens a print window with a styled table; the user picks "Save as PDF". */

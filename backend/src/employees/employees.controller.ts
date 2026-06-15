@@ -53,7 +53,7 @@ export class EmployeesController {
 
   @Get('template')
   async downloadTemplate(@Res() res: Response) {
-    const XLSX = await import('xlsx');
+    const { Workbook } = await import('exceljs');
     const headers = [
       'Employee Name', 'Employee ID', 'Department', 'Subject',
       'Category', 'Category(Selection)', 'Type',
@@ -61,31 +61,21 @@ export class EmployeesController {
       'Gender', 'Date of Joining', 'Retirement Date',
       'Employment Status', 'Mobile Number', 'Email Address',
     ];
-    const sampleRow = {
-      'Employee Name': 'Dr. Rajesh Kumar',
-      'Employee ID': 'EMP001',
-      'Department': 'Computer Science',
-      'Subject': 'Data Structures',
-      'Category': 'GENERAL',
-      'Category(Selection)': 'GENERAL',
-      'Type': 'BUDGETED',
-      'Designation(appointment)': 'Assistant Professor',
-      'Designation (Present)': 'Associate Professor',
-      'Gender': 'MALE',
-      'Date of Joining': '2015-06-15',
-      'Retirement Date': '2045-06-30',
-      'Employment Status': 'ACTIVE',
-      'Mobile Number': '9876543210',
-      'Email Address': 'rajesh@example.ac.in',
-    };
-    const ws = XLSX.utils.json_to_sheet([sampleRow], { header: headers });
-    ws['!cols'] = headers.map((h) => ({ wch: Math.max(h.length + 2, 18) }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Employees');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const sampleRow = [
+      'Dr. Rajesh Kumar', 'EMP001', 'Computer Science', 'Data Structures',
+      'GENERAL', 'GENERAL', 'BUDGETED',
+      'Assistant Professor', 'Associate Professor',
+      'MALE', '2015-06-15', '2045-06-30',
+      'ACTIVE', '9876543210', 'rajesh@example.ac.in',
+    ];
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Employees');
+    ws.columns = headers.map((h) => ({ header: h, width: Math.max(h.length + 2, 18) }));
+    ws.addRow(sampleRow);
+    const buf = await wb.xlsx.writeBuffer();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename="employee-upload-template.xlsx"');
-    res.send(buf);
+    res.send(Buffer.from(buf));
   }
 
   @Get(':id')
@@ -168,11 +158,22 @@ export class EmployeesController {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
 
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
+    const { Workbook } = await import('exceljs');
+    const wb = new Workbook();
+    await wb.xlsx.load(file.buffer as any);
+    const sheet = wb.worksheets[0];
+    const headers: string[] = [];
+    sheet.getRow(1).eachCell((cell, col) => { headers[col] = String(cell.value); });
+    const rows: Record<string, any>[] = [];
+    sheet.eachRow((row, num) => {
+      if (num === 1) return;
+      const obj: Record<string, any> = {};
+      row.eachCell({ includeEmpty: true }, (cell, col) => {
+        if (headers[col]) obj[headers[col]] = cell.value;
+      });
+      if (Object.keys(obj).length) rows.push(obj);
+    });
 
-    return this.employeesService.bulkImport(rows as Record<string, any>[], uniId);
+    return this.employeesService.bulkImport(rows, uniId);
   }
 }

@@ -69,11 +69,22 @@ export class SanctionedPostsController {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
 
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
+    const { Workbook } = await import('exceljs');
+    const wb = new Workbook();
+    await wb.xlsx.load(file.buffer as any);
+    const sheet = wb.worksheets[0];
+    const headers: string[] = [];
+    sheet.getRow(1).eachCell((cell, col) => { headers[col] = String(cell.value); });
+    const rows: Record<string, any>[] = [];
+    sheet.eachRow((row, num) => {
+      if (num === 1) return;
+      const obj: Record<string, any> = {};
+      row.eachCell({ includeEmpty: true }, (cell, col) => {
+        if (headers[col]) obj[headers[col]] = cell.value;
+      });
+      if (Object.keys(obj).length) rows.push(obj);
+    });
 
-    return this.service.bulkImport(rows as Record<string, any>[], uniId);
+    return this.service.bulkImport(rows, uniId);
   }
 }

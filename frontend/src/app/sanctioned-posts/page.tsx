@@ -8,7 +8,7 @@ import { TableSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState } from '@/components/ui/empty-state';
 import { exportToCSV, exportToExcel, exportToPDF, ExportColumn } from '@/lib/export-utils';
-import * as XLSX from 'xlsx';
+import { Workbook } from 'exceljs';
 
 interface VacancyRow {
   id: string;
@@ -103,16 +103,23 @@ export default function SanctionedPostsPage() {
     setShowImport(true);
   }
 
-  function downloadTemplate() {
-    const sample = [
-      { Department: 'Computer Science', Subject: 'Computer Science', Designation: 'Professor', Type: 'BUDGETED', 'Sanctioned Posts': 2 },
-      { Department: 'Computer Science', Subject: 'Computer Science', Designation: 'Associate Professor', Type: 'BUDGETED', 'Sanctioned Posts': 4 },
-      { Department: 'Physics', Subject: 'Physics', Designation: 'Assistant Professor', Type: 'SFS', 'Sanctioned Posts': 6 },
+  async function downloadTemplate() {
+    const headers = ['Department', 'Subject', 'Designation', 'Type', 'Sanctioned Posts'];
+    const sampleRows = [
+      ['Computer Science', 'Computer Science', 'Professor', 'BUDGETED', 2],
+      ['Computer Science', 'Computer Science', 'Associate Professor', 'BUDGETED', 4],
+      ['Physics', 'Physics', 'Assistant Professor', 'SFS', 6],
     ];
-    const ws = XLSX.utils.json_to_sheet(sample);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'sanctioned-posts-template.xlsx');
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Template');
+    ws.columns = headers.map((h) => ({ header: h, key: h, width: Math.max(h.length + 2, 18) }));
+    sampleRows.forEach((r) => ws.addRow(r));
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sanctioned-posts-template.xlsx'; a.click();
+    URL.revokeObjectURL(url);
   }
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
