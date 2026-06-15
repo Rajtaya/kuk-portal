@@ -459,10 +459,10 @@ export default function DashboardPage() {
       emphasis: { focus: 'none' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
       levels: [
         {},
-        { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 120, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-        { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 11, fontWeight: 600, color: '#fff', padding: 2, minAngle: 3, overflow: 'break' as const, width: 90, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
-        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 70, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
-        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 5, overflow: 'break' as const, width: 60, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'truncate' as const, ellipsis: '..', width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+        { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', padding: 2, minAngle: 8, overflow: 'truncate' as const, ellipsis: '..', width: 70, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
+        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'truncate' as const, ellipsis: '..', width: 55, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 8, fontWeight: 600, color: '#fff', minAngle: 12, overflow: 'truncate' as const, ellipsis: '..', width: 45, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
       ],
     }],
   }), [sunburstEchartsData]);
@@ -544,9 +544,9 @@ export default function DashboardPage() {
         emphasis: { focus: 'none' as const, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
         levels: [
           {},
-          { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 14, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-          { r0: '22%', r: '55%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'break' as const, width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-          { r0: '55%', r: '90%', label: { show: true, rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 4, overflow: 'break' as const, width: 70, textBorderColor: 'rgba(0,0,0,0.4)', textBorderWidth: 2.5 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+          { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'truncate' as const, ellipsis: '..', width: 70, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+          { r0: '22%', r: '55%', label: { rotate: 0, fontSize: 11, fontWeight: 'bold', color: '#fff', minAngle: 8, overflow: 'truncate' as const, ellipsis: '..', width: 70, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
+          { r0: '55%', r: '90%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'truncate' as const, ellipsis: '..', width: 55, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
         ],
       }],
     };
