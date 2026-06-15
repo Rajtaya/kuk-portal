@@ -18,4 +18,4 @@ RUN mkdir -p ./uploads && chown node:node ./uploads
 
 USER node
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db execute --file prisma/migrate-categories.sql --schema prisma/schema.prisma 2>/dev/null; npx prisma db push --skip-generate --accept-data-loss && node dist/src/main"]
+CMD ["sh", "-c", "echo 'Running category migration...' && npx prisma db execute --file prisma/migrate-categories.sql --schema prisma/schema.prisma && echo 'Migration done' || echo 'Migration skipped (already applied)'; npx prisma db push --skip-generate --accept-data-loss && node dist/src/main"]
