@@ -236,6 +236,7 @@ export default function DashboardPage() {
   const subjectDropdownRef = useRef<HTMLDivElement>(null);
   const sanctionFilterRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const sunburstDrillRef = useRef(1);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -252,6 +253,10 @@ export default function DashboardPage() {
   }, []);
 
   const isUniAdmin = user?.role === 'UNIVERSITY_ADMIN';
+
+  useEffect(() => {
+    sunburstDrillRef.current = 1;
+  }, [selectedUni]);
 
   useEffect(() => {
     api.get<ChartData>('/employees/dashboard-charts').then((d) => {
@@ -461,8 +466,8 @@ export default function DashboardPage() {
         {},
         { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'truncate' as const, ellipsis: '..', width: 80, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
         { r0: '22%', r: '46%', label: { rotate: 'radial' as const, fontSize: 10, fontWeight: 600, color: '#fff', padding: 2, minAngle: 8, overflow: 'truncate' as const, ellipsis: '..', width: 70, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1.5, borderColor: '#fff' } },
-        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'truncate' as const, ellipsis: '..', width: 55, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
-        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 8, fontWeight: 600, color: '#fff', minAngle: 12, overflow: 'truncate' as const, ellipsis: '..', width: 45, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '46%', r: '70%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'none' as const, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2, formatter: (p: any) => { const d = sunburstDrillRef.current >= 2; const wrapped = p.name.replace(/ /g, '\n'); if (d && p.value) return `{big|${wrapped}}\n{cnt|${p.value}}`; if (d) return `{big|${wrapped}}`; const n = p.name; return n.length > 10 ? n.slice(0, 9) + '..' : n; }, rich: { big: { fontSize: 14, fontWeight: 'bold' as const, color: '#fff', textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2, lineHeight: 20 }, cnt: { fontSize: 12, fontWeight: 'bold' as const, color: '#ffe082', textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2, lineHeight: 18 } } }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+        { r0: '70%', r: '92%', label: { show: true, rotate: 'radial' as const, fontSize: 8, fontWeight: 600, color: '#fff', minAngle: 12, overflow: 'none' as const, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2, formatter: (p: any) => { const d = sunburstDrillRef.current >= 2; if (d) return `{big|${p.name.replace(/ /g, '\n')}}`; const n = p.name; return n.length > 8 ? n.slice(0, 7) + '..' : n; }, rich: { big: { fontSize: 11, fontWeight: 600, color: '#fff', textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2, lineHeight: 16 } } }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
       ],
     }],
   }), [sunburstEchartsData]);
@@ -513,7 +518,7 @@ export default function DashboardPage() {
   }, [activeSubjects, subjectFilter, isAllUni, isMobile]);
 
   // --- Charts 4 & 5: Category-wise (sunburst) and Employment Type ---
-  const CATEGORY_COLORS: Record<string, string> = { SC: '#3B82F6', BCA: '#10B981', GENERAL: '#F59E0B', EWS: '#8B5CF6', BCB: '#EF4444', BCA_BACKLOG: '#06B6D4', ESM: '#EC4899', PH: '#14B8A6', FF: '#F97316' };
+  const CATEGORY_COLORS: Record<string, string> = { UR: '#F59E0B', DSC: '#3B82F6', OSC: '#10B981', BCA: '#8B5CF6', BCB: '#EF4444', EWS: '#06B6D4', PWD: '#EC4899' };
   const categoryOption = useMemo(() => {
     if (!activeData) return null;
     const rows = activeData.categoryDesignation;
@@ -859,6 +864,16 @@ export default function DashboardPage() {
     };
   }, [activeData, dpEffective, dpPostTypes, isMobile]);
 
+  const handleSunburstDrill = useCallback((params: any) => {
+    const clickedDepth = params.treePathInfo?.length ?? 1;
+    const currentRoot = sunburstDrillRef.current;
+    if (clickedDepth <= currentRoot) {
+      sunburstDrillRef.current = Math.max(1, currentRoot - 1);
+    } else {
+      sunburstDrillRef.current = clickedDepth;
+    }
+  }, []);
+
   if (!data) {
     return (
       <div className="space-y-6">
@@ -1105,7 +1120,7 @@ export default function DashboardPage() {
             </div>
             {sunburstEchartsData.length > 0 && sunburstEchartsData[0].children?.length > 0 ? (
               <>
-                <ReactECharts option={sunburstOption} style={{ height: isMobile ? '380px' : '680px' }} notMerge={true} lazyUpdate={true} />
+                <ReactECharts option={sunburstOption} style={{ height: isMobile ? '380px' : '680px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleSunburstDrill }} />
                 <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-2 text-xs">
                   <span className="font-semibold text-gray-600">Center: University</span>
                   <span className="font-semibold text-gray-600">Ring 1: Subjects</span>
