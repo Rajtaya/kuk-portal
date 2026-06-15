@@ -1,12 +1,12 @@
 import {
   Controller, Get, Post, Put, Delete, Param, Body, Query,
-  UseGuards, UseInterceptors, UploadedFile,
+  UseGuards, UseInterceptors, UploadedFile, ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { SanctionedPostsService } from './sanctioned-posts.service';
-import { CreateSanctionedPostDto } from './dto/sanctioned-post.dto';
+import { CreateSanctionedPostDto, UpdateSanctionedPostDto } from './dto/sanctioned-post.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -40,7 +40,7 @@ export class SanctionedPostsController {
 
   @Put(':id')
   @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
-  update(@Param('id') id: string, @Body() dto: Partial<CreateSanctionedPostDto>, @CurrentUser() user: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateSanctionedPostDto, @CurrentUser() user: any) {
     return this.service.update(id, dto, user);
   }
 
@@ -53,7 +53,14 @@ export class SanctionedPostsController {
   @Post('bulk-upload')
   @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.match(/^application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet$/) && !file.mimetype.match(/^application\/vnd\.ms-excel$/)) {
+        cb(new ForbiddenException('Only Excel files (.xlsx, .xls) are allowed'), false);
+      } else { cb(null, true); }
+    },
+  }))
   async bulkUpload(
     @UploadedFile() file: Express.Multer.File,
     @Query('universityId') universityId: string,

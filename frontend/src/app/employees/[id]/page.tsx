@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { Employee, Department } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
+const API_BASE = '';
 
 const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
   ACTIVE: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },

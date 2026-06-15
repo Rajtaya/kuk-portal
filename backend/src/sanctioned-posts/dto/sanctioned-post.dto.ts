@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { PostType } from '@prisma/client';
 
 export class CreateSanctionedPostDto {
@@ -10,3 +10,5 @@ export class CreateSanctionedPostDto {
   @ApiProperty({ enum: PostType, default: 'BUDGETED' }) @IsOptional() @IsEnum(PostType) postType?: PostType;
   @ApiProperty() @IsInt() @Min(0) sanctionedCount: number;
 }
+
+export class UpdateSanctionedPostDto extends PartialType(CreateSanctionedPostDto) {}

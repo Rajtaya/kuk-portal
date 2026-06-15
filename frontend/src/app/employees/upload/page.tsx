@@ -80,8 +80,7 @@ export default function UploadEmployeesPage() {
   }
 
   function downloadTemplate() {
-    const base = process.env.NEXT_PUBLIC_API_URL || '/api';
-    fetch(`${base}/employees/template`, { credentials: 'include' })
+    fetch('/api/employees/template', { credentials: 'include' })
       .then((res) => res.blob())
       .then((blob) => {
         const a = document.createElement('a');

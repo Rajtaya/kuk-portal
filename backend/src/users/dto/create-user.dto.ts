@@ -1,5 +1,5 @@
 import { IsEmail, IsString, MinLength, IsEnum, IsOptional, Matches } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
 export class CreateUserDto {
@@ -26,3 +26,5 @@ export class CreateUserDto {
   @IsString()
   universityId?: string;
 }
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}

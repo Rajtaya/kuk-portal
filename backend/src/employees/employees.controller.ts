@@ -152,7 +152,14 @@ export class EmployeesController {
   @Post('bulk-upload')
   @Roles(Role.UNIVERSITY_ADMIN)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.match(/^application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet$/) && !file.mimetype.match(/^application\/vnd\.ms-excel$/)) {
+        cb(new ForbiddenException('Only Excel files (.xlsx, .xls) are allowed'), false);
+      } else { cb(null, true); }
+    },
+  }))
   async bulkUpload(
     @UploadedFile() file: Express.Multer.File,
     @Query('universityId') universityId: string,

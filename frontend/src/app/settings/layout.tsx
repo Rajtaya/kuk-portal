@@ -11,9 +11,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
+    if (!loading && user && user.role === 'STATE_USER') router.replace('/dashboard');
   }, [user, loading, router]);
 
-  if (loading || !user) return null;
+  if (loading || !user || user.role === 'STATE_USER') return null;
 
   return (
     <div className="flex min-h-screen">

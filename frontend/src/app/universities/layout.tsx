@@ -11,9 +11,10 @@ export default function UniversitiesLayout({ children }: { children: React.React
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
+    if (!loading && user && user.role === 'UNIVERSITY_ADMIN') router.replace('/dashboard');
   }, [user, loading, router]);
 
-  if (loading || !user) return null;
+  if (loading || !user || user.role === 'UNIVERSITY_ADMIN') return null;
 
   return (
     <div className="flex min-h-screen">

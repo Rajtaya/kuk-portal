@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Param, Body, UseGuards, ForbiddenException 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { UniversitiesService } from './universities.service';
-import { CreateUniversityDto } from './dto/create-university.dto';
+import { CreateUniversityDto, UpdateUniversityDto } from './dto/create-university.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -44,7 +44,7 @@ export class UniversitiesController {
 
   @Put(':id')
   @Roles(Role.SUPER_ADMIN)
-  update(@Param('id') id: string, @Body() dto: Partial<CreateUniversityDto>) {
+  update(@Param('id') id: string, @Body() dto: UpdateUniversityDto) {
     return this.universitiesService.update(id, dto);
   }
 }

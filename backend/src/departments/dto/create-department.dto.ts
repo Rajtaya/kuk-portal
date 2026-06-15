@@ -1,5 +1,5 @@
 import { IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 
 export class CreateDepartmentDto {
   @ApiProperty({ example: 'Physics' })
@@ -10,3 +10,5 @@ export class CreateDepartmentDto {
   @IsString()
   universityId: string;
 }
+
+export class UpdateDepartmentDto extends PartialType(CreateDepartmentDto) {}

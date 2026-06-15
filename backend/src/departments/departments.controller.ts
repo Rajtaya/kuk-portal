@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, Forb
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { DepartmentsService } from './departments.service';
-import { CreateDepartmentDto } from './dto/create-department.dto';
+import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/create-department.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -39,7 +39,7 @@ export class DepartmentsController {
 
   @Put(':id')
   @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
-  async update(@Param('id') id: string, @Body() dto: Partial<CreateDepartmentDto>, @CurrentUser() user: any) {
+  async update(@Param('id') id: string, @Body() dto: UpdateDepartmentDto, @CurrentUser() user: any) {
     if (user.role === Role.UNIVERSITY_ADMIN) {
       const dept = await this.departmentsService.findOne(id) as any;
       if (dept?.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s department');

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -66,11 +66,10 @@ export class AuthService {
     if (!valid) {
       this.recordFailure(email);
       const rec = this.getAttempt(email);
-      const remaining = MAX_ATTEMPTS - rec.count;
-      if (remaining > 0) {
-        throw new UnauthorizedException(`Invalid credentials. ${remaining} attempt(s) remaining.`);
+      if (rec.lockedUntil) {
+        throw new UnauthorizedException('Account temporarily locked. Try again later.');
       }
-      throw new UnauthorizedException('Account temporarily locked. Try again in 15 minutes.');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     this.clearAttempts(email);

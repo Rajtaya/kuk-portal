@@ -1,5 +1,5 @@
 import { IsString, IsOptional } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 
 export class CreateUniversityDto {
   @ApiProperty({ example: 'Kurukshetra University' })
@@ -45,3 +45,5 @@ export class CreateUniversityDto {
   @IsString()
   logoUrl?: string;
 }
+
+export class UpdateUniversityDto extends PartialType(CreateUniversityDto) {}
