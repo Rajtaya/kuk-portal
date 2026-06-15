@@ -47,7 +47,7 @@ function yearsUntilRetirement(d?: string | null) {
 
 function prettyEnum(s?: string | null) {
   if (!s) return '-';
-  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bSfs\b/, 'SFS').replace(/\bBca\b/, 'BCA').replace(/\bBcb\b/, 'BCB').replace(/\bEws\b/, 'EWS').replace(/\bEsm\b/, 'ESM').replace(/\bPwd\b/, 'PWD').replace(/\bSc\b/, 'SC').replace(/\bSt\b/, 'ST');
+  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bSfs\b/, 'SFS').replace(/\bBca\b/, 'BCA').replace(/\bBcb\b/, 'BCB').replace(/\bEws\b/, 'EWS').replace(/\bPwd\b/, 'PWD').replace(/\bDsc\b/, 'DSC').replace(/\bOsc\b/, 'OSC').replace(/\bUr\b/, 'UR');
 }
 
 function getInitials(name: string) {
@@ -101,8 +101,8 @@ export default function EmployeeProfilePage() {
         name: emp.name || '',
         gender: emp.gender || 'MALE',
         subject: emp.subject || '',
-        category: emp.category || 'GENERAL',
-        categorySelection: emp.categorySelection || 'GENERAL',
+        category: emp.category || 'UR',
+        categorySelection: emp.categorySelection || 'UR',
         postType: emp.postType || 'BUDGETED',
         employeeClassification: emp.employeeClassification || 'TEACHING',
         designationAppointed: emp.designationAppointed || '',
@@ -161,8 +161,8 @@ export default function EmployeeProfilePage() {
       name: employee.name || '',
       gender: employee.gender || 'MALE',
       subject: employee.subject || '',
-      category: employee.category || 'GENERAL',
-      categorySelection: employee.categorySelection || 'GENERAL',
+      category: employee.category || 'UR',
+      categorySelection: employee.categorySelection || 'UR',
       postType: employee.postType || 'BUDGETED',
       employeeClassification: employee.employeeClassification || 'TEACHING',
       designationAppointed: employee.designationAppointed || '',
@@ -319,12 +319,12 @@ export default function EmployeeProfilePage() {
               </div>
               <div><label className={lbl}>Category</label>
                 <select className={inp} value={form.category} onChange={(e) => update('category', e.target.value)}>
-                  {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                  {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div><label className={lbl}>Selection Category</label>
                 <select className={inp} value={form.categorySelection} onChange={(e) => update('categorySelection', e.target.value)}>
-                  {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                  {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div><label className={lbl}>Post Type</label>

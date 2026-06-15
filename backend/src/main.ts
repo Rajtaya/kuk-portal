@@ -4,6 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import * as compression from 'compression';
+import * as express from 'express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -17,8 +19,18 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('trust proxy', 1);
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+  // --- DDoS / hardening middleware ---
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    frameguard: { action: 'deny' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }));
+  app.use(compression());
   app.use(cookieParser());
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // Photos served statically (images only); documents go through authenticated /api/documents/download/:id
   app.useStaticAssets(join(__dirname, '..', '..', 'uploads', 'photos'), {
@@ -51,6 +63,9 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
   }
 
-  await app.listen(process.env.PORT || process.env.BACKEND_PORT || 4000);
+  const server = await app.listen(process.env.PORT || process.env.BACKEND_PORT || 4000);
+  server.setTimeout(30_000);
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
 }
 bootstrap();

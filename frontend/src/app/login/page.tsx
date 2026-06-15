@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
+import { Recaptcha, isCaptchaEnabled } from '@/components/ui/recaptcha';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,15 +12,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { login } = useAuth();
   const router = useRouter();
 
+  const onCaptchaVerify = useCallback((token: string | null) => {
+    setCaptchaToken(token);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isCaptchaEnabled() && !captchaToken) {
+      setError('Please complete the CAPTCHA verification');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, captchaToken || undefined);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
@@ -133,10 +144,18 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <Recaptcha onVerify={onCaptchaVerify} />
+
+              <div className="flex items-center justify-between pt-2">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                >
+                  Forgot password?
+                </Link>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (isCaptchaEnabled() && !captchaToken)}
                   className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-mono uppercase tracking-widest text-sm px-8 py-3.5 disabled:opacity-50 transition-colors"
                 >
                   {loading ? (

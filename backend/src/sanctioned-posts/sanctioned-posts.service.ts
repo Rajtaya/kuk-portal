@@ -38,6 +38,13 @@ export class SanctionedPostsService {
   }
 
   async getVacancyReport(universityId?: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    await this.prisma.employee.updateMany({
+      where: { employmentStatus: 'ACTIVE', retirementDate: { lt: today } },
+      data: { employmentStatus: 'RETIRED' },
+    });
+
     const where = universityId ? { universityId } : {};
 
     // Two queries total (was 1 + N: a count() per post → ~492 round-trips for all-universities).

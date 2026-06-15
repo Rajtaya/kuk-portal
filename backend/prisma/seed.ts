@@ -27,8 +27,8 @@ async function main() {
 
   // ─── Users ─────────────────────────────────────────────
   await prisma.user.upsert({
-    where: { email: 'admin@he.haryana.gov.in' }, update: {},
-    create: { email: 'admin@he.haryana.gov.in', password, name: 'Super Admin', role: Role.SUPER_ADMIN },
+    where: { email: 'rajshtaya@gmail.com' }, update: {},
+    create: { email: 'rajshtaya@gmail.com', password, name: 'Super Admin', role: Role.SUPER_ADMIN },
   });
   await prisma.user.upsert({
     where: { email: 'state@he.haryana.gov.in' }, update: {},
@@ -145,70 +145,96 @@ async function main() {
   }
 
   // ─── Sample Employees ──────────────────────────────────
+  // Retirement = last day of the birth month when the employee turns 60
+  function retirementFromDob(dob: Date): Date {
+    const y = dob.getUTCFullYear() + 60;
+    const m = dob.getUTCMonth();
+    return new Date(Date.UTC(y, m + 1, 0)); // last day of that month
+  }
+
+  const emp = (
+    id: string, name: string, gender: Gender, uniId: string, deptId: string,
+    subject: string, category: Category, catSel: Category, postType: PostType,
+    desigAppointed: string, desigPresent: string, dob: Date, doj: Date,
+    extras?: { mobileNumber?: string; email?: string },
+  ) => ({
+    employeeId: id, name, gender, universityId: uniId, departmentId: deptId,
+    subject, category, categorySelection: catSel, postType,
+    employeeClassification: EmployeeClassification.TEACHING,
+    designationAppointed: desigAppointed, designationPresent: desigPresent,
+    dateOfBirth: dob, dateOfJoining: doj,
+    retirementDate: retirementFromDob(dob),
+    employmentStatus: EmploymentStatus.ACTIVE,
+    ...extras,
+  });
+
   const employees = [
-    {
-      employeeId: 'KUK-001', name: 'Dr. Rajesh Kumar', gender: Gender.MALE,
-      universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id,
-      subject: 'Physics', category: Category.SC, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Assistant Professor', designationPresent: 'Professor',
-      retirementDate: new Date('2027-01-02'), dateOfJoining: new Date('2005-08-15'),
-      employmentStatus: EmploymentStatus.ACTIVE, mobileNumber: '9876543210', email: 'rajesh@kuk.ac.in',
-    },
-    {
-      employeeId: 'KUK-002', name: 'Dr. Sunita Devi', gender: Gender.FEMALE,
-      universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id,
-      subject: 'Chemistry', category: Category.BCA, categorySelection: Category.BCA,
-      postType: PostType.SFS, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Associate Professor', designationPresent: 'Associate Professor',
-      retirementDate: new Date('2028-02-03'), dateOfJoining: new Date('2010-07-01'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
-    {
-      employeeId: 'KUK-003', name: 'Dr. Rampal Singh', gender: Gender.MALE,
-      universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id,
-      subject: 'Computer Science', category: Category.GENERAL, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Assistant Professor', designationPresent: 'Assistant Professor',
-      retirementDate: new Date('2035-12-31'), dateOfJoining: new Date('2012-06-01'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
-    {
-      employeeId: 'KUK-004', name: 'Dr. Meena Rani', gender: Gender.FEMALE,
-      universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id,
-      subject: 'Mathematics', category: Category.EWS, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Assistant Professor', designationPresent: 'Assistant Professor',
-      retirementDate: new Date('2026-09-30'), dateOfJoining: new Date('2008-02-01'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
-    {
-      employeeId: 'KUK-005', name: 'Dr. Vikram Sharma', gender: Gender.MALE,
-      universityId: kuk.id, departmentId: kukDepts['Department of English & Foreign Languages'].id,
-      subject: 'English', category: Category.GENERAL, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Associate Professor', designationPresent: 'Professor',
-      retirementDate: new Date('2027-06-30'), dateOfJoining: new Date('2003-11-01'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
-    {
-      employeeId: 'MDU-001', name: 'Dr. Sohan Lal', gender: Gender.MALE,
-      universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id,
-      subject: 'Physics', category: Category.BCB, categorySelection: Category.GENERAL,
-      postType: PostType.CONTRACTUAL, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Assistant Professor', designationPresent: 'Assistant Professor',
-      retirementDate: new Date('2030-05-01'), dateOfJoining: new Date('2018-01-10'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
-    {
-      employeeId: 'CDLU-001', name: 'Dr. Anand Kumar', gender: Gender.FEMALE,
-      universityId: cdlu.id, departmentId: otherDepts['CDLU-History'].id,
-      subject: 'History', category: Category.EWS, categorySelection: Category.GENERAL,
-      postType: PostType.BUDGETED, employeeClassification: EmployeeClassification.TEACHING,
-      designationAppointed: 'Assistant Professor', designationPresent: 'Assistant Professor',
-      retirementDate: new Date('2029-05-01'), dateOfJoining: new Date('2015-03-20'),
-      employmentStatus: EmploymentStatus.ACTIVE,
-    },
+    // KUK — Physics
+    emp('KUK-001', 'Dr. Rajesh Kumar', Gender.MALE, kuk.id, kukDepts['Department of Physics'].id,
+      'Physics', Category.DSC, Category.UR, PostType.BUDGETED,
+      'Assistant Professor', 'Professor',
+      new Date('1967-01-15'), new Date('1998-08-10'),
+      { mobileNumber: '9876543210', email: 'rajesh@kuk.ac.in' }),
+
+    // KUK — Chemistry (retires June 2026 — will auto-retire on 1 July 2026)
+    emp('KUK-002', 'Dr. Sunita Devi', Gender.FEMALE, kuk.id, kukDepts['Department of Chemistry'].id,
+      'Chemistry', Category.BCA, Category.BCA, PostType.BUDGETED,
+      'Associate Professor', 'Associate Professor',
+      new Date('1966-06-22'), new Date('2002-07-01')),
+
+    // KUK — Computer Science
+    emp('KUK-003', 'Dr. Rampal Singh', Gender.MALE, kuk.id, kukDepts['Department of Computer Science & Applications'].id,
+      'Computer Science', Category.UR, Category.UR, PostType.BUDGETED,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1978-12-05'), new Date('2012-06-01')),
+
+    // KUK — Mathematics (retires Sep 2026)
+    emp('KUK-004', 'Dr. Meena Rani', Gender.FEMALE, kuk.id, kukDepts['Department of Mathematics'].id,
+      'Mathematics', Category.EWS, Category.UR, PostType.BUDGETED,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1966-09-10'), new Date('2000-02-01')),
+
+    // KUK — English
+    emp('KUK-005', 'Dr. Vikram Sharma', Gender.MALE, kuk.id, kukDepts['Department of English & Foreign Languages'].id,
+      'English', Category.UR, Category.UR, PostType.BUDGETED,
+      'Associate Professor', 'Professor',
+      new Date('1968-03-25'), new Date('1999-11-01')),
+
+    // KUK — History
+    emp('KUK-006', 'Dr. Poonam Sangwan', Gender.FEMALE, kuk.id, kukDepts['Department of History'].id,
+      'History', Category.BCB, Category.BCB, PostType.BUDGETED,
+      'Assistant Professor', 'Associate Professor',
+      new Date('1972-11-08'), new Date('2005-04-15')),
+
+    // KUK — Economics (SFS)
+    emp('KUK-007', 'Dr. Naresh Tanwar', Gender.MALE, kuk.id, kukDepts['Department of Economics'].id,
+      'Economics', Category.UR, Category.UR, PostType.SFS,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1980-07-19'), new Date('2015-08-01')),
+
+    // MDU — Physics
+    emp('MDU-001', 'Dr. Sohan Lal', Gender.MALE, mdu.id, otherDepts['MDU-Physics'].id,
+      'Physics', Category.BCB, Category.UR, PostType.BUDGETED,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1975-05-12'), new Date('2010-01-10')),
+
+    // MDU — Chemistry (retires Aug 2026)
+    emp('MDU-002', 'Dr. Kavita Hooda', Gender.FEMALE, mdu.id, otherDepts['MDU-Chemistry'].id,
+      'Chemistry', Category.DSC, Category.DSC, PostType.BUDGETED,
+      'Assistant Professor', 'Professor',
+      new Date('1966-08-30'), new Date('1997-09-15')),
+
+    // CDLU — History
+    emp('CDLU-001', 'Dr. Anand Kumari', Gender.FEMALE, cdlu.id, otherDepts['CDLU-History'].id,
+      'History', Category.EWS, Category.UR, PostType.BUDGETED,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1974-04-02'), new Date('2008-03-20')),
+
+    // CDLU — Mathematics (contractual, young)
+    emp('CDLU-002', 'Dr. Deepak Malik', Gender.MALE, cdlu.id, otherDepts['CDLU-Mathematics'].id,
+      'Mathematics', Category.OSC, Category.OSC, PostType.CONTRACTUAL,
+      'Assistant Professor', 'Assistant Professor',
+      new Date('1988-02-14'), new Date('2020-11-01')),
   ];
 
   for (const emp of employees) {
@@ -217,19 +243,19 @@ async function main() {
 
   // ─── Sample Sanctioned Posts (KUK) ─────────────────────
   const sanctionedPosts = [
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Professor', category: Category.GENERAL, sanctionedCount: 3 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Associate Professor', category: Category.GENERAL, sanctionedCount: 5 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Assistant Professor', category: Category.SC, sanctionedCount: 2 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Professor', category: Category.GENERAL, sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Associate Professor', category: Category.UR, sanctionedCount: 5 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Physics'].id, designation: 'Assistant Professor', category: Category.DSC, sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 3 },
     { universityId: kuk.id, departmentId: kukDepts['Department of Chemistry'].id, designation: 'Associate Professor', category: Category.BCA, sanctionedCount: 4 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Professor', category: Category.GENERAL, sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 2 },
     { universityId: kuk.id, departmentId: kukDepts['Department of Mathematics'].id, designation: 'Assistant Professor', category: Category.EWS, sanctionedCount: 3 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Professor', category: Category.GENERAL, sanctionedCount: 2 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Associate Professor', category: Category.GENERAL, sanctionedCount: 4 },
-    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Assistant Professor', category: Category.GENERAL, sanctionedCount: 6 },
-    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Professor', category: Category.GENERAL, sanctionedCount: 4 },
-    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Assistant Professor', category: Category.GENERAL, sanctionedCount: 6 },
-    { universityId: cdlu.id, departmentId: otherDepts['CDLU-History'].id, designation: 'Assistant Professor', category: Category.GENERAL, sanctionedCount: 3 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 2 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Associate Professor', category: Category.UR, sanctionedCount: 4 },
+    { universityId: kuk.id, departmentId: kukDepts['Department of Computer Science & Applications'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 6 },
+    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Professor', category: Category.UR, sanctionedCount: 4 },
+    { universityId: mdu.id, departmentId: otherDepts['MDU-Physics'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 6 },
+    { universityId: cdlu.id, departmentId: otherDepts['CDLU-History'].id, designation: 'Assistant Professor', category: Category.UR, sanctionedCount: 3 },
   ];
 
   for (const sp of sanctionedPosts) {
@@ -239,7 +265,7 @@ async function main() {
   console.log('Seed completed successfully');
   console.log('---');
   console.log('Logins (password: admin123):');
-  console.log('  Super Admin:  admin@he.haryana.gov.in');
+  console.log('  Super Admin:  rajshtaya@gmail.com');
   console.log('  State User:   state@he.haryana.gov.in');
   console.log('  KUK Admin:    admin@kuk.ac.in');
   console.log('  MDU Admin:    admin@mdu.ac.in');

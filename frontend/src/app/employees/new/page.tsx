@@ -20,7 +20,7 @@ export default function NewEmployeePage() {
   const [form, setForm] = useState({
     employeeId: '', name: '', gender: 'MALE',
     universityId: '', departmentId: '', subject: '',
-    category: 'GENERAL', categorySelection: 'GENERAL',
+    category: 'UR', categorySelection: 'UR',
     postType: 'BUDGETED', employeeClassification: 'TEACHING',
     designationAppointed: '', designationPresent: '',
     dateOfJoining: '', retirementDate: '',
@@ -114,12 +114,12 @@ export default function NewEmployeePage() {
             </div>
             <div><label className={lbl}>Category</label>
               <select className={inp} value={form.category} onChange={(e) => update('category', e.target.value)}>
-                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div><label className={lbl}>Category (Selection)</label>
               <select className={inp} value={form.categorySelection} onChange={(e) => update('categorySelection', e.target.value)}>
-                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div><label className={lbl}>Employment Status</label>

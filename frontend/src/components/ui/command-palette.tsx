@@ -16,9 +16,9 @@ interface Command {
 }
 
 const navByRole: Record<string, string[]> = {
-  SUPER_ADMIN: ['dashboard', 'employees', 'universities', 'sanctioned', 'users', 'settings'],
-  STATE_USER: ['dashboard', 'employees', 'universities'],
-  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned'],
+  SUPER_ADMIN: ['dashboard', 'universities', 'sanctioned', 'employees', 'users', 'settings'],
+  STATE_USER: ['dashboard', 'universities', 'sanctioned', 'employees'],
+  UNIVERSITY_ADMIN: ['dashboard', 'sanctioned', 'employees'],
 };
 
 export function CommandPalette() {

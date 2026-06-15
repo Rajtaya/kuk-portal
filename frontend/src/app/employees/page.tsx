@@ -78,7 +78,7 @@ export default function EmployeesPage() {
   const emptyForm = {
     employeeId: '', name: '', gender: 'MALE',
     universityId: '', departmentId: '', subject: '',
-    category: 'GENERAL', categorySelection: 'GENERAL',
+    category: 'UR', categorySelection: 'UR',
     postType: 'BUDGETED', employeeClassification: 'TEACHING',
     designationAppointed: '', designationPresent: '',
     dateOfJoining: '', retirementDate: '',
@@ -536,7 +536,7 @@ export default function EmployeesPage() {
                 }`}
               >
                 <option value="">Category</option>
-                {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}
+                {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
               {filters.category ? (
                 <button onClick={() => applyFilter('category', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -759,8 +759,8 @@ export default function EmployeesPage() {
                   else if (col.key === 'department') { const uniqueDepts = [...new Map(departments.map(d => [d.name.toUpperCase(), d.name])).values()].sort(); headerEl = <select value={filters.department || ''} onChange={(e) => applyFilter('department', e.target.value)} className={scls} style={filterIcon}><option value="">Department</option>{uniqueDepts.map((n) => <option key={n} value={n}>{n}</option>)}</select>; }
                   else if (col.key === 'subject') headerEl = <select value={filters.subject || ''} onChange={(e) => applyFilter('subject', e.target.value)} className={scls} style={filterIcon}><option value="">Subject</option>{subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>;
                   else if (col.key === 'designation') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Designation</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
-                  else if (col.key === 'category') headerEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls} style={filterIcon}><option value="">Category</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
-                  else if (col.key === 'catSelection') headerEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls} style={filterIcon}><option value="">Sel. Category</option>{['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'category') headerEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls} style={filterIcon}><option value="">Category</option>{['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
+                  else if (col.key === 'catSelection') headerEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls} style={filterIcon}><option value="">Sel. Category</option>{['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
                   else if (col.key === 'presentDesig') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Present Desig.</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
                   else if (col.key === 'gender') headerEl = <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)} className={scls} style={filterIcon}><option value="">Gender</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select>;
                   else if (col.key === 'postType') headerEl = <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)} className={scls} style={filterIcon}><option value="">Type</option><option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option></select>;
@@ -958,12 +958,12 @@ export default function EmployeesPage() {
                   </div>
                   <div><label className={addLbl}>Category</label>
                     <select className={addInp} value={addForm.category} onChange={e => setAddForm(p => ({ ...p, category: e.target.value }))}>
-                      {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map(c => <option key={c} value={c}>{c}</option>)}
+                      {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div><label className={addLbl}>Category (Selection)</label>
                     <select className={addInp} value={addForm.categorySelection} onChange={e => setAddForm(p => ({ ...p, categorySelection: e.target.value }))}>
-                      {['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'].map(c => <option key={c} value={c}>{c}</option>)}
+                      {['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div><label className={addLbl}>Employment Status</label>

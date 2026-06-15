@@ -18,9 +18,9 @@ const navItems = {
 };
 
 const roleLinks = {
-  SUPER_ADMIN: ['dashboard', 'employees', 'universities', 'sanctioned', 'users', 'settings'],
-  STATE_USER: ['dashboard', 'employees', 'universities', 'sanctioned'],
-  UNIVERSITY_ADMIN: ['dashboard', 'employees', 'sanctioned', 'settings'],
+  SUPER_ADMIN: ['dashboard', 'universities', 'sanctioned', 'employees', 'users', 'settings'],
+  STATE_USER: ['dashboard', 'universities', 'sanctioned', 'employees'],
+  UNIVERSITY_ADMIN: ['dashboard', 'sanctioned', 'employees', 'settings'],
 };
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';

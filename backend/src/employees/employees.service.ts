@@ -1,11 +1,32 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateEmployeeDto, EmployeeFilterDto } from './dto/create-employee.dto';
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
+
   constructor(private prisma: PrismaService) {}
+
+  async autoRetireEmployees() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const result = await this.prisma.employee.updateMany({
+      where: {
+        employmentStatus: 'ACTIVE',
+        retirementDate: { lt: today },
+      },
+      data: { employmentStatus: 'RETIRED' },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Auto-retired ${result.count} employee(s) past their retirement date`);
+    }
+
+    return result.count;
+  }
 
   // Date inputs arrive as "YYYY-MM-DD" from <input type="date">; Prisma only
   // accepts Date objects or full ISO-8601 datetimes, anything else throws a 500.
@@ -159,11 +180,11 @@ export class EmployeesService {
         const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderRaw) ? genderRaw : 'MALE';
 
         const categoryRaw = (row['Category'] || '').toUpperCase();
-        const validCategories = ['GENERAL','SC','ST','EWS','BCA','BCB','PWD','ESM'];
-        const category = validCategories.includes(categoryRaw) ? categoryRaw : 'GENERAL';
+        const validCategories = ['UR','DSC','OSC','BCA','BCB','EWS','PWD'];
+        const category = validCategories.includes(categoryRaw) ? categoryRaw : 'UR';
 
         const catSelRaw = (row['Category(Selection)'] || '').toUpperCase();
-        const categorySelection = validCategories.includes(catSelRaw) ? catSelRaw : 'GENERAL';
+        const categorySelection = validCategories.includes(catSelRaw) ? catSelRaw : 'UR';
 
         const typeRaw = (row['Type'] || '').toUpperCase();
         const postType = ['BUDGETED','SFS','CONTRACTUAL'].includes(typeRaw) ? typeRaw : 'BUDGETED';
@@ -227,6 +248,7 @@ export class EmployeesService {
   }
 
   async getDashboardCharts(universityId?: string) {
+    await this.autoRetireEmployees();
     const empWhere: Prisma.EmployeeWhereInput = { employmentStatus: 'ACTIVE' };
     if (universityId) empWhere.universityId = universityId;
 
@@ -406,6 +428,7 @@ export class EmployeesService {
   }
 
   async getDashboardStats(universityId?: string) {
+    await this.autoRetireEmployees();
     const where = universityId ? { universityId } : {};
     const activeWhere = { ...where, employmentStatus: 'ACTIVE' as any };
 

@@ -1,15 +1,26 @@
 import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class LoginDto {
+export class ForgotPasswordDto {
   @ApiProperty({ example: 'admin@kuk.ac.in' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  token: string;
+
+  @ApiProperty()
   @IsString()
   @MinLength(8)
-  password: string;
+  newPassword: string;
 
   @ApiPropertyOptional()
   @IsOptional()

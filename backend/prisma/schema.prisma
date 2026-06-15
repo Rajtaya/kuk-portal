@@ -22,14 +22,13 @@ enum Gender {
 }
 
 enum Category {
-  GENERAL
-  SC
-  ST
-  EWS
+  UR
+  DSC
+  OSC
   BCA
   BCB
+  EWS
   PWD
-  ESM
 }
 
 enum PostType {
@@ -70,6 +69,8 @@ model User {
   isActive      Boolean     @default(true)
   loginAttempts Int         @default(0)
   lockedUntil   DateTime?
+  resetToken    String?
+  resetTokenExp DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   auditLogs     AuditLog[]
@@ -144,8 +145,8 @@ model Employee {
   departmentId           String
   subject                String?
 
-  category               Category               @default(GENERAL)
-  categorySelection      Category               @default(GENERAL)
+  category               Category               @default(UR)
+  categorySelection      Category               @default(UR)
   postType               PostType               @default(BUDGETED)
   employeeClassification EmployeeClassification @default(TEACHING)
 

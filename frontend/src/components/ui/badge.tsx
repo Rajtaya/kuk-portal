@@ -13,14 +13,13 @@ const BADGE_STYLES: Record<string, string> = {
   FEMALE: 'bg-pink-100 text-pink-700 border-pink-200',
   OTHER: 'bg-gray-100 text-gray-600 border-gray-200',
 
-  GENERAL: 'bg-slate-100 text-slate-700 border-slate-200',
-  SC: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  ST: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  EWS: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  UR: 'bg-slate-100 text-slate-700 border-slate-200',
+  DSC: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  OSC: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   BCA: 'bg-violet-100 text-violet-700 border-violet-200',
   BCB: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
+  EWS: 'bg-cyan-100 text-cyan-700 border-cyan-200',
   PWD: 'bg-rose-100 text-rose-700 border-rose-200',
-  ESM: 'bg-lime-100 text-lime-700 border-lime-200',
 
   SUPER_ADMIN: 'bg-red-100 text-red-700 border-red-200',
   STATE_USER: 'bg-primary-100 text-primary-700 border-primary-200',

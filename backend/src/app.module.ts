@@ -1,7 +1,9 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { CsrfMiddleware } from './common/middleware/csrf.middleware';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { DdosMiddleware } from './common/middleware/ddos.middleware';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerBehindProxyGuard } from './common/guards/throttler-behind-proxy.guard';
 import { PrismaService } from './prisma.service';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuthModule } from './auth/auth.module';
@@ -13,10 +15,15 @@ import { SanctionedPostsModule } from './sanctioned-posts/sanctioned-posts.modul
 import { MastersModule } from './masters/masters.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AuditModule } from './audit/audit.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 10000, limit: 15 },
+      { name: 'long', ttl: 60000, limit: 60 },
+    ]),
+    MailModule,
     AuthModule,
     UsersModule,
     UniversitiesModule,
@@ -29,13 +36,15 @@ import { AuditModule } from './audit/audit.module';
   ],
   providers: [
     PrismaService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
   exports: [PrismaService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CsrfMiddleware).forRoutes('*');
+    consumer
+      .apply(DdosMiddleware).forRoutes('*')
+      .apply(CsrfMiddleware).forRoutes('*');
   }
 }
