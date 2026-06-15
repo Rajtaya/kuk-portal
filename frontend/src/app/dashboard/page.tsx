@@ -931,42 +931,59 @@ export default function DashboardPage() {
 
       {/* Scope bar — super/state: funnel + filtered scope. University admin: their own university (locked, no filter). */}
       {(
-        <div className="md:sticky md:top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-3 md:px-5 py-2 md:py-3 flex flex-wrap items-center gap-x-3 md:gap-x-4 gap-y-2 md:gap-y-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
-          {!isUniAdmin ? (
-            /* Filter — opens the university drawer (slides in from the left) */
-            <button
-              onClick={() => setUniMenuOpen(true)}
-              aria-label="Filter by university"
-              title="Filter by university"
-              className="shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/40 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-              </svg>
-            </button>
-          ) : (
-            /* University admin: a fixed building badge (locked to their own university) */
-            <div className="shrink-0 flex items-center justify-center bg-white/15 border border-white/40 p-2" aria-hidden="true">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
-              </svg>
-            </div>
-          )}
+        <div className="md:sticky md:top-0 z-30 bg-gradient-to-r from-primary-600 to-primary-800 px-3 md:px-5 py-2 md:py-3 shadow-[6px_6px_0_0_#1c1917] dark:shadow-[6px_6px_0_0_#000]">
+          {/* Top row: filter + university name + controls */}
+          <div className="flex items-center gap-x-3 md:gap-x-4">
+            {!isUniAdmin ? (
+              <button
+                onClick={() => setUniMenuOpen(true)}
+                aria-label="Filter by university"
+                title="Filter by university"
+                className="shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/40 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                </svg>
+              </button>
+            ) : (
+              <div className="shrink-0 flex items-center justify-center bg-white/15 border border-white/40 p-2" aria-hidden="true">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21" />
+                </svg>
+              </div>
+            )}
 
-          {/* University name — super/state shows the filtered scope; admin shows their own university */}
-          <div className="min-w-0">
-            <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isUniAdmin ? 'Logged in as' : (isAllUni ? 'Viewing' : 'Filtered View')}</p>
-            <p className="text-white text-lg font-serif font-bold truncate">{isUniAdmin ? (user?.university?.name || 'My University') : selectedUniName}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isUniAdmin ? 'Logged in as' : (isAllUni ? 'Viewing' : 'Filtered View')}</p>
+              <p className="text-white text-lg font-serif font-bold truncate">{isUniAdmin ? (user?.university?.name || 'My University') : selectedUniName}</p>
+            </div>
+
+            {/* Account controls — inline with name row */}
+            <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+              <ThemeToggle variant="scopebar" />
+              <span className="hidden md:flex"><DarkModeToggle variant="scopebar" /></span>
+              <button
+                onClick={logout}
+                title="Sign out"
+                aria-label="Sign out"
+                className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1 hidden md:block">Sign Out</span>
+              </button>
+            </div>
           </div>
 
-          {/* Post-occupancy stats — colorful, clickable blocks (Sanctioned = Filled + Vacant) */}
-          <div className="flex items-center gap-1.5 md:gap-3 ml-auto overflow-x-auto">
+          {/* Stats row — full-width, cards grow to fill space dynamically */}
+          <div className="flex items-center gap-1.5 md:gap-3 mt-2">
             {isAllUni && (
               <button
                 type="button"
                 onClick={() => router.push('/universities')}
                 title="View universities"
-                className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+                className="flex-1 flex flex-col items-center justify-center py-1.5 bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
               >
                 <CountUp value={stats.universityCount} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
                 <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Unis</span>
@@ -976,7 +993,7 @@ export default function DashboardPage() {
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex-1 flex flex-col items-center justify-center py-1.5 bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? (stats.sanctionedPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
               <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Sanct.</span>
@@ -985,7 +1002,7 @@ export default function DashboardPage() {
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex-1 flex flex-col items-center justify-center py-1.5 bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? (stats.filledPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
               <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Filled</span>
@@ -994,28 +1011,10 @@ export default function DashboardPage() {
               type="button"
               onClick={goToSanctioned}
               title="View sanctioned posts"
-              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-[60px] md:min-w-[78px] bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="flex-1 flex flex-col items-center justify-center py-1.5 bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
               <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Vacant</span>
-            </button>
-          </div>
-
-          {/* Account controls — styled as colored boxes matching the stat blocks */}
-          <div className="flex items-center gap-1.5 md:gap-2 shrink-0 pl-2 ml-1 border-l border-white/25">
-            <ThemeToggle variant="scopebar" />
-            {/* Dark toggle lives in the mobile top bar already — avoid duplicating it on mobile */}
-            <span className="hidden md:flex"><DarkModeToggle variant="scopebar" /></span>
-            <button
-              onClick={logout}
-              title="Sign out"
-              aria-label="Sign out"
-              className="flex flex-col items-center justify-center px-2 md:px-3 py-1.5 min-w-0 md:min-w-[72px] bg-gradient-to-br from-red-500 to-red-700 text-white shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[9px] mt-1 hidden md:block">Sign Out</span>
             </button>
           </div>
         </div>
