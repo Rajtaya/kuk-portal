@@ -371,13 +371,13 @@ export default function DashboardPage() {
         series: [
           { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 14 : 80, barGap: '15%',
             data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+            label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 13, fontWeight: 800, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
           { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 14 : 80,
             data: filled, itemStyle: { color: '#10B981', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+            label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 13, fontWeight: 800, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
           { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 14 : 80,
             data: vacant, itemStyle: { color: '#EF4444', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+            label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 13, fontWeight: 800, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
         ],
       };
     }
@@ -409,7 +409,7 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigList.length - 1 ? {
-          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: isMobile ? 11 : 13, fontWeight: 800, color: '#111827',
+          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: isMobile ? 11 : 13, fontWeight: 800, color: '#111827',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -853,13 +853,13 @@ export default function DashboardPage() {
       series: [
         { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 12 : 38,
           data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
         { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 12 : 38,
           data: filled, itemStyle: { color: '#10B981', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
         { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 12 : 38,
           data: vacant, itemStyle: { color: '#EF4444', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
-          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
       ],
     };
   }, [activeData, dpEffective, dpPostTypes, isMobile]);
