@@ -359,55 +359,57 @@ export default function DashboardPage() {
           },
         },
         legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
-        grid: { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
-        xAxis: {
-          type: 'category' as const, data: desigs,
-          axisLabel: { fontSize: isMobile ? 9 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -30 : 0 },
-          axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
-        },
-        yAxis: {
-          type: 'value' as const,
-          name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
-          axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
-          axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
-        },
+        grid: isMobile
+          ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
+          : { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
+        xAxis: isMobile
+          ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#111827' }, axisLine: { show: true, lineStyle: { color: '#000', width: 2 } } }
+          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10 },
+        yAxis: isMobile
+          ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10 }
+          : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#000', width: 2 } } },
         series: [
-          { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 35 : 80, barGap: '15%',
-            data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-          { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 35 : 80,
-            data: filled, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-          { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 35 : 80,
-            data: vacant, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
-            label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 800, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 14 : 80, barGap: '15%',
+            data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 14 : 80,
+            data: filled, itemStyle: { color: '#10B981', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+          { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 14 : 80,
+            data: vacant, itemStyle: { color: '#EF4444', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+            label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 13, fontWeight: 800, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
         ],
       };
     }
 
-    // Super Admin / State User: stacked bars
+    // Super Admin / State User: vertical on desktop, horizontal on mobile
+    const catAxis = {
+      type: 'category' as const, data: categories,
+      axisLabel: { fontSize: isMobile ? 11 : 14, interval: 0, color: '#1f2937', fontWeight: 700, margin: 12 },
+      axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
+      ...(isMobile ? { inverse: true } : {}),
+    };
+    const valAxis = {
+      type: 'value' as const,
+      name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 14, fontWeight: 'bold', color: '#111827' },
+      axisLabel: { fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151' },
+      axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
+    };
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
-      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 100 : 80, left: isMobile ? 10 : 50, containLabel: true },
-      xAxis: {
-        type: 'category' as const, data: categories,
-        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 10 : 13, interval: 0, color: '#1f2937', fontWeight: 700, width: isMobile ? 60 : 100, overflow: 'truncate' as const },
-        axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
-      },
-      yAxis: {
-        type: 'value' as const,
-        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 14, fontWeight: 'bold', color: '#111827' },
-        axisLabel: { fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
-      },
+      grid: isMobile
+        ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
+        : { top: 55, right: 20, bottom: 90, left: 40, containLabel: true },
+      xAxis: isMobile ? valAxis : catAxis,
+      yAxis: isMobile ? catAxis : valAxis,
       series: desigList.map((d, i) => ({
-        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 18 : 65,
+        name: d, type: 'bar' as const, stack: 'total', barWidth: isMobile ? 16 : 64,
         data: rows.map(r => Number(r[d]) || 0),
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigList.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: isMobile ? 11 : 14, fontWeight: 800, color: '#111827',
+          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: isMobile ? 11 : 13, fontWeight: 800, color: '#111827',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -839,27 +841,25 @@ export default function DashboardPage() {
         },
       },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
-      grid: { top: 30, right: 20, bottom: 60, left: 50, containLabel: true },
-      xAxis: {
-        type: 'category' as const, data: categories,
-        axisLabel: { fontSize: isMobile ? 10 : 12, fontWeight: 600, color: '#374151', interval: 0, rotate: isMobile ? -20 : 0, margin: 12 },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-      },
-      yAxis: {
-        type: 'value' as const,
-        name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
-      },
+      grid: isMobile
+        ? { top: 20, right: 50, bottom: 60, left: 10, containLabel: true }
+        : { top: 30, right: 20, bottom: 60, left: 50, containLabel: true },
+      xAxis: isMobile
+        ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
+        : { type: 'category' as const, data: categories, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
+      yAxis: isMobile
+        ? { type: 'category' as const, data: categories, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
+        : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
       series: [
-        { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 16 : 38,
-          data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-        { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 16 : 38,
-          data: filled, itemStyle: { color: '#10B981', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
-        { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 16 : 38,
-          data: vacant, itemStyle: { color: '#EF4444', borderRadius: [4, 4, 0, 0] },
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 12 : 38,
+          data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#1E3A8A', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        { name: 'Filled', type: 'bar' as const, barWidth: isMobile ? 12 : 38,
+          data: filled, itemStyle: { color: '#10B981', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#065F46', formatter: (p: any) => p.value > 0 ? p.value : '' } },
+        { name: 'Vacant', type: 'bar' as const, barWidth: isMobile ? 12 : 38,
+          data: vacant, itemStyle: { color: '#EF4444', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
+          label: { show: true, position: (isMobile ? 'right' : 'top') as const, fontSize: 11, fontWeight: 700, color: '#991B1B', formatter: (p: any) => p.value > 0 ? p.value : '' } },
       ],
     };
   }, [activeData, dpEffective, dpPostTypes, isMobile]);
@@ -981,7 +981,7 @@ export default function DashboardPage() {
                 className="flex-1 md:flex-initial flex flex-col items-center justify-center px-2 md:px-3 py-1.5 bg-gradient-to-br from-violet-500 to-violet-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
               >
                 <CountUp value={stats.universityCount} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
-                <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Unis</span>
+                <span className="font-mono uppercase tracking-wider text-white/80 text-[10px] md:text-xs mt-1">Unis</span>
               </button>
             )}
             <button
@@ -991,7 +991,7 @@ export default function DashboardPage() {
               className="flex-1 md:flex-initial flex flex-col items-center justify-center px-2 md:px-3 py-1.5 bg-gradient-to-br from-blue-500 to-blue-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? (stats.sanctionedPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Sanct.</span>
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[10px] md:text-xs mt-1">Sanct.</span>
             </button>
             <button
               type="button"
@@ -1000,7 +1000,7 @@ export default function DashboardPage() {
               className="flex-1 md:flex-initial flex flex-col items-center justify-center px-2 md:px-3 py-1.5 bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? (stats.filledPosts ?? 0) : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Filled</span>
+              <span className="font-mono uppercase tracking-wider text-white/80 text-[10px] md:text-xs mt-1">Filled</span>
             </button>
             <button
               type="button"
@@ -1009,7 +1009,9 @@ export default function DashboardPage() {
               className="flex-1 md:flex-initial flex flex-col items-center justify-center px-2 md:px-3 py-1.5 bg-gradient-to-br from-red-500 to-red-700 shadow-[3px_3px_0_0_rgba(28,25,23,0.45)] transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[5px_5px_0_0_rgba(28,25,23,0.55)] focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <CountUp value={scopeReady ? stats.vacantSeats : 0} className="font-serif font-bold text-white text-lg md:text-2xl leading-none tabular-nums" />
-              <span className="font-mono uppercase tracking-wider text-white/80 text-[8px] md:text-[10px] mt-1">Vacant</span>
+              <span className="font-mono uppercase tracking-wider text-yellow-300 text-[10px] md:text-xs mt-0.5">
+                Vacant{scopeReady && stats.sanctionedPosts > 0 ? `(${Math.round((stats.vacantSeats / stats.sanctionedPosts) * 100)}%)` : ''}
+              </span>
             </button>
           </div>
 
@@ -1038,7 +1040,7 @@ export default function DashboardPage() {
           title="Employee Distribution by Designation Across Universities"
           tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
         >
-          <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '350px' : '420px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
+          <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '380px' : '520px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
         </ChartCard>
       )}
 

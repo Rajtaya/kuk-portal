@@ -20,8 +20,8 @@ import { MailModule } from './mail/mail.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 10000, limit: 15 },
-      { name: 'long', ttl: 60000, limit: 60 },
+      { name: 'short', ttl: 10000, limit: process.env.NODE_ENV === 'production' ? 15 : 500 },
+      { name: 'long', ttl: 60000, limit: process.env.NODE_ENV === 'production' ? 60 : 2000 },
     ]),
     MailModule,
     AuthModule,

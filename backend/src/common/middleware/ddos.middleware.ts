@@ -23,6 +23,8 @@ setInterval(() => {
 @Injectable()
 export class DdosMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
+    if (process.env.NODE_ENV !== 'production') return next();
+
     const ip = clientIp(req);
     let state = connections.get(ip);
     if (!state) {
