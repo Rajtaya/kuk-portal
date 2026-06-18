@@ -151,92 +151,96 @@ export class EmployeesService {
     return this.prisma.employee.delete({ where: { id } });
   }
 
+  async findExistingEmployeeIds(ids: string[], universityId: string): Promise<string[]> {
+    const existing = await this.prisma.employee.findMany({
+      where: { universityId, employeeId: { in: ids } },
+      select: { employeeId: true },
+    });
+    return existing.map(e => e.employeeId!).filter(Boolean);
+  }
+
+  private parseRowData(row: Record<string, any>) {
+    const genderRaw = (row['Gender'] || '').toUpperCase();
+    const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderRaw) ? genderRaw : 'MALE';
+
+    const validCategories = ['UR','DSC','OSC','BCA','BCB','EWS','PWD'];
+    const categoryRaw = (row['Category'] || '').toUpperCase();
+    const category = validCategories.includes(categoryRaw) ? categoryRaw : 'UR';
+
+    const catSelRaw = (row['Category(Selection)'] || '').toUpperCase();
+    const categorySelection = validCategories.includes(catSelRaw) ? catSelRaw : 'UR';
+
+    const typeRaw = (row['Type'] || '').toUpperCase();
+    const postType = ['BUDGETED','SFS','CONTRACTUAL'].includes(typeRaw) ? typeRaw : 'BUDGETED';
+
+    const statusRaw = (row['Employment Status'] || '').toUpperCase();
+    const employmentStatus = ['ACTIVE','RETIRED','RESIGNED','TERMINATED','SUSPENDED'].includes(statusRaw) ? statusRaw : 'ACTIVE';
+
+    const parseDate = (val: any): Date | null => {
+      if (!val) return null;
+      if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000));
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    return {
+      employeeId: row['Employee ID'] || row['employeeId'] || null,
+      name: row['Employee Name'] || row['name'] || '',
+      gender, category, categorySelection, postType, employmentStatus,
+      employeeClassification: 'TEACHING' as const,
+      subject: row['Subject'] || row['subject'] || null,
+      designationAppointed: row['Designation(appointment)'] || row['designationAppointed'] || null,
+      designationPresent: row['Designation (Present)'] || row['designationPresent'] || null,
+      retirementDate: parseDate(row['Retirement Date'] || row['retirementDate']),
+      dateOfJoining: parseDate(row['Date of Joining'] || row['dateOfJoining']),
+      mobileNumber: row['Mobile Number'] || row['mobileNumber'] || null,
+      email: row['Email Address'] || row['email'] || null,
+      deptName: row['Department'] || row['department'] || '',
+    };
+  }
+
   async bulkImport(rows: Record<string, any>[], universityId: string) {
     if (rows.length > 5000) throw new Error('Maximum 5000 rows per upload');
-    const results = { success: 0, failed: 0, errors: [] as string[], total: rows.length };
+    const results = { success: 0, failed: 0, created: 0, updated: 0, errors: [] as string[], total: rows.length };
     const deptCache = new Map<string, string>();
 
     const existingDepts = await this.prisma.department.findMany({ where: { universityId } });
     for (const d of existingDepts) deptCache.set(d.name.toLowerCase(), d.id);
 
+    const existingEmps = await this.prisma.employee.findMany({
+      where: { universityId, employeeId: { not: null } },
+      select: { id: true, employeeId: true },
+    });
+    const empIdMap = new Map(existingEmps.filter(e => e.employeeId).map(e => [e.employeeId!, e.id]));
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowNum = i + 2;
       try {
-        const name = row['Employee Name'] || row['name'];
-        if (!name) { results.failed++; results.errors.push(`Row ${rowNum}: Employee Name is missing`); continue; }
+        const parsed = this.parseRowData(row);
+        if (!parsed.name) { results.failed++; results.errors.push(`Row ${rowNum}: Employee Name is missing`); continue; }
+        if (!parsed.deptName) { results.failed++; results.errors.push(`Row ${rowNum} (${parsed.name}): Department is missing`); continue; }
 
-        const deptName = row['Department'] || row['department'] || '';
-        if (!deptName) { results.failed++; results.errors.push(`Row ${rowNum} (${name}): Department is missing`); continue; }
-
-        let departmentId = deptCache.get(deptName.toLowerCase());
+        let departmentId = deptCache.get(parsed.deptName.toLowerCase());
         if (!departmentId) {
-          const dept = await this.prisma.department.create({ data: { name: deptName, universityId } });
+          const dept = await this.prisma.department.create({ data: { name: parsed.deptName, universityId } });
           departmentId = dept.id;
-          deptCache.set(deptName.toLowerCase(), departmentId);
+          deptCache.set(parsed.deptName.toLowerCase(), departmentId);
         }
 
-        const genderRaw = (row['Gender'] || '').toUpperCase();
-        const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderRaw) ? genderRaw : 'MALE';
+        const { deptName: _, ...data } = parsed;
+        const employeeData = { ...data, universityId, departmentId } as any;
 
-        const categoryRaw = (row['Category'] || '').toUpperCase();
-        const validCategories = ['UR','DSC','OSC','BCA','BCB','EWS','PWD'];
-        const category = validCategories.includes(categoryRaw) ? categoryRaw : 'UR';
-
-        const catSelRaw = (row['Category(Selection)'] || '').toUpperCase();
-        const categorySelection = validCategories.includes(catSelRaw) ? catSelRaw : 'UR';
-
-        const typeRaw = (row['Type'] || '').toUpperCase();
-        const postType = ['BUDGETED','SFS','CONTRACTUAL'].includes(typeRaw) ? typeRaw : 'BUDGETED';
-
-        const employeeClassification = 'TEACHING';
-
-        const statusRaw = (row['Employment Status'] || '').toUpperCase();
-        const employmentStatus = ['ACTIVE','RETIRED','RESIGNED','TERMINATED','SUSPENDED'].includes(statusRaw) ? statusRaw : 'ACTIVE';
-
-        let retirementDate: Date | null = null;
-        const retVal = row['Retirement Date'] || row['retirementDate'];
-        if (retVal) {
-          if (typeof retVal === 'number') {
-            retirementDate = new Date(Math.round((retVal - 25569) * 86400 * 1000));
-          } else {
-            const parsed = new Date(retVal);
-            if (!isNaN(parsed.getTime())) retirementDate = parsed;
-          }
+        if (parsed.employeeId && empIdMap.has(parsed.employeeId)) {
+          const existingId = empIdMap.get(parsed.employeeId)!;
+          delete employeeData.employeeId;
+          await this.prisma.employee.update({ where: { id: existingId }, data: employeeData });
+          results.updated++;
+        } else {
+          await this.prisma.employee.create({ data: employeeData });
+          if (parsed.employeeId) empIdMap.set(parsed.employeeId, 'new');
+          results.created++;
         }
-
-        let dateOfJoining: Date | null = null;
-        const dojVal = row['Date of Joining'] || row['dateOfJoining'];
-        if (dojVal) {
-          if (typeof dojVal === 'number') {
-            dateOfJoining = new Date(Math.round((dojVal - 25569) * 86400 * 1000));
-          } else {
-            const parsed = new Date(dojVal);
-            if (!isNaN(parsed.getTime())) dateOfJoining = parsed;
-          }
-        }
-
-        await this.prisma.employee.create({
-          data: {
-            employeeId: row['Employee ID'] || row['employeeId'] || null,
-            name,
-            gender: gender as any,
-            universityId,
-            departmentId,
-            subject: row['Subject'] || row['subject'] || null,
-            category: category as any,
-            categorySelection: categorySelection as any,
-            postType: postType as any,
-            employeeClassification: employeeClassification as any,
-            designationAppointed: row['Designation(appointment)'] || row['designationAppointed'] || null,
-            designationPresent: row['Designation (Present)'] || row['designationPresent'] || null,
-            retirementDate,
-            dateOfJoining,
-            employmentStatus: employmentStatus as any,
-            mobileNumber: row['Mobile Number'] || row['mobileNumber'] || null,
-            email: row['Email Address'] || row['email'] || null,
-          },
-        });
         results.success++;
       } catch (err) {
         results.failed++;
@@ -378,8 +382,8 @@ export class EmployeesService {
     // "Filled" = headcount of all active employees (incl contractual), so the figure matches the
     // employee-distribution chart and counts contractual staff as occupying a post.
     // Vacant = Sanctioned − Filled.
-    const sanctionedPostsTotal = sanctionedPosts.reduce((s, p) => s + p.sanctionedCount, 0);
-    const filledPosts = employees.length;
+    const sanctionedPostsTotal = sanctionedPosts.filter(p => p.postType !== 'CONTRACTUAL').reduce((s, p) => s + p.sanctionedCount, 0);
+    const filledPosts = employees.filter(e => e.postType !== 'CONTRACTUAL').length;
     const vacantSeats = Math.max(0, sanctionedPostsTotal - filledPosts);
 
     return {

@@ -6,15 +6,11 @@ class ApiClient {
 
     const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, credentials: 'include' });
 
-    if (res.status === 401) {
-      if (typeof window !== 'undefined' && !endpoint.includes('/auth/profile')) {
-        window.location.href = '/login';
-      }
-      throw new Error('Unauthorized');
-    }
-
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: 'Request failed' }));
+      if (res.status === 401 && typeof window !== 'undefined' && !endpoint.startsWith('/auth/')) {
+        window.location.href = '/login';
+      }
       throw new Error(err.message || `HTTP ${res.status}`);
     }
 

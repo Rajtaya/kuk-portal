@@ -13,13 +13,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('employees')
 export class EmployeesController {
-  constructor(private employeesService: EmployeesService) {}
+  constructor(private employeesService: EmployeesService, private auditService: AuditService) {}
 
   @Post()
   @Roles(Role.UNIVERSITY_ADMIN)
@@ -50,6 +51,15 @@ export class EmployeesController {
   getDashboardCharts(@Query('universityId') queryUniId: string, @CurrentUser() user: any) {
     const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : (queryUniId || undefined);
     return this.employeesService.getDashboardCharts(universityId);
+  }
+
+  @Get('check-duplicates')
+  async checkDuplicates(@Query('universityId') universityId: string, @Query('ids') ids: string) {
+    if (!universityId || !ids) return [];
+    const idList = ids.split(',').map(s => s.trim()).filter(Boolean);
+    if (!idList.length) return [];
+    const existing = await this.employeesService.findExistingEmployeeIds(idList, universityId);
+    return existing;
   }
 
   @Get('template')
@@ -174,6 +184,16 @@ export class EmployeesController {
       if (Object.keys(obj).length) rows.push(obj);
     });
 
-    return this.employeesService.bulkImport(rows, uniId);
+    const result = await this.employeesService.bulkImport(rows, uniId);
+
+    this.auditService.log({
+      userId: user.id,
+      action: 'BULK_UPLOAD',
+      entity: 'employees',
+      changes: { universityId: uniId, total: result.total, created: result.created, updated: result.updated, failed: result.failed },
+      ipAddress: undefined,
+    }).catch(() => {});
+
+    return result;
   }
 }

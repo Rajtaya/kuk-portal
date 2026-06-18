@@ -186,7 +186,7 @@ export default function Sidebar() {
         </button>
         <h1 className="text-lg font-bold text-gray-900 dark:text-white">UEMS</h1>
         <div className="ml-auto">
-          <DarkModeToggle />
+          {!isDashboard && <DarkModeToggle />}
         </div>
       </header>
 

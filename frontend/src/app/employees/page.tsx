@@ -55,6 +55,7 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [universities, setUniversities] = useState<University[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [designations, setDesignations] = useState<{ id: string; name: string }[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [visibleCols, setVisibleCols] = useState<string[]>(DEFAULT_VISIBLE);
   const [colMenuOpen, setColMenuOpen] = useState(false);
@@ -138,6 +139,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     api.get<{ id: string; name: string }[]>('/masters/subjects').then(setSubjects).catch(() => {});
+    api.get<{ id: string; name: string }[]>('/masters/designations').then(setDesignations).catch(() => {});
     api.get<Department[]>('/departments').then(setDepartments).catch(() => {});
   }, []);
 
@@ -643,6 +645,28 @@ export default function EmployeesPage() {
                 <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               )}
             </div>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Designation</label>
+              <select
+                value={filters.designation || ''}
+                onChange={(e) => applyFilter('designation', e.target.value)}
+                className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all appearance-none pr-8 ${
+                  filters.designation
+                    ? 'border-gray-900 dark:border-gray-200 text-gray-900 dark:text-gray-100 font-medium'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <option value="">Designation</option>
+                {designations.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+              {filters.designation ? (
+                <button onClick={() => applyFilter('designation', '')} className="absolute right-2.5 bottom-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              ) : (
+                <svg className="absolute right-2.5 bottom-1.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              )}
+            </div>
           </div>
         </div>
         <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-800">
@@ -758,10 +782,10 @@ export default function EmployeesPage() {
                   else if (col.key === 'uniCode') headerEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls} style={filterIcon}><option value="">Uni Code</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}</select>;
                   else if (col.key === 'department') { const uniqueDepts = [...new Map(departments.map(d => [d.name.toUpperCase(), d.name])).values()].sort(); headerEl = <select value={filters.department || ''} onChange={(e) => applyFilter('department', e.target.value)} className={scls} style={filterIcon}><option value="">Department</option>{uniqueDepts.map((n) => <option key={n} value={n}>{n}</option>)}</select>; }
                   else if (col.key === 'subject') headerEl = <select value={filters.subject || ''} onChange={(e) => applyFilter('subject', e.target.value)} className={scls} style={filterIcon}><option value="">Subject</option>{subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>;
-                  else if (col.key === 'designation') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Designation</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'designation') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Designation</option>{designations.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</select>;
                   else if (col.key === 'category') headerEl = <select value={filters.category || ''} onChange={(e) => applyFilter('category', e.target.value)} className={scls} style={filterIcon}><option value="">Category</option>{['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
                   else if (col.key === 'catSelection') headerEl = <select value={filters.categorySelection || ''} onChange={(e) => applyFilter('categorySelection', e.target.value)} className={scls} style={filterIcon}><option value="">Sel. Category</option>{['UR','DSC','OSC','BCA','BCB','EWS','PWD'].map((c) => <option key={c} value={c}>{c}</option>)}</select>;
-                  else if (col.key === 'presentDesig') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Present Desig.</option><option value="Professor">Professor</option><option value="Associate Professor">Assoc. Prof.</option><option value="Assistant Professor">Asst. Prof.</option><option value="Senior Professor">Sr. Prof.</option></select>;
+                  else if (col.key === 'presentDesig') headerEl = <select value={filters.designation || ''} onChange={(e) => applyFilter('designation', e.target.value)} className={scls} style={filterIcon}><option value="">Present Desig.</option>{designations.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}</select>;
                   else if (col.key === 'gender') headerEl = <select value={filters.gender || ''} onChange={(e) => applyFilter('gender', e.target.value)} className={scls} style={filterIcon}><option value="">Gender</option><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option></select>;
                   else if (col.key === 'postType') headerEl = <select value={filters.postType || ''} onChange={(e) => applyFilter('postType', e.target.value)} className={scls} style={filterIcon}><option value="">Type</option><option value="BUDGETED">Budgeted</option><option value="SFS">SFS</option><option value="CONTRACTUAL">Contractual</option></select>;
                   else if (col.key === 'status') headerEl = <select value={filters.employmentStatus || ''} onChange={(e) => applyFilter('employmentStatus', e.target.value)} className={scls} style={filterIcon}><option value="">Status</option><option value="ACTIVE">Active</option><option value="RETIRED">Retired</option><option value="RESIGNED">Resigned</option><option value="TERMINATED">Terminated</option><option value="SUSPENDED">Suspended</option></select>;

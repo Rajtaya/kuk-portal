@@ -10,13 +10,15 @@ import { RecaptchaGuard } from '../common/guards/recaptcha.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const COOKIE_NAME = 'auth_token';
-const COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 24 * 60 * 60 * 1000,
-};
+function cookieOpts(req: Request) {
+  return {
+    httpOnly: true,
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
+  };
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -26,9 +28,9 @@ export class AuthController {
   @Post('login')
   @Throttle({ short: { ttl: 10000, limit: 3 }, long: { ttl: 60000, limit: 5 } })
   @UseGuards(RecaptchaGuard)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    res.cookie(COOKIE_NAME, result.accessToken, COOKIE_OPTS);
+    res.cookie(COOKIE_NAME, result.accessToken, cookieOpts(req));
     return { user: result.user };
   }
 

@@ -315,7 +315,7 @@ export default function SanctionedPostsPage() {
             {[
               { label: 'Total', tip: 'Sanctioned — approved positions', value: box.data.total, grad: 'from-blue-500 to-blue-700' },
               { label: 'Filled', tip: 'Currently occupied', value: box.data.filled, grad: 'from-emerald-500 to-emerald-700' },
-              { label: 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, grad: 'from-red-500 to-red-700' },
+              { label: box.data.total > 0 ? `Vacant(${Math.round((box.data.vacant / box.data.total) * 100)}%)` : 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, grad: 'from-red-500 to-red-700' },
             ].map((m) => (
               <span key={m.label} title={m.tip} className={`inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
                 <span className="text-sm font-bold tabular-nums text-white">{m.value.toLocaleString()}</span>
