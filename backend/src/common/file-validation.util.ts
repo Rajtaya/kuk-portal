@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 const SIGNATURES: Record<string, { bytes: number[]; offset?: number }[]> = {
   'image/jpeg': [{ bytes: [0xFF, 0xD8, 0xFF] }],
   'image/png': [{ bytes: [0x89, 0x50, 0x4E, 0x47] }],
@@ -25,6 +27,16 @@ export function validateFileSignature(
     const match = sig.bytes.every((b, i) => buffer[offset + i] === b);
     if (!match) {
       throw new BadRequestException(`Uploaded ${label} content does not match its declared type`);
+    }
+  }
+
+  // .xlsx is just a ZIP, so the PK signature also matches jars, apks, zip bombs, etc.
+  // Confirm it is genuinely an Office Open XML package by looking for its structural
+  // markers near the start of the archive (the first local file headers).
+  if (declaredMime === XLSX_MIME) {
+    const head = buffer.subarray(0, Math.min(buffer.length, 4096)).toString('latin1');
+    if (!head.includes('[Content_Types].xml') && !head.includes('_rels/.rels')) {
+      throw new BadRequestException(`Uploaded ${label} is not a valid Excel workbook`);
     }
   }
 }

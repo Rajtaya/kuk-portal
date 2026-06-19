@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nes
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { MastersService } from './masters.service';
+import { MasterNameDto } from './dto/master.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -21,15 +22,15 @@ export class MastersController {
   @Post('subjects')
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
-  createSubject(@Body('name') name: string) {
-    return this.mastersService.createSubject(name);
+  createSubject(@Body() dto: MasterNameDto) {
+    return this.mastersService.createSubject(dto.name);
   }
 
   @Put('subjects/:id')
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.UNIVERSITY_ADMIN)
-  updateSubject(@Param('id') id: string, @Body('name') name: string) {
-    return this.mastersService.updateSubject(id, name);
+  updateSubject(@Param('id') id: string, @Body() dto: MasterNameDto) {
+    return this.mastersService.updateSubject(id, dto.name);
   }
 
   @Delete('subjects/:id')
@@ -47,8 +48,8 @@ export class MastersController {
   @Post('designations')
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  createDesignation(@Body('name') name: string) {
-    return this.mastersService.createDesignation(name);
+  createDesignation(@Body() dto: MasterNameDto) {
+    return this.mastersService.createDesignation(dto.name);
   }
 
   @Delete('designations/:id')

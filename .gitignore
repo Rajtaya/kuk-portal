@@ -9,4 +9,5 @@ dist
 uploads/
 .DS_Store
 .claude/
-package-lock.json
+# package-lock.json is intentionally committed: it pins exact, integrity-checked
+# dependency versions so `npm ci` produces reproducible, tamper-evident builds.

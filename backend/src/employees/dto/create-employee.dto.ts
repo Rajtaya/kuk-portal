@@ -1,4 +1,8 @@
-import { IsString, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsString, IsOptional, IsEnum, IsDateString,
+  IsInt, Min, Max, MaxLength, IsEmail, Matches, IsIn,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Gender, Category, PostType, EmployeeClassification, EmploymentStatus } from '@prisma/client';
 
@@ -6,10 +10,12 @@ export class CreateEmployeeDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(50)
   employeeId?: string;
 
   @ApiProperty()
   @IsString()
+  @MaxLength(200)
   name: string;
 
   @ApiProperty({ enum: Gender })
@@ -18,15 +24,18 @@ export class CreateEmployeeDto {
 
   @ApiProperty()
   @IsString()
+  @MaxLength(64)
   universityId: string;
 
   @ApiProperty()
   @IsString()
+  @MaxLength(64)
   departmentId: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   subject?: string;
 
   @ApiProperty({ enum: Category, required: false })
@@ -52,11 +61,13 @@ export class CreateEmployeeDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   designationAppointed?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   designationPresent?: string;
 
   @ApiProperty({ required: false })
@@ -77,11 +88,15 @@ export class CreateEmployeeDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(20)
+  // Lenient phone format: digits and the usual separators, no free text.
+  @Matches(/^[0-9+\-()\s]+$/, { message: 'mobileNumber contains invalid characters' })
   mobileNumber?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @IsEmail()
+  @MaxLength(254)
   email?: string;
 }
 
@@ -89,21 +104,27 @@ export class CreateEmployeeDto {
 // metadata at runtime (no validation at all); PartialType keeps every rule.
 export class UpdateEmployeeDto extends PartialType(CreateEmployeeDto) {}
 
+const SORTABLE = [
+  'name', 'employeeId', 'createdAt', 'subject', 'designationAppointed', 'designationPresent',
+  'retirementDate', 'gender', 'category', 'categorySelection', 'postType', 'employmentStatus',
+  'university', 'universityCode',
+];
+
 export class EmployeeFilterDto {
-  @IsOptional() @IsString() universityId?: string;
-  @IsOptional() @IsString() departmentId?: string;
-  @IsOptional() @IsString() department?: string;
-  @IsOptional() @IsString() subject?: string;
-  @IsOptional() @IsString() designation?: string;
+  @IsOptional() @IsString() @MaxLength(64) universityId?: string;
+  @IsOptional() @IsString() @MaxLength(64) departmentId?: string;
+  @IsOptional() @IsString() @MaxLength(200) department?: string;
+  @IsOptional() @IsString() @MaxLength(200) subject?: string;
+  @IsOptional() @IsString() @MaxLength(200) designation?: string;
   @IsOptional() @IsEnum(PostType) postType?: PostType;
   @IsOptional() @IsEnum(EmployeeClassification) employeeClassification?: EmployeeClassification;
   @IsOptional() @IsEnum(Gender) gender?: Gender;
   @IsOptional() @IsEnum(Category) category?: Category;
   @IsOptional() @IsEnum(EmploymentStatus) employmentStatus?: EmploymentStatus;
-  @IsOptional() @IsString() retirementYear?: string;
-  @IsOptional() @IsString() search?: string;
-  @IsOptional() @IsString() sortBy?: string;
-  @IsOptional() @IsString() sortOrder?: 'asc' | 'desc';
-  @IsOptional() page?: number;
-  @IsOptional() limit?: number;
+  @IsOptional() @IsString() @MaxLength(4) retirementYear?: string;
+  @IsOptional() @IsString() @MaxLength(100) search?: string;
+  @IsOptional() @IsIn(SORTABLE) sortBy?: string;
+  @IsOptional() @IsIn(['asc', 'desc']) sortOrder?: 'asc' | 'desc';
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number;
 }

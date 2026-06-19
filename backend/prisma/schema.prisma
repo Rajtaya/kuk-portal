@@ -71,6 +71,9 @@ model User {
   lockedUntil   DateTime?
   resetToken    String?
   resetTokenExp DateTime?
+  // Bumped on password reset and logout to invalidate all previously issued JWTs
+  // (stateless token revocation — the strategy rejects tokens whose tv is stale).
+  tokenVersion  Int         @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   auditLogs     AuditLog[]
@@ -193,6 +196,8 @@ model SanctionedPost {
   updatedAt      DateTime   @updatedAt
 
   @@unique([universityId, departmentId, designation, subject, postType])
+  @@index([universityId])
+  @@index([departmentId])
   @@map("sanctioned_posts")
 }
 

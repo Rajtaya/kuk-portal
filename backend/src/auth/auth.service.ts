@@ -10,6 +10,13 @@ import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 const RESET_TOKEN_EXPIRY_MS = 30 * 60 * 1000;
+const BCRYPT_ROUNDS = 12;
+// One identical message for every failed-auth branch so responses can't be used to
+// tell a real-but-locked account apart from a wrong password or an unknown email.
+const GENERIC_CREDENTIALS_ERROR = 'Invalid email or password.';
+// Pre-computed hash used to spend comparable CPU on unknown accounts, removing the
+// timing side-channel that would otherwise reveal which emails exist.
+const DUMMY_HASH = bcrypt.hashSync('uems-timing-equalizer', BCRYPT_ROUNDS);
 
 @Injectable()
 export class AuthService {
@@ -26,18 +33,21 @@ export class AuthService {
       where: { email },
       select: {
         id: true, email: true, name: true, role: true, password: true, isActive: true,
-        loginAttempts: true, lockedUntil: true,
+        loginAttempts: true, lockedUntil: true, tokenVersion: true,
         university: { select: { id: true, name: true, code: true } },
       },
     });
 
+    // Locked account: respond identically to invalid credentials (no account-existence
+    // oracle) and skip the password check so the lockout window is honoured.
     if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
-      const mins = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new UnauthorizedException(`Account temporarily locked. Try again in ${mins} minute(s).`);
+      throw new UnauthorizedException(GENERIC_CREDENTIALS_ERROR);
     }
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
+      // Spend comparable time on a bcrypt comparison so unknown emails aren't rejected faster.
+      await bcrypt.compare(dto.password, DUMMY_HASH);
+      throw new UnauthorizedException(GENERIC_CREDENTIALS_ERROR);
     }
 
     if (user.lockedUntil && user.lockedUntil.getTime() <= Date.now()) {
@@ -49,17 +59,15 @@ export class AuthService {
       const attempts = (user.loginAttempts || 0) + 1;
       const lockedUntil = attempts >= MAX_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
       await this.prisma.user.update({ where: { id: user.id }, data: { loginAttempts: attempts, lockedUntil } });
-      if (lockedUntil) {
-        throw new UnauthorizedException('Account temporarily locked. Try again later.');
-      }
-      throw new UnauthorizedException('Invalid credentials');
+      // Identical message whether or not this attempt tripped the lock.
+      throw new UnauthorizedException(GENERIC_CREDENTIALS_ERROR);
     }
 
     if (user.loginAttempts > 0) {
       await this.prisma.user.update({ where: { id: user.id }, data: { loginAttempts: 0, lockedUntil: null } });
     }
 
-    const token = this.jwtService.sign({ sub: user.id, role: user.role });
+    const token = this.jwtService.sign({ sub: user.id, role: user.role, tv: user.tokenVersion });
 
     return {
       accessToken: token,
@@ -80,7 +88,7 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(dto: ForgotPasswordDto, origin: string) {
+  async forgotPassword(dto: ForgotPasswordDto, baseUrl: string) {
     const email = dto.email.toLowerCase();
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -102,7 +110,7 @@ export class AuthService {
       },
     });
 
-    const resetUrl = `${origin}/reset-password?token=${token}`;
+    const resetUrl = `${baseUrl.replace(/\/+$/, '')}/reset-password?token=${token}`;
     await this.mail.sendPasswordReset(email, user.name, resetUrl);
 
     return { message: 'If an account with that email exists, a reset link has been sent.' };
@@ -123,7 +131,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
-    const hashed = await bcrypt.hash(dto.newPassword, 10);
+    const hashed = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -132,9 +140,21 @@ export class AuthService {
         resetTokenExp: null,
         loginAttempts: 0,
         lockedUntil: null,
+        // Invalidate every JWT issued before this reset (e.g. an attacker's session).
+        tokenVersion: { increment: 1 },
       },
     });
 
     return { message: 'Password has been reset successfully' };
+  }
+
+  // Server-side revocation: bumping tokenVersion makes the user's existing JWTs fail
+  // validation immediately, so logout is a real revocation rather than a cookie wipe.
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    return { message: 'Logged out' };
   }
 }

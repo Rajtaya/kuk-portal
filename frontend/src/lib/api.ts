@@ -2,7 +2,13 @@ const API_BASE = '/api';
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers as any };
+    // X-Requested-With is the first-party CSRF marker the backend requires on
+    // cookie-authenticated, state-changing requests (cross-site forms can't set it).
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...options.headers as any,
+    };
 
     const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, credentials: 'include' });
 
@@ -43,6 +49,7 @@ class ApiClient {
     const res = await fetch(`${API_BASE}${endpoint}${query}`, {
       method: 'POST',
       credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: formData,
     });
 

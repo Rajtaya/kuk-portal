@@ -7,8 +7,6 @@ import { api } from '@/lib/api';
 import { Employee, Department } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 
-const API_BASE = '';
-
 const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
   ACTIVE: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
   RETIRED: { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' },
@@ -245,7 +243,7 @@ export default function EmployeeProfilePage() {
             <div className="relative group">
               {employee.photoUrl ? (
                 <img
-                  src={`${API_BASE}${employee.photoUrl}`}
+                  src={`/api/employees/${employee.id}/photo`}
                   alt={employee.name}
                   className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg shadow-primary-200"
                 />

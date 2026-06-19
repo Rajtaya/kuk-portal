@@ -6,8 +6,9 @@ const MAX_CONCURRENT = 50;
 const BLOCK_DURATION_MS = 5 * 60 * 1000;
 
 function clientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+  // Use Express's proxy-aware resolution (honours `trust proxy`) instead of reading
+  // X-Forwarded-For directly — otherwise a client could rotate the header per request
+  // to mint a fresh identity and bypass the per-IP connection limit and block list.
   return req.ip || req.socket.remoteAddress || 'unknown';
 }
 

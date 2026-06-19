@@ -13,12 +13,19 @@ function cellValue(col: ExportColumn, row: any): string {
   return raw === null || raw === undefined ? '' : String(raw);
 }
 
+// Spreadsheet apps treat a leading =, +, -, @, tab or CR as a formula. Prefixing
+// such values with a single quote forces them to be rendered as plain text, defusing
+// CSV/Excel formula injection (e.g. =HYPERLINK(...) or =CMD|... smuggled into a name).
+function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 export function exportToCSV(filename: string, columns: ExportColumn[], data: any[]) {
   const headers = columns.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(',');
   const rows = data.map((row) =>
     columns
       .map((col) => {
-        const v = cellValue(col, row).replace(/"/g, '""');
+        const v = neutralizeFormula(cellValue(col, row)).replace(/"/g, '""');
         return `"${v}"`;
       })
       .join(',')
@@ -34,7 +41,7 @@ export async function exportToExcel(filename: string, columns: ExportColumn[], d
   ws.columns = columns.map((c) => ({ header: c.label, key: c.label, width: Math.max(c.label.length + 2, 14) }));
   data.forEach((row) => {
     const r: Record<string, string> = {};
-    columns.forEach((col) => { r[col.label] = cellValue(col, row); });
+    columns.forEach((col) => { r[col.label] = neutralizeFormula(cellValue(col, row)); });
     ws.addRow(r);
   });
   const buf = await wb.xlsx.writeBuffer();

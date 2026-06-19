@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Put, Delete, Param, Body, Query, Res,
-  UseGuards, UseInterceptors, UploadedFile, ForbiddenException,
+  UseGuards, UseInterceptors, UploadedFile, ForbiddenException, NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -54,12 +54,14 @@ export class EmployeesController {
   }
 
   @Get('check-duplicates')
-  async checkDuplicates(@Query('universityId') universityId: string, @Query('ids') ids: string) {
-    if (!universityId || !ids) return [];
-    const idList = ids.split(',').map(s => s.trim()).filter(Boolean);
+  @Roles(Role.UNIVERSITY_ADMIN)
+  async checkDuplicates(@Query('ids') ids: string, @CurrentUser() user: any) {
+    // University is taken from the authenticated user, never from the query string —
+    // this prevents probing employee IDs at other universities (IDOR).
+    if (!ids) return [];
+    const idList = ids.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5000);
     if (!idList.length) return [];
-    const existing = await this.employeesService.findExistingEmployeeIds(idList, universityId);
-    return existing;
+    return this.employeesService.findExistingEmployeeIds(idList, user.universityId);
   }
 
   @Get('template')
@@ -109,6 +111,29 @@ export class EmployeesController {
   @Roles(Role.UNIVERSITY_ADMIN)
   async delete(@Param('id') id: string, @CurrentUser() user: any) {
     return this.employeesService.delete(id, user);
+  }
+
+  // Photos are streamed through this authenticated, university-scoped endpoint instead
+  // of being exposed as unauthenticated static files. Served under /api so the frontend
+  // proxy makes it same-origin (cookies are sent).
+  @Get(':id/photo')
+  @Roles(Role.SUPER_ADMIN, Role.STATE_USER, Role.UNIVERSITY_ADMIN)
+  async getPhoto(@Param('id') id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const emp = await this.employeesService.findOne(id);
+    if (user.role === Role.UNIVERSITY_ADMIN && emp.universityId !== user.universityId) {
+      throw new ForbiddenException('Cannot view another university\'s employee');
+    }
+    if (!emp.photoUrl) throw new NotFoundException('No photo');
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'uploads', 'photos', path.basename(emp.photoUrl));
+    if (!fs.existsSync(filePath)) throw new NotFoundException('Photo not found');
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'",
+      'Cache-Control': 'private, max-age=300',
+    });
+    res.sendFile(filePath);
   }
 
   @Post(':id/photo')

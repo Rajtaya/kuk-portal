@@ -1,15 +1,39 @@
 import { PrismaClient, Role, Gender, Category, PostType, EmployeeClassification, EmploymentStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('FATAL: Seed script must not run in production. Set NODE_ENV to development or test.');
+// Fail-safe: only seed when NODE_ENV is *explicitly* a local/test value. An unset
+// or unexpected NODE_ENV (staging, preview, etc.) is treated as production and blocked,
+// so seed credentials can never land in a deployed database by accident.
+function assertSeedAllowed() {
+  const env = process.env.NODE_ENV;
+  if (env !== 'development' && env !== 'test') {
+    console.error(`FATAL: Seed script only runs with NODE_ENV=development or test (got "${env ?? 'unset'}").`);
     process.exit(1);
   }
-  console.warn('Seeding with default password "admin123" -- change all passwords before any non-local deployment.');
-  const password = await bcrypt.hash('admin123', 10);
+}
+
+// Strong, complexity-compliant password: env-provided or a freshly generated random one.
+// Never a hardcoded/predictable value.
+function resolveSeedPassword(): string {
+  const fromEnv = process.env.SEED_ADMIN_PASSWORD;
+  if (fromEnv) {
+    if (fromEnv.length < 12 || !/[a-z]/.test(fromEnv) || !/[A-Z]/.test(fromEnv) || !/\d/.test(fromEnv)) {
+      console.error('FATAL: SEED_ADMIN_PASSWORD must be 12+ chars with upper, lower, and a digit.');
+      process.exit(1);
+    }
+    return fromEnv;
+  }
+  // 18 random bytes -> base64url, guaranteed to contain the required character classes.
+  return 'Aa1' + crypto.randomBytes(18).toString('base64url');
+}
+
+async function main() {
+  assertSeedAllowed();
+  const plainPassword = resolveSeedPassword();
+  const password = await bcrypt.hash(plainPassword, 12);
 
   // ─── Universities ──────────────────────────────────────
   const kuk = await prisma.university.upsert({
@@ -264,7 +288,8 @@ async function main() {
 
   console.log('Seed completed successfully');
   console.log('---');
-  console.log('Logins (password: admin123):');
+  console.log(`Logins (password: ${plainPassword}):`);
+  console.log('  (set SEED_ADMIN_PASSWORD to choose your own; otherwise this is a one-time random value)');
   console.log('  Super Admin:  rajshtaya@gmail.com');
   console.log('  State User:   state@he.haryana.gov.in');
   console.log('  KUK Admin:    admin@kuk.ac.in');

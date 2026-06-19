@@ -1,8 +1,9 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY frontend/package.json ./
-RUN npm install
+# Reproducible, integrity-checked install from the committed lockfile.
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
 COPY frontend/ .
 
 ARG CACHE_BUST
@@ -13,6 +14,7 @@ RUN npm run build
 
 FROM node:20-alpine
 
+ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

@@ -54,7 +54,13 @@ export class MailService {
     `;
 
     if (!this.transporter) {
-      this.logger.log(`[DEV] Password reset email for ${to}:\n  Reset URL: ${resetUrl}`);
+      // Print the link in dev so resets are testable without SMTP, but never log the
+      // token-bearing URL in production (logs may be shipped/retained).
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.warn(`Password reset requested for ${to} but SMTP is not configured; no email sent.`);
+      } else {
+        this.logger.log(`[DEV] Password reset link for ${to}: ${resetUrl}`);
+      }
       return;
     }
 

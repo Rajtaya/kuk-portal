@@ -10,14 +10,29 @@ import { RecaptchaGuard } from '../common/guards/recaptcha.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const COOKIE_NAME = 'auth_token';
+// Keep in step with JWT_EXPIRATION (default 8h) so the cookie doesn't outlive the token.
+const COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 function cookieOpts(req: Request) {
   return {
     httpOnly: true,
     secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
     sameSite: 'lax' as const,
     path: '/',
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: COOKIE_MAX_AGE_MS,
+    // Optional explicit scoping; defaults to host-only (the safest scope) when unset.
+    ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
   };
+}
+
+// The base URL for password-reset links must come from trusted configuration, never
+// from the attacker-controllable Origin/Host headers (which would enable an open
+// redirect that mails victims a reset link pointing at the attacker's site).
+function resetBaseUrl(req: Request): string {
+  if (process.env.FRONTEND_URL) return process.env.FRONTEND_URL;
+  const corsEnv = process.env.CORS_ORIGIN || process.env.CORS_ORIGINS;
+  if (corsEnv) return corsEnv.split(',')[0].trim();
+  // Dev convenience only — never reached in production once FRONTEND_URL/CORS is set.
+  return `${req.protocol}://${req.get('host')}`;
 }
 
 @ApiTags('Auth')
@@ -35,7 +50,10 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async logout(@CurrentUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(userId);
     res.clearCookie(COOKIE_NAME, { path: '/' });
     return { message: 'Logged out' };
   }
@@ -51,8 +69,7 @@ export class AuthController {
   @Throttle({ short: { ttl: 10000, limit: 1 }, long: { ttl: 60000, limit: 3 } })
   @UseGuards(RecaptchaGuard)
   forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
-    const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
-    return this.authService.forgotPassword(dto, origin);
+    return this.authService.forgotPassword(dto, resetBaseUrl(req));
   }
 
   @Post('reset-password')

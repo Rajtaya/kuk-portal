@@ -1,0 +1,31 @@
+# Dependencies & build output (reinstalled/rebuilt inside the image)
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+
+# VCS & local tooling
+**/.git
+**/.gitignore
+**/.claude
+.claude
+
+# Secrets and local env — never copy these into an image layer.
+# (frontend/.env.production holds only the non-secret BACKEND_URL and IS needed at build,
+#  so it is deliberately NOT ignored here.)
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.local.disabled
+
+# Runtime data & noise
+**/uploads
+**/*.log
+**/.DS_Store
+
+# Keys/certs that must never land in an image
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx

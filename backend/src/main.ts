@@ -6,19 +6,30 @@ import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import * as compression from 'compression';
 import * as express from 'express';
-import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+// Known placeholder/example secrets that must never sign real tokens.
+const WEAK_JWT_SECRETS = new Set([
+  'your-super-secret-jwt-key-change-in-production',
+  'kuk-portal-dev-secret-change-in-production',
+  'secret', 'changeme', 'jwt-secret', 'your-secret-key',
+]);
+
 async function bootstrap() {
-  if (!process.env.JWT_SECRET) {
-    console.error('FATAL: JWT_SECRET environment variable is required');
+  const isProd = process.env.NODE_ENV === 'production';
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret.length < 32 || WEAK_JWT_SECRETS.has(jwtSecret)) {
+    console.error('FATAL: JWT_SECRET must be a strong, unique value of at least 32 characters (known placeholders are rejected).');
     process.exit(1);
   }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.set('trust proxy', 1);
+  // Trust the edge/Railway proxy only in production. On a directly-exposed dev
+  // server, trusting X-Forwarded-* would let any client spoof its IP and protocol.
+  app.set('trust proxy', isProd ? 1 : false);
 
   // --- DDoS / hardening middleware ---
   app.use(helmet({
@@ -26,28 +37,36 @@ async function bootstrap() {
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // Strict CSP for API responses in production. Disabled in dev so Swagger UI
+    // (which needs inline scripts/styles) keeps working.
+    contentSecurityPolicy: isProd ? {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
+    } : false,
   }));
   app.use(compression());
   app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  // Photos served statically (images only); documents go through authenticated /api/documents/download/:id
-  app.useStaticAssets(join(__dirname, '..', '..', 'uploads', 'photos'), {
-    prefix: '/uploads/photos/',
-    setHeaders: (res) => {
-      res.set('X-Content-Type-Options', 'nosniff');
-      res.set('Content-Security-Policy', "default-src 'none'");
-    },
-  });
+  // Photos and documents are served only through authenticated, university-scoped
+  // endpoints (GET /api/employees/:id/photo, GET /api/documents/download/:id) — never
+  // as unauthenticated static files.
   app.setGlobalPrefix('api');
 
   const corsEnv = process.env.CORS_ORIGIN || process.env.CORS_ORIGINS;
-  const isProd = process.env.NODE_ENV === 'production';
   if (isProd && !corsEnv) {
     console.error('WARNING: CORS_ORIGIN or CORS_ORIGINS must be set in production. Defaulting to deny all.');
   }
-  const allowedOrigins = corsEnv ? corsEnv.split(',').map(o => o.trim()) : (isProd ? false : true);
+  // Even in dev, use an explicit allowlist instead of reflecting any origin — with
+  // credentials enabled, origin reflection would let any site make authenticated calls.
+  const DEV_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+  const allowedOrigins = corsEnv ? corsEnv.split(',').map(o => o.trim()) : (isProd ? false : DEV_ORIGINS);
   app.enableCors({ origin: allowedOrigins, credentials: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));

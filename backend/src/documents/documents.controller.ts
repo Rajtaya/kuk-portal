@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Query, Res, UseGuards, UseInterceptors, UploadedFile, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Query, Res, UseGuards, UseInterceptors, UploadedFile, ForbiddenException, BadRequestException, ParseEnumPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { DocumentType, Role } from '@prisma/client';
@@ -31,7 +31,7 @@ export class DocumentsController {
   async upload(
     @Param('employeeId') employeeId: string,
     @UploadedFile() file: Express.Multer.File,
-    @Query('type') type: DocumentType = DocumentType.OTHER,
+    @Query('type', new ParseEnumPipe(DocumentType, { optional: true })) type: DocumentType = DocumentType.OTHER,
     @CurrentUser() user: any,
   ) {
     if (!file) throw new BadRequestException('Only PDF, JPEG, PNG, and WebP files are allowed');
@@ -56,9 +56,13 @@ export class DocumentsController {
       await this.documentsService.verifyDocumentOwnership(id, user.universityId);
     }
     const { filePath, fileName, mimeType } = await this.documentsService.getFileForDownload(id);
+    // Sanitize the filename for the header: a plain ASCII fallback with quotes/CR/LF
+    // stripped (prevents header injection / response splitting), plus an RFC 5987
+    // UTF-8 encoded form for the real name.
+    const asciiName = fileName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\\r\n]/g, '_');
     res.set({
       'Content-Type': mimeType || 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       'X-Content-Type-Options': 'nosniff',
     });
     res.sendFile(filePath);

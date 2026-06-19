@@ -32,6 +32,13 @@ export class DocumentsService {
 
   private readonly ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
+  // Strip path components and control characters from the user-supplied name before it
+  // is persisted, so it can't carry traversal or header-injection payloads downstream.
+  private sanitizeStoredName(name: string): string {
+    const base = (name || '').split(/[\\/]/).pop() || 'file';
+    return base.replace(/[\x00-\x1F\x7F]/g, '').slice(0, 200) || 'file';
+  }
+
   async upload(employeeId: string, file: Express.Multer.File, type: DocumentType) {
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -48,7 +55,7 @@ export class DocumentsService {
       data: {
         employeeId,
         type,
-        fileName: file.originalname,
+        fileName: this.sanitizeStoredName(file.originalname),
         fileUrl: `/uploads/${safeName}`,
         fileSize: file.size,
         mimeType: file.mimetype,

@@ -50,7 +50,11 @@ export class EmployeesService {
 
   async findAll(filters: EmployeeFilterDto, userUniversityId?: string) {
     const ALLOWED_SORT = ['name','employeeId','createdAt','subject','designationAppointed','designationPresent','retirementDate','gender','category','categorySelection','postType','employmentStatus'];
-    const { page = 1, limit = 20, sortBy: rawSort = 'createdAt', sortOrder = 'desc' } = filters;
+    const { sortBy: rawSort = 'createdAt', sortOrder = 'desc' } = filters;
+    // Clamp pagination defensively (the DTO also bounds it) so a crafted request can't
+    // dump the whole table or pass a negative/NaN skip.
+    const limit = Math.min(Math.max(Number(filters.limit) || 20, 1), 100);
+    const page = Math.max(Number(filters.page) || 1, 1);
     const dir: Prisma.SortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
     // Header-click sorting: scalar fields via whitelist, plus virtual sorts on the related university.
     let orderBy: Prisma.EmployeeOrderByWithRelationInput;
@@ -65,13 +69,13 @@ export class EmployeesService {
         where,
         include: { university: { select: { name: true, code: true } }, department: { select: { name: true } } },
         orderBy,
-        skip: (Number(page) - 1) * Number(limit),
-        take: Number(limit),
+        skip: (page - 1) * limit,
+        take: limit,
       }),
       this.prisma.employee.count({ where }),
     ]);
 
-    return { data, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) };
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   // Shared filter -> WHERE builder (used by findAll and the summary boxes).
@@ -199,10 +203,26 @@ export class EmployeesService {
     };
   }
 
+  // Map raw exceptions to safe text so bulk-upload responses never leak Prisma/DB
+  // schema details (table/column/constraint names, partial SQL).
+  private safeRowError(err: any): string {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2002') return 'a record with these unique fields already exists';
+      if (err.code === 'P2003') return 'references a related record that does not exist';
+      return 'database constraint violation';
+    }
+    if (err instanceof Prisma.PrismaClientValidationError) return 'invalid field value';
+    return 'could not be processed';
+  }
+
   async bulkImport(rows: Record<string, any>[], universityId: string) {
     if (rows.length > 5000) throw new Error('Maximum 5000 rows per upload');
     const results = { success: 0, failed: 0, created: 0, updated: 0, errors: [] as string[], total: rows.length };
     const deptCache = new Map<string, string>();
+    // Bound how many brand-new departments a single upload can mint (prevents a crafted
+    // sheet of unique department names from creating thousands of rows).
+    const MAX_NEW_DEPTS = 300;
+    let newDeptCount = 0;
 
     const existingDepts = await this.prisma.department.findMany({ where: { universityId } });
     for (const d of existingDepts) deptCache.set(d.name.toLowerCase(), d.id);
@@ -223,8 +243,14 @@ export class EmployeesService {
 
         let departmentId = deptCache.get(parsed.deptName.toLowerCase());
         if (!departmentId) {
+          if (newDeptCount >= MAX_NEW_DEPTS) {
+            results.failed++;
+            results.errors.push(`Row ${rowNum}: too many new departments in a single upload`);
+            continue;
+          }
           const dept = await this.prisma.department.create({ data: { name: parsed.deptName, universityId } });
           departmentId = dept.id;
+          newDeptCount++;
           deptCache.set(parsed.deptName.toLowerCase(), departmentId);
         }
 
@@ -244,7 +270,7 @@ export class EmployeesService {
         results.success++;
       } catch (err) {
         results.failed++;
-        results.errors.push(`Row ${rowNum}: ${err.message}`);
+        results.errors.push(`Row ${rowNum}: ${this.safeRowError(err)}`);
       }
     }
 
