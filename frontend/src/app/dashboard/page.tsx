@@ -740,20 +740,27 @@ export default function DashboardPage() {
       </div>`;
     };
 
+    // Vertical bars on desktop; horizontal on mobile (subjects move to the y-axis).
+    const catAxis = {
+      type: 'category' as const, data: categories,
+      axisLabel: { rotate: isMobile ? 0 : -40, fontSize: isMobile ? 9 : 10, fontWeight: 500, interval: 0, color: '#374151' },
+      axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
+      ...(isMobile ? { inverse: true } : {}),
+    };
+    const valAxis = {
+      type: 'value' as const,
+      name: 'Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+      axisLabel: { fontSize: isMobile ? 9 : 11, color: '#374151' },
+      axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
+    };
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: sanctionTooltip },
       legend: { bottom: 0, icon: 'circle', itemWidth: isMobile ? 8 : 10, itemHeight: isMobile ? 8 : 10, textStyle: { fontSize: isMobile ? 8 : 10, color: '#374151' }, itemGap: isMobile ? 6 : 12 },
-      grid: { top: 30, right: 15, bottom: isMobile ? 110 : 90, left: 15, containLabel: true },
-      xAxis: {
-        type: 'category' as const, data: categories,
-        axisLabel: { rotate: isMobile ? -55 : -40, fontSize: isMobile ? 8 : 10, fontWeight: 500, interval: 0, color: '#374151' },
-        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-      },
-      yAxis: {
-        type: 'value' as const,
-        name: 'Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
-      },
+      grid: isMobile
+        ? { top: 16, right: 16, bottom: 120, left: 8, containLabel: true }
+        : { top: 30, right: 15, bottom: 90, left: 15, containLabel: true },
+      xAxis: isMobile ? valAxis : catAxis,
+      yAxis: isMobile ? catAxis : valAxis,
       series: [
         ...sanctionKeys.map((k, i) => ({
           name: k, type: 'bar' as const, stack: 'sanction', barWidth: isMobile ? 10 : 20, barGap: '10%',
@@ -761,7 +768,7 @@ export default function DashboardPage() {
           itemStyle: { color: allColors[k] || RING_COLORS[i], borderColor: '#fff', borderWidth: 1 },
           emphasis: { focus: 'series' as const },
           ...(i === sanctionKeys.length - 1 ? {
-            label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 700, color: '#1E3A8A',
+            label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 10, fontWeight: 700, color: '#1E3A8A',
               formatter: (p: any) => sanctionTotals[p.dataIndex] || '' },
           } : {}),
         })),
@@ -771,7 +778,7 @@ export default function DashboardPage() {
           itemStyle: { color: allColors[k] || RING_COLORS[(i + 4)], borderColor: '#fff', borderWidth: 1 },
           emphasis: { focus: 'series' as const },
           ...(i === presentKeys.length - 1 ? {
-            label: { show: true, position: 'top' as const, fontSize: 10, fontWeight: 700, color: '#6B7280',
+            label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: 10, fontWeight: 700, color: '#6B7280',
               formatter: (p: any) => presentTotals[p.dataIndex] || '' },
           } : {}),
         })),
@@ -1276,8 +1283,8 @@ export default function DashboardPage() {
                   }),
                 }}
               >
-                <div className={isMobile ? 'overflow-x-auto -mx-3' : ''}>
-                  <ReactECharts option={sanctionOption} style={{ height: isMobile ? '380px' : '480px', minWidth: isMobile ? '700px' : undefined }} notMerge={true} lazyUpdate={true} />
+                <div>
+                  <ReactECharts option={sanctionOption} style={{ height: isMobile ? `${Math.max(360, ((sanctionSubjectFilter ? 1 : (activeData?.sanctionVsPresent?.length || 10)) * 30) + 140)}px` : '480px' }} notMerge={true} lazyUpdate={true} />
                 </div>
               </ChartCard>
             )}
