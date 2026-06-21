@@ -9,7 +9,7 @@ import { CardSkeleton } from '@/components/ui/skeleton';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { useToast } from '@/components/ui/toast';
 
-type SortKey = 'departments' | 'employees' | 'name';
+type SortKey = 'departments' | 'employees' | 'vacant' | 'name';
 
 const FALLBACK_LOGOS: Record<string, string> = {
   KUK: '/logos/KUK.png', MDU: '/logos/MDU.png', CDLU: '/logos/CDLU.jpg',
@@ -77,6 +77,12 @@ export default function UniversitiesPage() {
   }
 
   const sorted = useMemo(() => {
+    // Sort by vacancy RATIO (matches the % shown on the card); universities with no
+    // sanctioned posts have no meaningful rate, so they sort last.
+    const vacRatio = (u: University) => {
+      const s = u.sanctioned ?? 0;
+      return s > 0 ? (u.vacant ?? 0) / s : -1;
+    };
     const arr = [...universities];
     arr.sort((a, b) => {
       let cmp = 0;
@@ -84,6 +90,8 @@ export default function UniversitiesPage() {
         cmp = (a.name || '').localeCompare(b.name || '');
       } else if (sortKey === 'employees') {
         cmp = (a._count?.employees || 0) - (b._count?.employees || 0);
+      } else if (sortKey === 'vacant') {
+        cmp = vacRatio(a) - vacRatio(b);
       } else {
         cmp = (a._count?.departments || 0) - (b._count?.departments || 0);
       }
@@ -95,6 +103,7 @@ export default function UniversitiesPage() {
   const sortOptions: { key: SortKey; label: string }[] = [
     { key: 'departments', label: 'Departments' },
     { key: 'employees', label: 'Employees' },
+    { key: 'vacant', label: 'Vacant' },
     { key: 'name', label: 'Name' },
   ];
 
@@ -258,6 +267,16 @@ export default function UniversitiesPage() {
         {!loading && sorted.map((uni, idx) => {
           const empCount = uni._count?.employees || 0;
           const deptCount = uni._count?.departments || 0;
+          const sanctioned = uni.sanctioned ?? 0;
+          const vacant = uni.vacant ?? 0;
+          const vacantPct = sanctioned > 0 ? Math.round((vacant / sanctioned) * 100) : null;
+          const vac = vacantPct === null
+            ? { box: 'bg-gray-50 dark:bg-gray-800', txt: 'text-gray-400 dark:text-gray-500' }
+            : vacantPct >= 50
+            ? { box: 'bg-red-50 dark:bg-red-500/10', txt: 'text-red-600 dark:text-red-400' }
+            : vacantPct > 0
+            ? { box: 'bg-amber-50 dark:bg-amber-500/10', txt: 'text-amber-600 dark:text-amber-400' }
+            : { box: 'bg-emerald-50 dark:bg-emerald-500/10', txt: 'text-emerald-600 dark:text-emerald-400' };
           const gradient = CARD_COLORS[idx % CARD_COLORS.length];
           const logo = uni.logoUrl || FALLBACK_LOGOS[uni.code];
           const website = uni.website || FALLBACK_WEBSITES[uni.code];
@@ -306,14 +325,21 @@ export default function UniversitiesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className={`rounded-lg px-2 py-1.5 text-center ${sortKey === 'employees' ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                <div className="grid grid-cols-3 gap-1.5 mb-2">
+                  <div className={`rounded-lg px-1.5 py-1.5 text-center ${sortKey === 'employees' ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
                     <p className={`text-lg font-bold leading-none ${sortKey === 'employees' ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-gray-100'}`}>{empCount}</p>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Employees</p>
                   </div>
-                  <div className={`rounded-lg px-2 py-1.5 text-center ${sortKey === 'departments' ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                  <div className={`rounded-lg px-1.5 py-1.5 text-center ${sortKey === 'departments' ? 'bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-200 dark:ring-primary-800' : 'bg-gray-50 dark:bg-gray-800'}`}>
                     <p className={`text-lg font-bold leading-none ${sortKey === 'departments' ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-gray-100'}`}>{deptCount}</p>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Departments</p>
+                  </div>
+                  <div
+                    className={`rounded-lg px-1.5 py-1.5 text-center ${vac.box} ${sortKey === 'vacant' ? 'ring-1 ring-primary-300 dark:ring-primary-700' : ''}`}
+                    title={vacantPct === null ? 'No sanctioned posts recorded' : `${vacant} vacant of ${sanctioned} sanctioned (Budgeted + SFS)`}
+                  >
+                    <p className={`text-lg font-bold leading-none ${vac.txt}`}>{vacantPct === null ? '—' : `${vacantPct}%`}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Vacant</p>
                   </div>
                 </div>
 

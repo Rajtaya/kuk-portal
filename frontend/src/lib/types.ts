@@ -25,6 +25,10 @@ export interface University {
   phone?: string;
   logoUrl?: string;
   _count?: { employees: number; departments: number };
+  // Vacancy aggregate (Budgeted + SFS scope) attached by GET /universities.
+  sanctioned?: number;
+  filled?: number;
+  vacant?: number;
 }
 
 export interface Department {

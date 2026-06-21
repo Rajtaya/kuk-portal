@@ -10,10 +10,40 @@ export class UniversitiesService {
     return this.prisma.university.create({ data: dto });
   }
 
-  findAll() {
-    return this.prisma.university.findMany({
-      include: { _count: { select: { employees: true, departments: true } } },
-      orderBy: { name: 'asc' },
+  async findAll() {
+    // Vacant % per university uses the SAME scope as the Sanctioned Posts "Total" box
+    // (which each university card deep-links to): Sanctioned = Budgeted + SFS posts;
+    // Filled = active Budgeted + SFS employees; Vacant = max(0, Sanctioned − Filled).
+    // Contractual is excluded on both sides so the card and that page can't disagree.
+    const [universities, sanctioned, filled] = await Promise.all([
+      this.prisma.university.findMany({
+        include: { _count: { select: { employees: true, departments: true } } },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.sanctionedPost.groupBy({
+        by: ['universityId'],
+        where: { postType: { in: ['BUDGETED', 'SFS'] as any } },
+        _sum: { sanctionedCount: true },
+      }),
+      this.prisma.employee.groupBy({
+        by: ['universityId'],
+        where: { employmentStatus: 'ACTIVE' as any, postType: { in: ['BUDGETED', 'SFS'] as any } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const sanctMap = new Map(sanctioned.map((s) => [s.universityId, s._sum.sanctionedCount || 0]));
+    const filledMap = new Map(filled.map((f) => [f.universityId, f._count._all]));
+
+    return universities.map((u) => {
+      const sanctionedCount = sanctMap.get(u.id) || 0;
+      const filledCount = filledMap.get(u.id) || 0;
+      return {
+        ...u,
+        sanctioned: sanctionedCount,
+        filled: filledCount,
+        vacant: Math.max(0, sanctionedCount - filledCount),
+      };
     });
   }
 
