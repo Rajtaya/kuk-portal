@@ -130,14 +130,30 @@ function ChartCard({ title, children, className = '', tableData, actions }: {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Summary row totalling every numeric column (label column shows "Total").
+  // Lives in ChartCard so every chart's data table + CSV gets it automatically.
+  const totalRow = useMemo<(string | number)[] | null>(() => {
+    if (!tableData || tableData.rows.length === 0) return null;
+    return tableData.headers.map((_, ci) => {
+      if (ci === 0) return 'Total';
+      const numeric = tableData.rows.every(r => {
+        const c = r[ci];
+        return typeof c === 'number' || (typeof c === 'string' && c.trim() !== '' && !isNaN(Number(c)));
+      });
+      if (!numeric) return '';
+      return tableData.rows.reduce((sum, r) => sum + Number(r[ci] || 0), 0);
+    });
+  }, [tableData]);
+
   const downloadCSV = useCallback(() => {
     if (!tableData) return;
-    const csv = [tableData.headers.join(','), ...tableData.rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const rows = totalRow ? [...tableData.rows, totalRow] : tableData.rows;
+    const csv = [tableData.headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = title.replace(/\s+/g, '_') + '.csv'; a.click();
     setMenuOpen(false);
-  }, [tableData, title]);
+  }, [tableData, totalRow, title]);
 
   const downloadImage = useCallback((format: 'png' | 'jpeg') => {
     const canvas = chartRef.current?.querySelector('canvas');
@@ -210,6 +226,13 @@ function ChartCard({ title, children, className = '', tableData, actions }: {
                     ))}
                   </tr>
                 ))}
+                {totalRow && (
+                  <tr className="bg-indigo-900 border-t-2 border-indigo-400 font-bold">
+                    {totalRow.map((cell, ci) => (
+                      <td key={ci} className={`px-4 py-2.5 align-middle text-white ${ci === 0 ? 'text-left' : 'text-center tabular-nums'}`}>{cell}</td>
+                    ))}
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -553,7 +576,7 @@ export default function DashboardPage() {
           {},
           { r0: '0%', r: '22%', label: { rotate: 0, fontSize: 13, fontWeight: 'bold', color: '#fff', overflow: 'truncate' as const, ellipsis: '..', width: 70, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
           { r0: '22%', r: '55%', label: { rotate: 0, fontSize: 11, fontWeight: 'bold', color: '#fff', minAngle: 8, overflow: 'truncate' as const, ellipsis: '..', width: 70, align: 'center' as const }, itemStyle: { borderWidth: 2, borderColor: '#fff' } },
-          { r0: '55%', r: '90%', label: { show: true, rotate: 'radial' as const, fontSize: 9, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'truncate' as const, ellipsis: '..', width: 55, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
+          { r0: '55%', r: '90%', label: { show: true, rotate: 'tangential' as const, fontSize: 10, fontWeight: 600, color: '#fff', minAngle: 10, overflow: 'truncate' as const, ellipsis: '..', width: 90, textBorderColor: 'rgba(0,0,0,0.5)', textBorderWidth: 2 }, itemStyle: { borderWidth: 1, borderColor: '#fff' } },
         ],
       }],
     };
