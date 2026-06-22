@@ -310,14 +310,14 @@ export default function SanctionedPostsPage() {
           { title: 'Budgeted', tip: 'Government-funded posts',      accent: 'text-indigo-700 dark:text-indigo-300', data: { total: boxSanctionedBudgeted, filled: boxFilledBudgeted, vacant: boxVacantBudgeted } },
           { title: 'SFS',      tip: 'Self-Financed Scheme posts',   accent: 'text-orange-700 dark:text-orange-300', data: { total: boxSanctionedSfs,      filled: boxFilledSfs,      vacant: boxVacantSfs      } },
         ].map((box) => (
-          <div key={box.title} title={box.tip} className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2.5 py-1.5 whitespace-nowrap">
-            <span className={`text-[11px] font-bold uppercase tracking-wide ${box.accent}`}>{box.title}</span>
+          <div key={box.title} title={box.tip} className="flex w-full md:w-auto md:shrink-0 md:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-2.5 py-1.5 whitespace-nowrap">
+            <span className={`shrink-0 w-[72px] md:w-auto text-[11px] font-bold uppercase tracking-wide ${box.accent}`}>{box.title}</span>
             {[
               { label: 'Total', tip: 'Sanctioned — approved positions', value: box.data.total, grad: 'from-blue-500 to-blue-700' },
               { label: 'Filled', tip: 'Currently occupied', value: box.data.filled, grad: 'from-emerald-500 to-emerald-700' },
               { label: box.data.total > 0 ? `Vacant(${Math.round((box.data.vacant / box.data.total) * 100)}%)` : 'Vacant', tip: 'Unfilled (Sanctioned − Filled)', value: box.data.vacant, grad: 'from-red-500 to-red-700' },
             ].map((m) => (
-              <span key={m.label} title={m.tip} className={`inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
+              <span key={m.label} title={m.tip} className={`flex-1 md:flex-none inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
                 <span className="text-sm font-bold tabular-nums text-white">{m.value.toLocaleString()}</span>
                 <span className="text-[9px] uppercase tracking-wide text-white/80 mt-0.5">{m.label}</span>
               </span>
