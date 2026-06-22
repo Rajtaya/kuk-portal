@@ -335,14 +335,14 @@ export default function EmployeesPage() {
         </button>
 
         {stats && (
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="flex w-full md:w-auto md:shrink-0 items-center gap-2">
             {[
               { label: 'Total', value: total ?? 0, grad: 'from-gray-500 to-gray-700' },
               { label: 'Budgeted', value: stats.budgeted, grad: 'from-indigo-500 to-indigo-700' },
               { label: 'SFS', value: stats.sfs, grad: 'from-amber-500 to-amber-700' },
               { label: 'Contractual', value: stats.contractual, grad: 'from-emerald-500 to-emerald-700' },
             ].map((m) => (
-              <span key={m.label} className={`inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 min-w-[64px] bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
+              <span key={m.label} className={`flex-1 md:flex-none inline-flex flex-col items-center justify-center leading-none px-2.5 py-1 min-w-[64px] bg-gradient-to-br ${m.grad} shadow-[2px_2px_0_0_rgba(28,25,23,0.4)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.05] hover:shadow-[4px_4px_0_0_rgba(28,25,23,0.5)]`}>
                 <span className="text-sm font-bold tabular-nums text-white">{m.value.toLocaleString()}</span>
                 <span className="text-[9px] uppercase tracking-wide text-white/80 mt-0.5">{m.label}</span>
               </span>

@@ -36,7 +36,6 @@ export default function SanctionedPostsPage() {
 
   const [vacancyData, setVacancyData] = useState<VacancyRow[]>([]);
   const [universities, setUniversities] = useState<{ id: string; name: string; code: string }[]>([]);
-  const [empSummary, setEmpSummary] = useState<{ total: number; budgeted: number; sfs: number; contractual: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -60,20 +59,6 @@ export default function SanctionedPostsPage() {
       api.get<{ id: string; name: string; code: string }[]>('/universities').then(setUniversities);
     }
   }, [isSuperAdmin, isStateUser]);
-
-  // Fetch headcount-based summary for headline boxes — same source as Dashboard + Employees page.
-  useEffect(() => {
-    if ((isSuperAdmin || isStateUser) && filters.university && !universities.length) return;
-    const uniId = (isSuperAdmin || isStateUser)
-      ? universities.find(u => u.code === filters.university)?.id
-      : undefined;
-    if ((isSuperAdmin || isStateUser) && filters.university && !uniId) return;
-    const params = new URLSearchParams({ employmentStatus: 'ACTIVE' });
-    if (uniId) params.set('universityId', uniId);
-    api.get<{ total: number; budgeted: number; sfs: number; contractual: number }>(
-      `/employees/summary?${params}`
-    ).then(setEmpSummary).catch(() => {});
-  }, [filters.university, universities, isSuperAdmin, isStateUser, isUniversityAdmin]);
 
   // Deep-link from the Universities page: /sanctioned-posts?university=CODE pre-filters to that university.
   useEffect(() => {
@@ -158,18 +143,22 @@ export default function SanctionedPostsPage() {
     { sanctioned: 0, filled: 0, vacant: 0, excess: 0 },
   );
 
-  // Headline box figures: sanctioned = Budgeted + SFS only (no contractual posts).
-  // Filled Total = Budgeted filled + SFS filled so the arithmetic is consistent:
-  //   Total Filled = Budgeted Filled + SFS Filled  (contractual employees are on the Employees page)
-  const boxSanctionedBudgeted = uniOnlyVacancy.filter(r => r.postType === 'BUDGETED').reduce((s, r) => s + r.sanctioned, 0);
-  const boxSanctionedSfs      = uniOnlyVacancy.filter(r => r.postType === 'SFS').reduce((s, r) => s + r.sanctioned, 0);
+  // Headline box figures — ALL derived from the vacancy report (the same source as the table's
+  // "Total" row), so the boxes and the list can't disagree. Budgeted + SFS only (no contractual).
+  const sumVac = (pt: 'BUDGETED' | 'SFS') => uniOnlyVacancy
+    .filter(r => r.postType === pt)
+    .reduce((a, r) => ({ sanctioned: a.sanctioned + r.sanctioned, filled: a.filled + r.filled, vacant: a.vacant + r.vacant }), { sanctioned: 0, filled: 0, vacant: 0 });
+  const vBudg = sumVac('BUDGETED');
+  const vSfs  = sumVac('SFS');
+  const boxSanctionedBudgeted = vBudg.sanctioned;
+  const boxSanctionedSfs      = vSfs.sanctioned;
   const boxSanctionedTotal    = boxSanctionedBudgeted + boxSanctionedSfs;
-  const boxFilledBudgeted = empSummary?.budgeted ?? 0;
-  const boxFilledSfs      = empSummary?.sfs      ?? 0;
+  const boxFilledBudgeted = vBudg.filled;
+  const boxFilledSfs      = vSfs.filled;
   const boxFilledTotal    = boxFilledBudgeted + boxFilledSfs;
-  const boxVacantTotal    = Math.max(0, boxSanctionedTotal - boxFilledTotal);
-  const boxVacantBudgeted = Math.max(0, boxSanctionedBudgeted - boxFilledBudgeted);
-  const boxVacantSfs      = Math.max(0, boxSanctionedSfs - boxFilledSfs);
+  const boxVacantBudgeted = vBudg.vacant;
+  const boxVacantSfs      = vSfs.vacant;
+  const boxVacantTotal    = boxVacantBudgeted + boxVacantSfs;
 
   // Available filter options. Subject/Designation/Department cascade off the other active
   // filters, so picking a university narrows them to that university's values (and so on).
