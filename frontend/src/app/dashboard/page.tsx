@@ -11,9 +11,12 @@ import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
-function BarChart({ option, style }: { option: any; style?: React.CSSProperties }) {
+function BarChart({ option, style, onEvents }: { option: any; style?: React.CSSProperties; onEvents?: Record<string, (params: any) => void> }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<any>(null);
+  // Keep the latest handlers in a ref so the once-bound ECharts listeners never go stale.
+  const eventsRef = useRef(onEvents);
+  eventsRef.current = onEvents;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -26,6 +29,10 @@ function BarChart({ option, style }: { option: any; style?: React.CSSProperties 
       inst.setOption(option);
       inst.clear();
       inst.setOption(option);
+      // Bind ECharts events once; dispatch through the ref to the current handler.
+      Object.keys(eventsRef.current || {}).forEach((evt) => {
+        inst.on(evt, (params: any) => eventsRef.current?.[evt]?.(params));
+      });
     });
     const onResize = () => instanceRef.current?.resize();
     window.addEventListener('resize', onResize);
@@ -1070,7 +1077,7 @@ export default function DashboardPage() {
           title="Employee Distribution by Designation Across Universities"
           tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
         >
-          <ReactECharts option={employeeDistOption} style={{ height: isMobile ? '380px' : '520px' }} notMerge={true} lazyUpdate={true} onEvents={{ click: handleUniversityBarClick }} />
+          <BarChart option={employeeDistOption} style={{ height: isMobile ? '380px' : '520px' }} onEvents={{ click: handleUniversityBarClick }} />
         </ChartCard>
       )}
 
