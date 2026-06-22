@@ -349,7 +349,7 @@ export default function UploadEmployeesPage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
@@ -389,6 +389,40 @@ export default function UploadEmployeesPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile: card view — the 7-column preview table scrolls sideways on phones */}
+              <div className="md:hidden space-y-2">
+                {previewRows.slice(0, 100).map((row) => {
+                  const isUpdate = row.employeeId && duplicateIds.has(row.employeeId);
+                  const hasError = !row.name || !row.department;
+                  return (
+                    <div key={row.rowNum} className={`rounded-lg border p-3 ${hasError ? 'border-red-200 bg-red-50/60' : 'border-gray-200 bg-white'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 text-sm">
+                            <span className="text-gray-400 mr-1.5">#{row.rowNum}</span>
+                            {row.name || <span className="text-red-500 italic">Missing name</span>}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">{row.employeeId || 'No ID'}</p>
+                        </div>
+                        {hasError ? (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium shrink-0">Error</span>
+                        ) : isUpdate ? (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium shrink-0">Update</span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium shrink-0">New</span>
+                        )}
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                        <div><span className="text-gray-400">Department</span><p className="text-gray-700">{row.department || <span className="text-red-500 italic">Missing</span>}</p></div>
+                        <div><span className="text-gray-400">Designation</span><p className="text-gray-700">{row.designation || '-'}</p></div>
+                        <div><span className="text-gray-400">Type</span><p className="text-gray-700">{row.postType || '-'}</p></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {previewRows.length > 100 && (
                 <p className="text-xs text-gray-400 mt-2">Showing first 100 of {previewRows.length} rows</p>
               )}
