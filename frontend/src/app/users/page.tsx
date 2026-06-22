@@ -168,7 +168,9 @@ export default function UsersPage() {
         {users.length === 0 ? (
           <EmptyState icon="👤" title="No users yet" description="Add a user to grant access to the portal." action={{ label: 'Add User', onClick: openCreate }} />
         ) : (
-        <div className="overflow-x-auto">
+        <>
+        {/* Desktop: table (min-width 680px, scrolls horizontally below md) */}
+        <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800">
@@ -213,6 +215,45 @@ export default function UsersPage() {
           </tbody>
         </table>
         </div>
+
+        {/* Mobile: card view — the table needs 680px min-width and scrolls sideways on phones */}
+        <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+          {users.map((u) => (
+            <div key={u.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/20 flex items-center justify-center text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0">
+                    {u.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{u.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+                  </div>
+                </div>
+                <span className={`shrink-0 px-2 py-0.5 text-xs rounded-full ${u.isActive ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                  {u.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  u.role === 'SUPER_ADMIN' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                  u.role === 'STATE_USER' ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' :
+                  'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                }`}>
+                  {u.role.replace(/_/g, ' ')}
+                </span>
+                {u.university && <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.university.name} ({u.university.code})</span>}
+              </div>
+              <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button onClick={() => openEdit(u)} className="text-xs font-medium text-primary-700 dark:text-primary-400 hover:underline">Edit</button>
+                <button onClick={() => toggleActive(u.id)} className={`text-xs font-medium ${u.isActive ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'} hover:underline`}>
+                  {u.isActive ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
         )}
       </div>
     </div>

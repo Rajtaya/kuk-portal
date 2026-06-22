@@ -440,7 +440,9 @@ export default function SanctionedPostsPage() {
             description={search ? 'Try a different search term.' : 'Vacancy figures appear once sanctioned posts and employees are recorded.'}
           />
         ) : (
-          <div className="overflow-auto max-h-[70vh]">
+          <>
+          {/* Desktop: full data table (scrolls horizontally on smaller widths) */}
+          <div className="hidden md:block overflow-auto max-h-[70vh]">
             <style>{`
               .sp-header-select option { color: #1f2937; background: #fff; font-size: 13px; padding: 6px 10px; font-weight: 500; text-transform: none; letter-spacing: 0; }
               .sp-header-select option:checked { background: #e0e7ff; color: #3730a3; }
@@ -545,6 +547,68 @@ export default function SanctionedPostsPage() {
               </tfoot>
             </table>
           </div>
+
+          {/* Mobile: card view — the 11-column table scrolls sideways on phones, so each
+              vacancy row becomes a self-contained card (same data, zero horizontal scroll). */}
+          <div className="md:hidden p-3 space-y-3 max-h-[72vh] overflow-y-auto">
+            {/* Totals first, so the headline figures are visible without scrolling the list */}
+            <div className="bg-slate-50 dark:bg-gray-800/60 rounded-xl border border-slate-200 dark:border-gray-700 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300">Total · {activeCount} rows</span>
+                <span className={`text-xs font-bold tabular-nums ${filteredFillRate >= 75 ? 'text-emerald-600 dark:text-emerald-400' : filteredFillRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{filteredFillRate}% filled</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+                <div><p className="text-base font-bold tabular-nums text-blue-700 dark:text-blue-400">{filteredTotals.sanctioned.toLocaleString()}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Sanctioned</p></div>
+                <div><p className="text-base font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{filteredTotals.filled.toLocaleString()}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Filled</p></div>
+                <div><p className="text-base font-bold tabular-nums text-red-700 dark:text-red-400">{filteredTotals.vacant.toLocaleString()}</p><p className="text-[10px] uppercase tracking-wide text-gray-500">Vacant</p></div>
+              </div>
+            </div>
+
+            {filteredVacancy.map((row) => {
+              const rowFill = row.sanctioned > 0 ? Math.round((row.filled / row.sanctioned) * 100) : 0;
+              const vacantPct = row.sanctioned > 0 ? row.vacant / row.sanctioned : 0;
+              return (
+                <div key={row.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm leading-snug">{row.designation}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {row.subject ? `${row.subject} · ` : ''}{row.department}
+                      </p>
+                      {(isSuperAdmin || isStateUser) && (
+                        <p className="text-[11px] font-medium text-primary-600 dark:text-primary-400 mt-0.5">{row.university}</p>
+                      )}
+                    </div>
+                    <Badge value={row.postType} />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    <div className="text-center rounded-lg bg-gray-50 dark:bg-gray-800/50 py-2">
+                      <p className="text-base font-bold tabular-nums text-blue-700 dark:text-blue-400">{row.sanctioned}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-500">Sanctioned</p>
+                    </div>
+                    <div className="text-center rounded-lg bg-gray-50 dark:bg-gray-800/50 py-2">
+                      <p className="text-base font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{row.filled}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-500">Filled</p>
+                    </div>
+                    <div className={`text-center rounded-lg py-2 ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-orange-50 dark:bg-orange-500/10') : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                      <p className={`text-base font-bold tabular-nums ${row.vacant > 0 ? (vacantPct >= 0.5 ? 'text-red-700 dark:text-red-400' : 'text-orange-600 dark:text-orange-400') : 'text-gray-400'}`}>{row.vacant}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-500">Vacant</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${rowFill >= 75 ? 'bg-emerald-500' : rowFill >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(rowFill, 100)}%` }} />
+                    </div>
+                    <span className={`text-xs font-semibold tabular-nums ${rowFill >= 75 ? 'text-emerald-600 dark:text-emerald-400' : rowFill >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{rowFill}%</span>
+                    {(row.excess || 0) > 0 && <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 whitespace-nowrap">+{row.excess} excess</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
 
         {/* Footer */}

@@ -1091,14 +1091,14 @@ export default function DashboardPage() {
           }}
         >
           {dpPostTypes.length > 0 && (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-xs font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400">Post type</span>
-              <div className="inline-flex border border-gray-300 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 mb-4">
+              <span className="text-xs font-mono uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center sm:text-left shrink-0">Post type</span>
+              <div className="flex sm:inline-flex border border-gray-300 dark:border-gray-700">
                 {dpPostTypes.map((pt) => (
                   <button
                     key={pt}
                     onClick={() => setDpPostType(pt)}
-                    className={`px-4 py-1.5 text-sm font-medium transition-colors ${dpEffective === pt ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                    className={`flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${dpEffective === pt ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                   >
                     {PT_LABELS[pt] || pt}
                   </button>
