@@ -523,7 +523,7 @@ export default function DashboardPage() {
       },
       yAxis: {
         type: 'value' as const,
-        name: 'Employee Count', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
         axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
         axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
       },
@@ -607,7 +607,7 @@ export default function DashboardPage() {
       },
       yAxis: {
         type: 'value' as const,
-        name: 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       series: udDesigs.map((d, i) => ({
