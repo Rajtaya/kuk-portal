@@ -1003,7 +1003,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="min-w-0 md:flex-1">
+          <div className="min-w-0 flex-1">
             <p className="text-white/70 text-xs font-mono font-medium uppercase tracking-widest">{isUniAdmin ? 'Logged in as' : (isAllUni ? 'Viewing' : 'Filtered View')}</p>
             <p className="text-white text-lg font-serif font-bold truncate">{isUniAdmin ? (user?.university?.name || 'My University') : selectedUniName}</p>
           </div>

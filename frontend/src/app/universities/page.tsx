@@ -166,21 +166,22 @@ export default function UniversitiesPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Universities</h1>
-        {universities.length > 0 && (
-          <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">
-            {universities.length}
-          </span>
-        )}
-        <div className="flex-1" />
-        {isSuperAdmin && (
-          <button
-            onClick={openCreate}
-            className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors whitespace-nowrap"
-          >
-            Add University
-          </button>
-        )}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">Universities</h1>
+          {universities.length > 0 && (
+            <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-500/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+              {universities.length}
+            </span>
+          )}
+          {isSuperAdmin && (
+            <button
+              onClick={openCreate}
+              className="ml-auto px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors whitespace-nowrap"
+            >
+              Add University
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-2 py-1.5">
           <span className="text-xs text-gray-400 font-medium pl-1">Sort by</span>
           {sortOptions.map((opt) => (

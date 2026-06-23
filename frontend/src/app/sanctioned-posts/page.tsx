@@ -42,6 +42,7 @@ export default function SanctionedPostsPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Import modal
@@ -64,6 +65,7 @@ export default function SanctionedPostsPage() {
   useEffect(() => {
     const uni = new URLSearchParams(window.location.search).get('university');
     if (uni) setFilters((prev) => ({ ...prev, university: uni }));
+    if (window.innerWidth < 768) setViewMode('grid');
   }, []);
 
   useEffect(() => {
@@ -315,6 +317,27 @@ export default function SanctionedPostsPage() {
         ))}
 
         <div className="flex items-center gap-2 ml-auto shrink-0">
+          {/* View mode toggle — Table ⇄ Cards (mirrors the Employees page) */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 shrink-0">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              title="Table view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              title="Card view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </button>
+          </div>
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -430,8 +453,8 @@ export default function SanctionedPostsPage() {
           />
         ) : (
           <>
-          {/* Desktop: full data table (scrolls horizontally on smaller widths) */}
-          <div className="hidden md:block overflow-auto max-h-[70vh]">
+          {/* Table view (scrolls horizontally on smaller widths) */}
+          <div className={`${viewMode === 'table' ? 'block' : 'hidden'} overflow-auto max-h-[70vh]`}>
             <style>{`
               .sp-header-select option { color: #1f2937; background: #fff; font-size: 13px; padding: 6px 10px; font-weight: 500; text-transform: none; letter-spacing: 0; }
               .sp-header-select option:checked { background: #e0e7ff; color: #3730a3; }
@@ -537,9 +560,8 @@ export default function SanctionedPostsPage() {
             </table>
           </div>
 
-          {/* Mobile: card view — the 11-column table scrolls sideways on phones, so each
-              vacancy row becomes a self-contained card (same data, zero horizontal scroll). */}
-          <div className="md:hidden p-3 space-y-3 max-h-[72vh] overflow-y-auto">
+          {/* Card view — each vacancy row becomes a self-contained card (same data, zero horizontal scroll). */}
+          <div className={`${viewMode === 'grid' ? 'block' : 'hidden'} p-3 space-y-3 max-h-[72vh] overflow-y-auto`}>
             {/* Totals first, so the headline figures are visible without scrolling the list */}
             <div className="bg-slate-50 dark:bg-gray-800/60 rounded-xl border border-slate-200 dark:border-gray-700 p-3">
               <div className="flex items-center justify-between">
