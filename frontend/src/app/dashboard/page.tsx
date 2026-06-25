@@ -368,10 +368,20 @@ export default function DashboardPage() {
     return uni?.children.map((c) => c.name).sort() || [];
   }, [data, selectedUni, isAllUni, allSubjectsMerged]);
 
+  // Per-university rows for Chart 1 and its data table, ordered with KUK first, then the
+  // rest in their original order (stable sort).
+  const desigByUniKukFirst = useMemo(() => {
+    if (!data) return [] as Record<string, any>[];
+    const codeOf = (name: string) => (data.universities || []).find(u => u.name === name)?.code || name;
+    return [...data.designationByUniversity].sort(
+      (a, b) => (codeOf(a.university) === 'KUK' ? 0 : 1) - (codeOf(b.university) === 'KUK' ? 0 : 1),
+    );
+  }, [data]);
+
   // --- Chart 1: Employee Distribution by Designation ---
   const employeeDistOption = useMemo(() => {
     if (!data) return {};
-    const rows = data.designationByUniversity;
+    const rows = desigByUniKukFirst;
     const uniCodeMap = Object.fromEntries((data.universities || []).map(u => [u.name, u.code]));
     const categories = rows.map(r => uniCodeMap[r.university] || r.university);
     const totals = rows.map(r => desigList.reduce((s, d) => s + (Number(r[d]) || 0), 0));
@@ -1091,7 +1101,7 @@ export default function DashboardPage() {
       {!isUniAdmin && (
         <ChartCard
           title="Employee Distribution by Designation Across Universities"
-          tableData={{ headers: ['University', ...desigList], rows: data.designationByUniversity.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
+          tableData={{ headers: ['University', ...desigList], rows: desigByUniKukFirst.map(row => [row.university, ...desigList.map(d => row[d] || 0)]) }}
         >
           <BarChart option={employeeDistOption} style={{ height: isMobile ? '380px' : '520px' }} onEvents={{ click: handleUniversityBarClick }} />
         </ChartCard>
