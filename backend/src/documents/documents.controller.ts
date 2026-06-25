@@ -36,7 +36,10 @@ export class DocumentsController {
   ) {
     if (!file) throw new BadRequestException('Only PDF, JPEG, PNG, and WebP files are allowed');
     validateFileSignature(file.buffer, file.mimetype, 'document');
-    await this.documentsService.verifyEmployeeOwnership(employeeId, user.universityId);
+    // Uni admins may only attach documents to their own employees; super admins to anyone's.
+    if (user.role === Role.UNIVERSITY_ADMIN) {
+      await this.documentsService.verifyEmployeeOwnership(employeeId, user.universityId);
+    }
     return this.documentsService.upload(employeeId, file, type);
   }
 
@@ -71,7 +74,9 @@ export class DocumentsController {
   @Delete(':id')
   @Roles(Role.UNIVERSITY_ADMIN)
   async delete(@Param('id') id: string, @CurrentUser() user: any) {
-    await this.documentsService.verifyDocumentOwnership(id, user.universityId);
+    if (user.role === Role.UNIVERSITY_ADMIN) {
+      await this.documentsService.verifyDocumentOwnership(id, user.universityId);
+    }
     return this.documentsService.delete(id);
   }
 }

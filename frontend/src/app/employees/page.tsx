@@ -131,7 +131,7 @@ export default function EmployeesPage() {
   const hiddenKeys = user?.role === 'UNIVERSITY_ADMIN' ? UNI_ADMIN_HIDDEN : [];
   const activeCols = ALL_COLUMNS.filter((c) => visibleCols.includes(c.key) && !hiddenKeys.includes(c.key));
 
-  const canWrite = user?.role === 'UNIVERSITY_ADMIN';
+  const canWrite = user?.role === 'UNIVERSITY_ADMIN' || user?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
     if (user?.role !== 'UNIVERSITY_ADMIN') {

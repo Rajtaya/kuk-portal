@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Put, Delete, Param, Body, Query, Res,
-  UseGuards, UseInterceptors, UploadedFile, ForbiddenException, NotFoundException,
+  UseGuards, UseInterceptors, UploadedFile, ForbiddenException, NotFoundException, BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -25,7 +25,9 @@ export class EmployeesController {
   @Post()
   @Roles(Role.UNIVERSITY_ADMIN)
   create(@Body() dto: CreateEmployeeDto, @CurrentUser() user: any) {
-    dto.universityId = user.universityId;
+    // Uni admins always create within their own university; super admins choose it in the form.
+    if (user.role === Role.UNIVERSITY_ADMIN) dto.universityId = user.universityId;
+    if (!dto.universityId) throw new BadRequestException('University is required');
     return this.employeesService.create(dto);
   }
 
@@ -55,13 +57,14 @@ export class EmployeesController {
 
   @Get('check-duplicates')
   @Roles(Role.UNIVERSITY_ADMIN)
-  async checkDuplicates(@Query('ids') ids: string, @CurrentUser() user: any) {
-    // University is taken from the authenticated user, never from the query string —
-    // this prevents probing employee IDs at other universities (IDOR).
-    if (!ids) return [];
+  async checkDuplicates(@Query('ids') ids: string, @Query('universityId') queryUniId: string, @CurrentUser() user: any) {
+    // Uni admins are pinned to their own university (query param ignored — prevents probing
+    // employee IDs at other universities / IDOR); super admins check the university they picked.
+    const universityId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : queryUniId;
+    if (!ids || !universityId) return [];
     const idList = ids.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5000);
     if (!idList.length) return [];
-    return this.employeesService.findExistingEmployeeIds(idList, user.universityId);
+    return this.employeesService.findExistingEmployeeIds(idList, universityId);
   }
 
   @Get('template')
@@ -155,7 +158,7 @@ export class EmployeesController {
     @CurrentUser() user: any,
   ) {
     const emp = await this.employeesService.findOne(id);
-    if (emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
+    if (user.role === Role.UNIVERSITY_ADMIN && emp.universityId !== user.universityId) throw new ForbiddenException('Cannot modify another university\'s employee');
     if (!photo) throw new ForbiddenException('No photo uploaded');
     validateFileSignature(photo.buffer, photo.mimetype, 'photo');
 

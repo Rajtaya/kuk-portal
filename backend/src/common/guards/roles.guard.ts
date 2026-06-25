@@ -14,6 +14,8 @@ export class RolesGuard implements CanActivate {
     ]);
     if (!requiredRoles) return true;
     const { user } = context.switchToHttp().getRequest();
+    // Super Admin is a superuser — full access to every role-guarded endpoint.
+    if (user?.role === Role.SUPER_ADMIN) return true;
     return requiredRoles.includes(user.role);
   }
 }

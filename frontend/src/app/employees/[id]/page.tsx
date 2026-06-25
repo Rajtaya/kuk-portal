@@ -64,7 +64,7 @@ export default function EmployeeProfilePage() {
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
 
-  const canEdit = user?.role === 'UNIVERSITY_ADMIN';
+  const canEdit = user?.role === 'UNIVERSITY_ADMIN' || user?.role === 'SUPER_ADMIN';
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
