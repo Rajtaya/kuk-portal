@@ -104,6 +104,21 @@ function getDesigColor(name: string, index: number) {
   return DESIG_COLORS[name] || RING_COLORS[index % RING_COLORS.length];
 }
 
+// Wrap a long category-axis label onto multiple lines (greedy, on word boundaries)
+// so dense designation names (e.g. "Assistant Professor in Electronics") don't
+// overlap on a horizontal x-axis. ECharts renders '\n' in an axisLabel as a line break.
+function wrapAxisLabel(value: string, maxChars = 14): string {
+  if (!value) return '';
+  const lines: string[] = [];
+  let cur = '';
+  for (const word of String(value).split(' ')) {
+    if (cur && (cur + ' ' + word).length > maxChars) { lines.push(cur); cur = word; }
+    else { cur = cur ? cur + ' ' + word : word; }
+  }
+  if (cur) lines.push(cur);
+  return lines.join('\n');
+}
+
 const TOOLTIP_BASE: any = {
   backgroundColor: '#fff',
   borderColor: '#E5E7EB',
@@ -880,10 +895,10 @@ export default function DashboardPage() {
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
       grid: isMobile
         ? { top: 20, right: 50, bottom: 60, left: 10, containLabel: true }
-        : { top: 30, right: 20, bottom: 60, left: 50, containLabel: true },
+        : { top: 30, right: 20, bottom: 82, left: 50, containLabel: true },
       xAxis: isMobile
         ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
-        : { type: 'category' as const, data: categories, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
+        : { type: 'category' as const, data: categories, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
       yAxis: isMobile
         ? { type: 'category' as const, data: categories, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
         : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
