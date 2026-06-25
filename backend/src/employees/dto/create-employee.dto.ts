@@ -114,6 +114,7 @@ export class EmployeeFilterDto {
   @IsOptional() @IsString() @MaxLength(64) universityId?: string;
   @IsOptional() @IsString() @MaxLength(64) departmentId?: string;
   @IsOptional() @IsString() @MaxLength(200) department?: string;
+  @IsOptional() @IsString() @MaxLength(100) employeeId?: string;
   @IsOptional() @IsString() @MaxLength(200) subject?: string;
   @IsOptional() @IsString() @MaxLength(200) designation?: string;
   @IsOptional() @IsEnum(PostType) postType?: PostType;

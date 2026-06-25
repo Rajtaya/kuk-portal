@@ -53,6 +53,8 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
+  const [empIdSearch, setEmpIdSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [universities, setUniversities] = useState<University[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [designations, setDesignations] = useState<{ id: string; name: string }[]>([]);
@@ -169,13 +171,14 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const f = { ...filters, ...(search ? { search } : {}) };
-      if (!search) delete f.search;
+      const f = { ...filters };
+      if (search) f.search = search; else delete f.search;
+      if (empIdSearch) f.employeeId = empIdSearch; else delete f.employeeId;
       setFilters(f);
       fetchEmployees(1, f);
     }, 400);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, empIdSearch]);
 
   const handleSearch = () => {
     const f = { ...filters, ...(search ? { search } : {}) };
@@ -194,6 +197,7 @@ export default function EmployeesPage() {
   const clearAllFilters = () => {
     setFilters({});
     setSearch('');
+    setEmpIdSearch('');
     fetchEmployees(1, {});
   };
 
@@ -208,36 +212,50 @@ export default function EmployeesPage() {
     } catch { toast('Failed to delete employee', 'error'); }
   };
 
-  const buildExportRows = () =>
-    data.data.map((e, i) => ({
-      'SN': i + 1 + (data.page - 1) * 20,
-      'Emp ID': e.employeeId || '',
-      'Employee Name': e.name,
-      'University': e.university?.name || '',
-      'Uni Code': e.university?.code || '',
-      'Department': e.department?.name || '',
-      'Subject': e.subject || '',
-      'Designation': e.designationAppointed || '',
-      'Present Designation': e.designationPresent || '',
-      'Category': e.category,
-      'Selection Category': e.categorySelection,
-      'Gender': e.gender,
-      'Post Type': e.postType,
-      'Status': e.employmentStatus,
-      'Date of Joining': e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '',
-      'Retirement': e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN') : '',
-      'Mobile': e.mobileNumber || '',
-      'Email': e.email || '',
-    }));
+  const toExportRow = (e: Employee, i: number) => ({
+    'SN': i + 1,
+    'Emp ID': e.employeeId || '',
+    'Employee Name': e.name,
+    'University': e.university?.name || '',
+    'Uni Code': e.university?.code || '',
+    'Department': e.department?.name || '',
+    'Subject': e.subject || '',
+    'Designation': e.designationAppointed || '',
+    'Present Designation': e.designationPresent || '',
+    'Category': e.category,
+    'Selection Category': e.categorySelection,
+    'Gender': e.gender,
+    'Post Type': e.postType,
+    'Status': e.employmentStatus,
+    'Date of Joining': e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString('en-IN') : '',
+    'Retirement': e.retirementDate ? new Date(e.retirementDate).toLocaleDateString('en-IN') : '',
+    'Mobile': e.mobileNumber || '',
+    'Email': e.email || '',
+  });
 
-  const handleExport = (fmt: 'csv' | 'excel' | 'pdf') => {
-    const rows = buildExportRows();
-    if (!rows.length) { toast('Nothing to export', 'error'); return; }
-    const cols = Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
-    if (fmt === 'csv') exportToCSV('employees', cols, rows);
-    else if (fmt === 'excel') exportToExcel('employees', cols, rows);
-    else exportToPDF('Employees', cols, rows);
+  const handleExport = async (fmt: 'csv' | 'excel' | 'pdf') => {
     setExportMenuOpen(false);
+    setExporting(true);
+    try {
+      let all: Employee[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const params = new URLSearchParams({ page: String(page), limit: '100', ...filters });
+        const res = await api.get<PaginatedResponse<Employee>>(`/employees?${params}`);
+        all = all.concat(res.data);
+        totalPages = res.totalPages;
+        page++;
+      } while (page <= totalPages);
+
+      const rows = all.map(toExportRow);
+      if (!rows.length) { toast('Nothing to export', 'error'); return; }
+      const cols = Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
+      if (fmt === 'csv') exportToCSV('employees', cols, rows);
+      else if (fmt === 'excel') await exportToExcel('employees', cols, rows);
+      else exportToPDF('Employees', cols, rows);
+    } catch { toast('Export failed', 'error'); }
+    finally { setExporting(false); }
   };
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -408,12 +426,16 @@ export default function EmployeesPage() {
             </button>
           )}
           <div className="relative" ref={exportMenuRef}>
-            <button onClick={() => setExportMenuOpen(!exportMenuOpen)} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Export
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            <button onClick={() => !exporting && setExportMenuOpen(!exportMenuOpen)} disabled={exporting} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
+              {exporting ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              )}
+              {exporting ? 'Exporting...' : 'Export'}
+              {!exporting && <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>}
             </button>
             {exportMenuOpen && (
               <div className="absolute right-0 top-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 py-1 w-40">
@@ -777,7 +799,8 @@ export default function EmployeesPage() {
                   const scls = 'emp-header-select w-full pl-1.5 pr-6 py-1.5 text-[12px] font-semibold bg-white/15 text-white border border-white/25 rounded focus:outline-none focus:ring-1 focus:ring-white/40 cursor-pointer appearance-none uppercase tracking-wide bg-no-repeat bg-[length:14px_14px] bg-[position:right_6px_center]';
                   const filterIcon = { backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'/%3E%3C/svg%3E")` };
                   let headerEl: React.ReactNode = null;
-                  if (col.key === 'name') headerEl = <input type="text" placeholder="Search name..." value={search} onChange={(e) => setSearch(e.target.value)} className={scls + ' placeholder-white/50 font-normal normal-case tracking-normal !bg-none'} />;
+                  if (col.key === 'empId') headerEl = <input type="text" placeholder="Search ID..." value={empIdSearch} onChange={(e) => setEmpIdSearch(e.target.value)} className={scls + ' placeholder-white/50 font-normal normal-case tracking-normal !bg-none'} />;
+                  else if (col.key === 'name') headerEl = <input type="text" placeholder="Search name..." value={search} onChange={(e) => setSearch(e.target.value)} className={scls + ' placeholder-white/50 font-normal normal-case tracking-normal !bg-none'} />;
                   else if (col.key === 'uniName') headerEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls} style={filterIcon}><option value="">University</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>;
                   else if (col.key === 'uniCode') headerEl = <select value={filters.universityId || ''} onChange={(e) => applyFilter('universityId', e.target.value)} className={scls} style={filterIcon}><option value="">Uni Code</option>{universities.map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}</select>;
                   else if (col.key === 'department') { const uniqueDepts = [...new Map(departments.map(d => [d.name.toUpperCase(), d.name])).values()].sort(); headerEl = <select value={filters.department || ''} onChange={(e) => applyFilter('department', e.target.value)} className={scls} style={filterIcon}><option value="">Department</option>{uniqueDepts.map((n) => <option key={n} value={n}>{n}</option>)}</select>; }

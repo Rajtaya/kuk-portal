@@ -87,6 +87,7 @@ export class EmployeesService {
     if (rest.universityId) where.universityId = rest.universityId;
     if (rest.departmentId) where.departmentId = rest.departmentId;
     if (rest.department) where.department = { is: { name: { equals: rest.department, mode: 'insensitive' } } };
+    if (rest.employeeId) where.employeeId = { contains: rest.employeeId, mode: 'insensitive' };
     if (rest.subject) where.subject = { contains: rest.subject, mode: 'insensitive' };
     if (rest.postType) where.postType = rest.postType;
     if (rest.employeeClassification) where.employeeClassification = rest.employeeClassification;
