@@ -413,16 +413,16 @@ export default function DashboardPage() {
             </div>`;
           },
         },
-        legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
+        legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
         grid: isMobile
           ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
           : { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
         xAxis: isMobile
-          ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#111827' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
+          ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
           : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
         yAxis: isMobile
           ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
-          : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
+          : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
         series: [
           { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 14 : 80, barGap: '15%',
             data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
@@ -440,19 +440,19 @@ export default function DashboardPage() {
     // Super Admin / State User: vertical on desktop, horizontal on mobile
     const catAxis = {
       type: 'category' as const, data: categories,
-      axisLabel: { fontSize: isMobile ? 11 : 14, interval: 0, color: '#1f2937', fontWeight: 700, margin: 12 },
+      axisLabel: { fontSize: isMobile ? 11 : 12, interval: 0, color: '#374151', fontWeight: 600, margin: 12 },
       axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       ...(isMobile ? { inverse: true } : {}),
     };
     const valAxis = {
       type: 'value' as const,
-      name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 14, fontWeight: 'bold', color: '#111827' },
+      name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 13, fontWeight: 'bold', color: '#374151', align: 'left' as const },
       axisLabel: { fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151' },
       axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
     };
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
       grid: isMobile
         ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
         : { top: 55, right: 20, bottom: 90, left: 40, containLabel: true },
@@ -464,7 +464,7 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigList.length - 1 ? {
-          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: isMobile ? 11 : 13, fontWeight: 800, color: '#111827',
+          label: { show: true, position: isMobile ? 'right' as const : 'top' as const, fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -539,7 +539,7 @@ export default function DashboardPage() {
     const totals = subjects.map(s => s.children.reduce((sum, d) => sum + d.children.reduce((s2, pt) => s2 + pt.value, 0), 0));
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 13, fontWeight: 600, color: '#111827' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 110 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         type: 'category' as const, data: categories,
@@ -548,7 +548,7 @@ export default function DashboardPage() {
       },
       yAxis: {
         type: 'value' as const,
-        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827', align: 'left' as const },
+        name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151', align: 'left' as const },
         axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
         axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
@@ -567,7 +567,7 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === desigs.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: isMobile ? 11 : 14, fontWeight: 800, color: '#111827',
+          label: { show: true, position: 'top' as const, fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -622,7 +622,7 @@ export default function DashboardPage() {
     const totals = rows.map(r => udDesigs.reduce((s, d) => s + (Number(r[d]) || 0), 0));
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 96 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
         // No axis name — it's redundant with the card title ("Employment Type → …") and,
@@ -642,7 +642,7 @@ export default function DashboardPage() {
         itemStyle: { color: getDesigColor(d, i), borderColor: '#fff', borderWidth: 1 },
         emphasis: { focus: 'series' as const },
         ...(i === udDesigs.length - 1 ? {
-          label: { show: true, position: 'top' as const, fontSize: 11, fontWeight: 600, color: '#374151',
+          label: { show: true, position: 'top' as const, fontSize: 13, fontWeight: 700, color: '#374151',
             formatter: (p: any) => totals[p.dataIndex] || '' },
         } : {}),
       })),
@@ -805,7 +805,7 @@ export default function DashboardPage() {
     };
     const valAxis = {
       type: 'value' as const,
-      name: 'Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' },
+      name: 'Count', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151', align: 'left' as const },
       axisLabel: { fontSize: isMobile ? 9 : 11, color: '#374151' },
       axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
     };
@@ -903,7 +903,7 @@ export default function DashboardPage() {
           </div>`;
         },
       },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#374151' } },
+      legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
       grid: isMobile
         ? { top: 20, right: 50, bottom: 60, left: 10, containLabel: true }
         : { top: 30, right: 20, bottom: 82, left: 50, containLabel: true },
@@ -912,7 +912,7 @@ export default function DashboardPage() {
         : { type: 'category' as const, data: categories, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
       yAxis: isMobile
         ? { type: 'category' as const, data: categories, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
-        : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
+        : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151', align: 'left' as const }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
       series: [
         { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 12 : 38,
           data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
