@@ -184,6 +184,27 @@ export class EmployeesService {
     return ({ BUDGETED: 'BUDGETED', SFS: 'SFS', SELFFINANCED: 'SFS', SELFFINANCE: 'SFS', CONTRACTUAL: 'CONTRACTUAL', CONTRACT: 'CONTRACTUAL' } as Record<string, string>)[k];
   }
 
+  // Collapse a designation to one of the 4 canonical ranks (others left as-is).
+  private static canonRank(raw: string): string {
+    const l = raw.trim().toLowerCase();
+    if (l.startsWith('senior')) return 'Senior Professor';
+    if (l.startsWith('associate') || l.startsWith('assoc')) return 'Associate Professor';
+    if (l.startsWith('assistant') || l.startsWith('asst')) return 'Assistant Professor';
+    if (l.startsWith('prof')) return 'Professor';
+    return raw.trim();
+  }
+
+  // "Assistant Professor in ECE" → { rank: 'Assistant Professor', discipline: 'ECE' }. The
+  // discipline (when present only in the designation) is surfaced so it can fill an empty Subject,
+  // keeping the designation to the 4 ranks instead of fragmenting into "… in <discipline>".
+  private normDesignation(raw: any): { rank?: string; discipline?: string } {
+    const s = String(raw ?? '').trim();
+    if (!s) return {};
+    const m = s.match(/^(.*?)\s+in\s+(.+)$/i);
+    if (m) return { rank: EmployeesService.canonRank(m[1]), discipline: m[2].trim() };
+    return { rank: EmployeesService.canonRank(s) };
+  }
+
   // Parse a row into employee fields. Anything blank/absent in the sheet comes back as
   // `undefined` (NOT defaulted) so callers can distinguish "set this value" from "leave it
   // unchanged" — this is what enables blank-tolerant uploads and partial updates by Employee ID.
@@ -203,6 +224,12 @@ export class EmployeesService {
       return isNaN(parsed.getTime()) ? undefined : parsed;
     };
 
+    const appt = this.normDesignation(row['Designation(appointment)'] ?? row['designationAppointed']);
+    const pres = this.normDesignation(row['Designation (Present)'] ?? row['designationPresent']);
+    let subject = txt(row['Subject'] ?? row['subject']);
+    const discipline = pres.discipline ?? appt.discipline;
+    if (!subject && discipline) subject = discipline; // keep the discipline when it was only in the designation
+
     return {
       employeeId: txt(row['Employee ID'] ?? row['employeeId']),
       name: txt(row['Employee Name'] ?? row['name']),
@@ -211,9 +238,9 @@ export class EmployeesService {
       categorySelection: this.normCategory(row['Category(Selection)']),
       postType: this.normPostType(row['Type']),
       employmentStatus: oneOf(row['Employment Status'], ['ACTIVE', 'RETIRED', 'RESIGNED', 'TERMINATED', 'SUSPENDED']),
-      subject: txt(row['Subject'] ?? row['subject']),
-      designationAppointed: txt(row['Designation(appointment)'] ?? row['designationAppointed']),
-      designationPresent: txt(row['Designation (Present)'] ?? row['designationPresent']),
+      subject,
+      designationAppointed: appt.rank,
+      designationPresent: pres.rank,
       retirementDate: parseDate(row['Retirement Date'] ?? row['retirementDate']),
       dateOfJoining: parseDate(row['Date of Joining'] ?? row['dateOfJoining']),
       mobileNumber: txt(row['Mobile Number'] ?? row['mobileNumber']),
