@@ -71,6 +71,89 @@ interface ChartData {
   subjects: string[];
 }
 
+// Collapse a designation to one of the four canonical ranks (mirrors the backend
+// `canonRank`). Acts as a display-layer safety net so every dashboard chart, legend and
+// axis shows only Senior / Professor / Associate / Assistant — even when the stored
+// records (or a not-yet-redeployed backend) still carry fragmented "… in <discipline>"
+// values. Anything unrecognised is returned trimmed, unchanged.
+function canonRank(raw: string): string {
+  const l = (raw || '').trim().toLowerCase();
+  if (l.startsWith('senior')) return 'Senior Professor';
+  if (l.startsWith('associate') || l.startsWith('assoc')) return 'Associate Professor';
+  if (l.startsWith('assistant') || l.startsWith('asst')) return 'Assistant Professor';
+  if (l.startsWith('prof')) return 'Professor';
+  return (raw || '').trim();
+}
+
+// Fold the fragmented designation keys/labels of a freshly-fetched ChartData down to the
+// canonical ranks (summing counts) so every chart renders consistent ranks and a clean
+// 4-item legend/axis regardless of how the data was entered or whether the backend
+// collapse is live. Applied once at fetch time; all downstream charts read this shape.
+function normalizeChartData(d: ChartData): ChartData {
+  // Sum the numeric designation columns of a row by canon rank; `keep` columns pass through.
+  const foldRow = (row: Record<string, any>, keep: string[]) => {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(row)) {
+      if (keep.includes(k)) { out[k] = v; continue; }
+      const ck = canonRank(k);
+      out[ck] = (Number(out[ck]) || 0) + (Number(v) || 0);
+    }
+    return out;
+  };
+  // Same, for "Sanction - <desig>" / "Present - <desig>" prefixed columns.
+  const foldPrefixed = (row: Record<string, any>, keep: string[]) => {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(row)) {
+      if (keep.includes(k)) { out[k] = v; continue; }
+      const m = k.match(/^(Sanction|Present) - (.+)$/);
+      const ck = m ? `${m[1]} - ${canonRank(m[2])}` : k;
+      out[ck] = (Number(out[ck]) || 0) + (Number(v) || 0);
+    }
+    return out;
+  };
+
+  // designationPostType: merge by (canon designation, postType); recompute vacant from the
+  // merged totals — summing per-fragment vacancies would over- or under-count.
+  const dptMap = new Map<string, { designation: string; postType: string; sanctioned: number; present: number; vacant: number }>();
+  for (const r of d.designationPostType || []) {
+    const designation = canonRank(r.designation);
+    const key = `${designation}||${r.postType}`;
+    const cur = dptMap.get(key) || { designation, postType: r.postType, sanctioned: 0, present: 0, vacant: 0 };
+    cur.sanctioned += r.sanctioned; cur.present += r.present;
+    dptMap.set(key, cur);
+  }
+  const designationPostType = [...dptMap.values()].map(v => ({ ...v, vacant: Math.max(0, v.sanctioned - v.present) }));
+
+  return {
+    ...d,
+    designations: [...new Set((d.designations || []).map(canonRank))].sort(),
+    designationByUniversity: (d.designationByUniversity || []).map(r => foldRow(r, ['university'])),
+    categoryDesignation: (d.categoryDesignation || []).map(r => foldRow(r, ['category', 'total'])),
+    postTypeDesignation: (d.postTypeDesignation || []).map(r => foldRow(r, ['postType', 'total'])),
+    genderDesignation: (d.genderDesignation || []).map(g => {
+      const m = new Map<string, number>();
+      for (const x of g.designations) { const ck = canonRank(x.name); m.set(ck, (m.get(ck) || 0) + x.value); }
+      return { ...g, designations: [...m.entries()].map(([name, value]) => ({ name, value })) };
+    }),
+    hierarchy: (d.hierarchy || []).map(uni => ({
+      ...uni,
+      children: uni.children.map(subj => {
+        // Merge fragmented designations within each subject, keeping their post-type breakdown.
+        const dm = new Map<string, Map<string, number>>();
+        for (const desig of subj.children) {
+          const ck = canonRank(desig.name);
+          if (!dm.has(ck)) dm.set(ck, new Map());
+          const pm = dm.get(ck)!;
+          for (const pt of desig.children) pm.set(pt.name, (pm.get(pt.name) || 0) + pt.value);
+        }
+        return { name: subj.name, children: [...dm.entries()].map(([name, pm]) => ({ name, children: [...pm.entries()].map(([ptn, value]) => ({ name: ptn, value })) })) };
+      }),
+    })),
+    sanctionVsPresent: (d.sanctionVsPresent || []).map(r => foldPrefixed(r, ['subject'])),
+    designationPostType,
+  };
+}
+
 const DESIG_COLORS: Record<string, string> = {
   'Professor': '#10B981',
   'Associate Professor': '#8B5CF6',
@@ -304,7 +387,8 @@ export default function DashboardPage() {
   }, [selectedUni]);
 
   useEffect(() => {
-    api.get<ChartData>('/employees/dashboard-charts').then((d) => {
+    api.get<ChartData>('/employees/dashboard-charts').then((raw) => {
+      const d = normalizeChartData(raw);
       setData(d);
       if (isUniAdmin && d.hierarchy.length === 1) {
         setSelectedUni(d.hierarchy[0].universityId);
@@ -316,7 +400,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!selectedUni || selectedUni === 'all' || isUniAdmin) { setUniData(null); return; }
-    api.get<ChartData>(`/employees/dashboard-charts?universityId=${selectedUni}`).then(setUniData);
+    api.get<ChartData>(`/employees/dashboard-charts?universityId=${selectedUni}`).then((raw) => setUniData(normalizeChartData(raw)));
   }, [selectedUni, isUniAdmin]);
 
   const desigList = useMemo(() => data?.designations || [], [data]);
@@ -416,10 +500,10 @@ export default function DashboardPage() {
         legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
         grid: isMobile
           ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
-          : { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
+          : { top: 30, right: 20, bottom: 82, left: 50, containLabel: true },
         xAxis: isMobile
           ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
-          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
+          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
         yAxis: isMobile
           ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
           : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
@@ -628,7 +712,7 @@ export default function DashboardPage() {
         // No axis name — it's redundant with the card title ("Employment Type → …") and,
         // placed at nameLocation:'middle', it collided with the bottom legend.
         type: 'category' as const, data: categories,
-        axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151' },
+        axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151', interval: 0 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
