@@ -503,9 +503,9 @@ export default function DashboardPage() {
           : { top: 30, right: 20, bottom: 82, left: 50, containLabel: true },
         xAxis: isMobile
           ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
-          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
+          : { type: 'category' as const, data: desigs, z: 10, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
         yAxis: isMobile
-          ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
+          ? { type: 'category' as const, data: desigs, inverse: true, z: 10, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
           : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#374151' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
         series: [
           { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 14 : 80, barGap: '15%',
@@ -523,7 +523,7 @@ export default function DashboardPage() {
 
     // Super Admin / State User: vertical on desktop, horizontal on mobile
     const catAxis = {
-      type: 'category' as const, data: categories,
+      type: 'category' as const, data: categories, z: 10,
       axisLabel: { fontSize: isMobile ? 11 : 12, interval: 0, color: '#374151', fontWeight: 600, margin: 12 },
       axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       ...(isMobile ? { inverse: true } : {}),
@@ -626,7 +626,7 @@ export default function DashboardPage() {
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, fontWeight: 600, color: '#374151' } },
       grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 110 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
-        type: 'category' as const, data: categories,
+        type: 'category' as const, data: categories, z: 10,
         axisLabel: { rotate: isMobile ? -55 : -35, fontSize: isMobile ? 8 : (isAllUni ? 10 : 11), interval: 0, color: '#374151', fontWeight: 500 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
@@ -711,7 +711,7 @@ export default function DashboardPage() {
       xAxis: {
         // No axis name — it's redundant with the card title ("Employment Type → …") and,
         // placed at nameLocation:'middle', it collided with the bottom legend.
-        type: 'category' as const, data: categories,
+        type: 'category' as const, data: categories, z: 10,
         axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151', interval: 0 },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
@@ -882,7 +882,7 @@ export default function DashboardPage() {
 
     // Vertical bars on desktop; horizontal on mobile (subjects move to the y-axis).
     const catAxis = {
-      type: 'category' as const, data: categories,
+      type: 'category' as const, data: categories, z: 10,
       axisLabel: { rotate: isMobile ? 0 : -40, fontSize: isMobile ? 9 : 10, fontWeight: 500, interval: 0, color: '#374151' },
       axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       ...(isMobile ? { inverse: true } : {}),
@@ -993,9 +993,9 @@ export default function DashboardPage() {
         : { top: 30, right: 20, bottom: 82, left: 50, containLabel: true },
       xAxis: isMobile
         ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
-        : { type: 'category' as const, data: categories, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
+        : { type: 'category' as const, data: categories, z: 10, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0, margin: 12, lineHeight: 14, formatter: (v: string) => wrapAxisLabel(v) }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
       yAxis: isMobile
-        ? { type: 'category' as const, data: categories, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
+        ? { type: 'category' as const, data: categories, inverse: true, z: 10, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
         : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 13, fontWeight: 'bold', color: '#374151', align: 'left' as const }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
       series: [
         { name: 'Sanctioned', type: 'bar' as const, barGap: '10%', barWidth: isMobile ? 12 : 38,
