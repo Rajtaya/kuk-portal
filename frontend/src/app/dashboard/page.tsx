@@ -613,12 +613,13 @@ export default function DashboardPage() {
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
       legend: { bottom: 0, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#374151' } },
-      grid: { top: 30, right: isMobile ? 10 : 20, bottom: 70, left: isMobile ? 10 : 20, containLabel: true },
+      grid: { top: 30, right: isMobile ? 10 : 20, bottom: isMobile ? 96 : 100, left: isMobile ? 10 : 20, containLabel: true },
       xAxis: {
+        // No axis name — it's redundant with the card title ("Employment Type → …") and,
+        // placed at nameLocation:'middle', it collided with the bottom legend.
         type: 'category' as const, data: categories,
         axisLabel: { fontSize: isMobile ? 10 : 13, fontWeight: 600, color: '#374151' },
         axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
-        name: 'Employment Type', nameLocation: 'middle' as const, nameGap: 35, nameTextStyle: { fontSize: isMobile ? 11 : 14, fontWeight: 'bold', color: '#374151' },
       },
       yAxis: {
         type: 'value' as const,
