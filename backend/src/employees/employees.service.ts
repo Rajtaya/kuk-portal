@@ -401,6 +401,13 @@ export class EmployeesService {
       }),
     ]);
 
+    // Collapse any fragmented designation ("Assistant Professor in ECE" → "Assistant Professor")
+    // so every dashboard chart/legend shows the canonical ranks, regardless of how the
+    // underlying records were entered. (Idempotent once the data itself is cleaned up.)
+    for (const e of employees) {
+      if (e.designationPresent) e.designationPresent = EmployeesService.canonRank(e.designationPresent);
+    }
+
     const designationSet = new Set<string>();
     const subjectSet = new Set<string>();
     for (const e of employees) {
