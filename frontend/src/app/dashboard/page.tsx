@@ -418,11 +418,11 @@ export default function DashboardPage() {
           ? { top: 20, right: 50, bottom: 70, left: 10, containLabel: true }
           : { top: 30, right: 20, bottom: 70, left: 50, containLabel: true },
         xAxis: isMobile
-          ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#111827' }, axisLine: { show: true, lineStyle: { color: '#000', width: 2 } } }
-          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10 },
+          ? { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 12, fontWeight: 'bold', color: '#111827' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } }
+          : { type: 'category' as const, data: desigs, axisLabel: { fontSize: 12, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } },
         yAxis: isMobile
-          ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10 }
-          : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#000', width: 2 } } },
+          ? { type: 'category' as const, data: desigs, inverse: true, axisLabel: { fontSize: 11, fontWeight: 600, color: '#374151', interval: 0 }, axisLine: { lineStyle: { color: '#374151', width: 1.5 } } }
+          : { type: 'value' as const, name: 'Posts', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827' }, axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' }, axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } } },
         series: [
           { name: 'Sanctioned', type: 'bar' as const, barWidth: isMobile ? 14 : 80, barGap: '15%',
             data: sanctioned, itemStyle: { color: '#3B82F6', borderRadius: isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0] },
@@ -441,14 +441,14 @@ export default function DashboardPage() {
     const catAxis = {
       type: 'category' as const, data: categories,
       axisLabel: { fontSize: isMobile ? 11 : 14, interval: 0, color: '#1f2937', fontWeight: 700, margin: 12 },
-      axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
+      axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       ...(isMobile ? { inverse: true } : {}),
     };
     const valAxis = {
       type: 'value' as const,
       name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: isMobile ? 12 : 14, fontWeight: 'bold', color: '#111827' },
       axisLabel: { fontSize: isMobile ? 11 : 13, fontWeight: 700, color: '#374151' },
-      axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
+      axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
     };
     return {
       tooltip: { trigger: 'item' as const, ...TOOLTIP_BASE, formatter: barTooltipFormatter },
@@ -544,13 +544,13 @@ export default function DashboardPage() {
       xAxis: {
         type: 'category' as const, data: categories,
         axisLabel: { rotate: isMobile ? -55 : -35, fontSize: isMobile ? 8 : (isAllUni ? 10 : 11), interval: 0, color: '#374151', fontWeight: 500 },
-        axisLine: { lineStyle: { color: '#000', width: 2 } }, z: 10,
+        axisLine: { lineStyle: { color: '#374151', width: 1.5 } },
       },
       yAxis: {
         type: 'value' as const,
         name: isMobile ? 'Count' : 'Employee Count', nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#111827', align: 'left' as const },
         axisLabel: { fontSize: 13, fontWeight: 700, color: '#374151' },
-        axisLine: { show: true, lineStyle: { color: '#000', width: 2 } },
+        axisLine: { show: true, lineStyle: { color: '#374151', width: 1.5 } },
       },
       ...(isAllUni && subjects.length > 15 ? {
         dataZoom: [
