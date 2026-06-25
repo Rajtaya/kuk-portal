@@ -164,43 +164,61 @@ export class EmployeesService {
     return existing.map(e => e.employeeId!).filter(Boolean);
   }
 
+  // Canonical category aliases — maps the spellings real source sheets use (SC, BC-A, General…)
+  // to the enum, so categories import correctly instead of silently collapsing to UR.
+  private static readonly CATEGORY_ALIASES: Record<string, string> = {
+    UR: 'UR', GENERAL: 'UR', GEN: 'UR', GE: 'UR',
+    SC: 'DSC', DSC: 'DSC', ST: 'OSC', OSC: 'OSC',
+    'BC-A': 'BCA', 'BC A': 'BCA', BCA: 'BCA',
+    'BC-B': 'BCB', 'BC B': 'BCB', BCB: 'BCB',
+    EWS: 'EWS', PWD: 'PWD', PH: 'PWD',
+  };
+
+  private normCategory(raw: any): string | undefined {
+    const k = String(raw ?? '').trim().toUpperCase();
+    return k ? EmployeesService.CATEGORY_ALIASES[k] : undefined;
+  }
+
+  private normPostType(raw: any): string | undefined {
+    const k = String(raw ?? '').trim().toUpperCase().replace(/[\s_-]+/g, '');
+    return ({ BUDGETED: 'BUDGETED', SFS: 'SFS', SELFFINANCED: 'SFS', SELFFINANCE: 'SFS', CONTRACTUAL: 'CONTRACTUAL', CONTRACT: 'CONTRACTUAL' } as Record<string, string>)[k];
+  }
+
+  // Parse a row into employee fields. Anything blank/absent in the sheet comes back as
+  // `undefined` (NOT defaulted) so callers can distinguish "set this value" from "leave it
+  // unchanged" — this is what enables blank-tolerant uploads and partial updates by Employee ID.
   private parseRowData(row: Record<string, any>) {
-    const genderRaw = (row['Gender'] || '').toUpperCase();
-    const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderRaw) ? genderRaw : 'MALE';
-
-    const validCategories = ['UR','DSC','OSC','BCA','BCB','EWS','PWD'];
-    const categoryRaw = (row['Category'] || '').toUpperCase();
-    const category = validCategories.includes(categoryRaw) ? categoryRaw : 'UR';
-
-    const catSelRaw = (row['Category(Selection)'] || '').toUpperCase();
-    const categorySelection = validCategories.includes(catSelRaw) ? catSelRaw : 'UR';
-
-    const typeRaw = (row['Type'] || '').toUpperCase();
-    const postType = ['BUDGETED','SFS','CONTRACTUAL'].includes(typeRaw) ? typeRaw : 'BUDGETED';
-
-    const statusRaw = (row['Employment Status'] || '').toUpperCase();
-    const employmentStatus = ['ACTIVE','RETIRED','RESIGNED','TERMINATED','SUSPENDED'].includes(statusRaw) ? statusRaw : 'ACTIVE';
-
-    const parseDate = (val: any): Date | null => {
-      if (!val) return null;
+    const txt = (v: any): string | undefined => {
+      const s = v == null ? '' : String(v).trim();
+      return s === '' ? undefined : s;
+    };
+    const oneOf = (v: any, allowed: string[]): string | undefined => {
+      const u = txt(v)?.toUpperCase();
+      return u && allowed.includes(u) ? u : undefined;
+    };
+    const parseDate = (val: any): Date | undefined => {
+      if (val == null || String(val).trim() === '') return undefined;
       if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000));
       const parsed = new Date(val);
-      return isNaN(parsed.getTime()) ? null : parsed;
+      return isNaN(parsed.getTime()) ? undefined : parsed;
     };
 
     return {
-      employeeId: row['Employee ID'] || row['employeeId'] || null,
-      name: row['Employee Name'] || row['name'] || '',
-      gender, category, categorySelection, postType, employmentStatus,
-      employeeClassification: 'TEACHING' as const,
-      subject: row['Subject'] || row['subject'] || null,
-      designationAppointed: row['Designation(appointment)'] || row['designationAppointed'] || null,
-      designationPresent: row['Designation (Present)'] || row['designationPresent'] || null,
-      retirementDate: parseDate(row['Retirement Date'] || row['retirementDate']),
-      dateOfJoining: parseDate(row['Date of Joining'] || row['dateOfJoining']),
-      mobileNumber: row['Mobile Number'] || row['mobileNumber'] || null,
-      email: row['Email Address'] || row['email'] || null,
-      deptName: row['Department'] || row['department'] || '',
+      employeeId: txt(row['Employee ID'] ?? row['employeeId']),
+      name: txt(row['Employee Name'] ?? row['name']),
+      gender: oneOf(row['Gender'], ['MALE', 'FEMALE', 'OTHER']),
+      category: this.normCategory(row['Category']),
+      categorySelection: this.normCategory(row['Category(Selection)']),
+      postType: this.normPostType(row['Type']),
+      employmentStatus: oneOf(row['Employment Status'], ['ACTIVE', 'RETIRED', 'RESIGNED', 'TERMINATED', 'SUSPENDED']),
+      subject: txt(row['Subject'] ?? row['subject']),
+      designationAppointed: txt(row['Designation(appointment)'] ?? row['designationAppointed']),
+      designationPresent: txt(row['Designation (Present)'] ?? row['designationPresent']),
+      retirementDate: parseDate(row['Retirement Date'] ?? row['retirementDate']),
+      dateOfJoining: parseDate(row['Date of Joining'] ?? row['dateOfJoining']),
+      mobileNumber: txt(row['Mobile Number'] ?? row['mobileNumber']),
+      email: txt(row['Email Address'] ?? row['email']),
+      deptName: txt(row['Department'] ?? row['department']),
     };
   }
 
@@ -239,32 +257,82 @@ export class EmployeesService {
       const rowNum = i + 2;
       try {
         const parsed = this.parseRowData(row);
-        if (!parsed.name) { results.failed++; results.errors.push(`Row ${rowNum}: Employee Name is missing`); continue; }
-        if (!parsed.deptName) { results.failed++; results.errors.push(`Row ${rowNum} (${parsed.name}): Department is missing`); continue; }
 
-        let departmentId = deptCache.get(parsed.deptName.toLowerCase());
-        if (!departmentId) {
-          if (newDeptCount >= MAX_NEW_DEPTS) {
-            results.failed++;
-            results.errors.push(`Row ${rowNum}: too many new departments in a single upload`);
-            continue;
+        // Resolve the department only when a name is provided (auto-create within limits).
+        let departmentId: string | undefined;
+        if (parsed.deptName) {
+          departmentId = deptCache.get(parsed.deptName.toLowerCase());
+          if (!departmentId) {
+            if (newDeptCount >= MAX_NEW_DEPTS) {
+              results.failed++;
+              results.errors.push(`Row ${rowNum}: too many new departments in a single upload`);
+              continue;
+            }
+            const dept = await this.prisma.department.create({ data: { name: parsed.deptName, universityId } });
+            departmentId = dept.id;
+            newDeptCount++;
+            deptCache.set(parsed.deptName.toLowerCase(), departmentId);
           }
-          const dept = await this.prisma.department.create({ data: { name: parsed.deptName, universityId } });
-          departmentId = dept.id;
-          newDeptCount++;
-          deptCache.set(parsed.deptName.toLowerCase(), departmentId);
         }
 
-        const { deptName: _, ...data } = parsed;
-        const employeeData = { ...data, universityId, departmentId } as any;
+        const existingDbId = parsed.employeeId ? empIdMap.get(parsed.employeeId) : undefined;
 
-        if (parsed.employeeId && empIdMap.has(parsed.employeeId)) {
-          const existingId = empIdMap.get(parsed.employeeId)!;
-          delete employeeData.employeeId;
-          await this.prisma.employee.update({ where: { id: existingId }, data: employeeData });
+        if (existingDbId && existingDbId !== 'new') {
+          // UPDATE by Employee ID: write only the columns present in the sheet, leaving the
+          // rest untouched — lets a later "primary key + a few columns" file patch records.
+          const data: Record<string, any> = {};
+          const put = (k: string, v: any) => { if (v !== undefined) data[k] = v; };
+          put('name', parsed.name);
+          put('gender', parsed.gender);
+          put('category', parsed.category);
+          put('categorySelection', parsed.categorySelection);
+          put('postType', parsed.postType);
+          put('employmentStatus', parsed.employmentStatus);
+          put('subject', parsed.subject);
+          put('designationAppointed', parsed.designationAppointed);
+          put('designationPresent', parsed.designationPresent);
+          put('retirementDate', parsed.retirementDate);
+          put('dateOfJoining', parsed.dateOfJoining);
+          put('mobileNumber', parsed.mobileNumber);
+          put('email', parsed.email);
+          put('departmentId', departmentId);
+          await this.prisma.employee.update({ where: { id: existingDbId }, data });
           results.updated++;
         } else {
-          await this.prisma.employee.create({ data: employeeData });
+          // CREATE: Name is the only hard requirement; a blank Department falls back to
+          // "Unassigned"; every other blank field is left null / takes its column default.
+          if (!parsed.name) {
+            results.failed++;
+            results.errors.push(`Row ${rowNum}: Employee Name is required to create a new record`);
+            continue;
+          }
+          if (!departmentId) {
+            departmentId = deptCache.get('unassigned');
+            if (!departmentId) {
+              const dept = await this.prisma.department.create({ data: { name: 'Unassigned', universityId } });
+              departmentId = dept.id;
+              deptCache.set('unassigned', departmentId);
+            }
+          }
+          const createData: any = {
+            universityId, departmentId,
+            employeeId: parsed.employeeId ?? null,
+            name: parsed.name,
+            gender: parsed.gender ?? 'MALE',
+            category: parsed.category ?? 'UR',
+            categorySelection: parsed.categorySelection ?? parsed.category ?? 'UR',
+            postType: parsed.postType ?? 'BUDGETED',
+            employmentStatus: parsed.employmentStatus ?? 'ACTIVE',
+            employeeClassification: 'TEACHING',
+            subject: parsed.subject ?? null,
+            designationAppointed: parsed.designationAppointed ?? null,
+            designationPresent: parsed.designationPresent ?? null,
+            retirementDate: parsed.retirementDate ?? null,
+            dateOfJoining: parsed.dateOfJoining ?? null,
+            mobileNumber: parsed.mobileNumber ?? null,
+            email: parsed.email ?? null,
+          };
+          await this.prisma.employee.create({ data: createData });
           if (parsed.employeeId) empIdMap.set(parsed.employeeId, 'new');
           results.created++;
         }
