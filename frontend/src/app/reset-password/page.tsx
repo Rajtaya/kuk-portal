@@ -4,7 +4,7 @@ import { useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Recaptcha, isCaptchaEnabled } from '@/components/ui/recaptcha';
+import { Turnstile, isCaptchaEnabled } from '@/components/ui/turnstile';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -148,7 +148,7 @@ function ResetPasswordForm() {
           />
         </div>
 
-        <Recaptcha onVerify={onCaptchaVerify} />
+        <Turnstile onVerify={onCaptchaVerify} />
 
         <div className="flex items-center justify-between pt-2">
           <Link

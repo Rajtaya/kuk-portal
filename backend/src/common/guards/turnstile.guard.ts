@@ -3,12 +3,13 @@ import {
   BadRequestException, ServiceUnavailableException,
 } from '@nestjs/common';
 
-const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
+// Cloudflare Turnstile server-side validation endpoint.
+const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 @Injectable()
-export class RecaptchaGuard implements CanActivate {
+export class TurnstileGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const secret = process.env.RECAPTCHA_SECRET_KEY;
+    const secret = process.env.TURNSTILE_SECRET_KEY;
     if (!secret) {
       // Fail CLOSED in production: a missing key is a misconfiguration, not a reason
       // to silently drop bot protection on login/forgot-password/reset-password.
@@ -28,13 +29,16 @@ export class RecaptchaGuard implements CanActivate {
     let data: { success?: boolean };
     try {
       const params = new URLSearchParams({ secret, response: token });
+      // Bind the solved challenge to the caller's IP when available (defence in depth).
+      const remoteip = req.ip || req.socket?.remoteAddress;
+      if (remoteip) params.set('remoteip', remoteip);
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 5000);
       const res = await fetch(VERIFY_URL, { method: 'POST', body: params, signal: ctrl.signal });
       clearTimeout(timer);
       data = await res.json();
     } catch {
-      // Network/timeout against Google — fail closed rather than letting the request through.
+      // Network/timeout against Cloudflare — fail closed rather than letting the request through.
       throw new ServiceUnavailableException('Could not verify CAPTCHA. Please try again.');
     }
 

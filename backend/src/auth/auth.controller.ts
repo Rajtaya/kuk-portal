@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RecaptchaGuard } from '../common/guards/recaptcha.guard';
+import { TurnstileGuard } from '../common/guards/turnstile.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 const COOKIE_NAME = 'auth_token';
@@ -42,7 +42,7 @@ export class AuthController {
 
   @Post('login')
   @Throttle({ short: { ttl: 10000, limit: 3 }, long: { ttl: 60000, limit: 5 } })
-  @UseGuards(RecaptchaGuard)
+  @UseGuards(TurnstileGuard)
   async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
     res.cookie(COOKIE_NAME, result.accessToken, cookieOpts(req));
@@ -67,14 +67,14 @@ export class AuthController {
 
   @Post('forgot-password')
   @Throttle({ short: { ttl: 10000, limit: 1 }, long: { ttl: 60000, limit: 3 } })
-  @UseGuards(RecaptchaGuard)
+  @UseGuards(TurnstileGuard)
   forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
     return this.authService.forgotPassword(dto, resetBaseUrl(req));
   }
 
   @Post('reset-password')
   @Throttle({ short: { ttl: 10000, limit: 3 }, long: { ttl: 60000, limit: 5 } })
-  @UseGuards(RecaptchaGuard)
+  @UseGuards(TurnstileGuard)
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }

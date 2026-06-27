@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { Recaptcha, isCaptchaEnabled } from '@/components/ui/recaptcha';
+import { Turnstile, isCaptchaEnabled } from '@/components/ui/turnstile';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -144,7 +144,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Recaptcha onVerify={onCaptchaVerify} />
+              <Turnstile onVerify={onCaptchaVerify} />
 
               <div className="flex items-center justify-between pt-2">
                 <Link

@@ -1,6 +1,6 @@
 #!/bin/bash
 # UEMS — local dev launcher (backend :4000 + frontend :3000)
-# Runs both servers against local Postgres `uems_local`, with reCAPTCHA disabled
+# Runs both servers against local Postgres `uems_local`, with Cloudflare Turnstile disabled
 # so you can log in with just email + password. Ctrl+C stops both.
 
 set -u
@@ -36,10 +36,10 @@ cd "$PROJECT_DIR/backend"
 ./node_modules/.bin/prisma generate >/dev/null 2>&1
 ./node_modules/.bin/prisma db push --skip-generate >/dev/null 2>&1 || echo "  (db push skipped — is Postgres running?)"
 
-# --- 3. Start backend (reCAPTCHA disabled for frictionless local login) ---
+# --- 3. Start backend (Turnstile disabled for frictionless local login) ---
 echo "Starting backend on :$BACKEND_PORT ..."
 cd "$PROJECT_DIR/backend"
-RECAPTCHA_SECRET_KEY= BACKEND_PORT=$BACKEND_PORT npm run dev &
+TURNSTILE_SECRET_KEY= BACKEND_PORT=$BACKEND_PORT npm run dev &
 BACKEND_PID=$!
 
 # --- 4. Wait for the backend to accept connections (first compile takes a few sec) ---
@@ -50,10 +50,10 @@ for _ in $(seq 1 40); do
 done
 echo " up"
 
-# --- 5. Start frontend (empty NEXT_PUBLIC_RECAPTCHA_SITE_KEY => captcha auto-skips) ---
+# --- 5. Start frontend (empty NEXT_PUBLIC_TURNSTILE_SITE_KEY => captcha auto-skips) ---
 echo "Starting frontend on :$FRONTEND_PORT ..."
 cd "$PROJECT_DIR/frontend"
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY= PORT=$FRONTEND_PORT npm run dev &
+NEXT_PUBLIC_TURNSTILE_SITE_KEY= PORT=$FRONTEND_PORT npm run dev &
 FRONTEND_PID=$!
 
 cat <<INFO
