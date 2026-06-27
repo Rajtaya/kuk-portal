@@ -604,7 +604,7 @@ export default function DashboardPage() {
   }, [data, desigList, isMobile, isUniAdmin, activeData]);
 
   // --- Chart 2: Sunburst data ---
-  // How many subjects to show individually before rolling the rest into "Other".
+  // How many top departments to show in the sunburst (the long tail is dropped, no "Other").
   const SUNBURST_TOP_SUBJECTS = 12;
 
   const sunburstEchartsData = useMemo(() => {
@@ -613,32 +613,16 @@ export default function DashboardPage() {
     const subjTotal = (s: any) => s.children.reduce((sum: number, d: any) => sum + d.children.reduce((s2: number, pt: any) => s2 + pt.value, 0), 0);
     subjects.sort((a, b) => subjTotal(b) - subjTotal(a));
 
-    // Declutter the subject ring: keep the top N subjects, merge the long tail of small/
-    // near-duplicate subjects into a single "Other" slice (preserving its designation x
-    // post-type breakdown so drilling into "Other" still works). Skipped when the user has
-    // filtered to one subject.
-    let display: any[] = subjects;
-    if (subjects.length > SUNBURST_TOP_SUBJECTS + 1) {
-      const top = subjects.slice(0, SUNBURST_TOP_SUBJECTS);
-      const rest = subjects.slice(SUNBURST_TOP_SUBJECTS);
-      const dMap = new Map<string, Map<string, number>>();
-      for (const subj of rest) for (const desig of subj.children) {
-        if (!dMap.has(desig.name)) dMap.set(desig.name, new Map());
-        const ptMap = dMap.get(desig.name)!;
-        for (const pt of desig.children) ptMap.set(pt.name, (ptMap.get(pt.name) || 0) + pt.value);
-      }
-      const otherChildren = [...dMap.entries()].map(([name, ptMap]) => ({
-        name, children: [...ptMap.entries()].map(([n, value]) => ({ name: n, value })),
-      }));
-      display = [...top, { name: `Other (${rest.length} subjects)`, children: otherChildren }];
-    }
+    // Declutter the subject ring: show only the top N departments by headcount and drop the
+    // long tail entirely (no "Other" slice, per request).
+    const display: any[] = subjects.slice(0, SUNBURST_TOP_SUBJECTS);
 
     return [{
       name: selectedUniName,
       itemStyle: { color: '#2563EB' },
       children: display.map((subj, si) => ({
         name: subj.name,
-        itemStyle: { color: typeof subj.name === 'string' && subj.name.startsWith('Other (') ? '#9CA3AF' : RING_COLORS[si % RING_COLORS.length] },
+        itemStyle: { color: RING_COLORS[si % RING_COLORS.length] },
         children: subj.children.map((desig: any) => ({
           name: desig.name,
           itemStyle: { color: getDesigColor(desig.name, si) },
