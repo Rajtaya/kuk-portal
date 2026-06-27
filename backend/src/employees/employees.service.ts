@@ -223,6 +223,18 @@ export class EmployeesService {
       const parsed = new Date(val);
       return isNaN(parsed.getTime()) ? undefined : parsed;
     };
+    // Fail LOUD on a present-but-unrecognised enum value instead of silently
+    // defaulting it (which previously turned "OBC" -> UR, "M" -> MALE, "Regular"
+    // -> BUDGETED, etc. with no warning). A blank cell is still allowed through
+    // (returns undefined) so blank-tolerant uploads / partial updates keep working.
+    const invalids: string[] = [];
+    const strict = <T>(raw: any, parse: (r: string) => T | undefined, label: string, hint: string): T | undefined => {
+      const r = txt(raw);
+      if (r === undefined) return undefined;
+      const v = parse(r);
+      if (v === undefined) invalids.push(`${label} "${r}" not recognised (expected ${hint})`);
+      return v;
+    };
 
     const appt = this.normDesignation(row['Designation(appointment)'] ?? row['designationAppointed']);
     const pres = this.normDesignation(row['Designation (Present)'] ?? row['designationPresent']);
@@ -233,11 +245,11 @@ export class EmployeesService {
     return {
       employeeId: txt(row['Employee ID'] ?? row['employeeId']),
       name: txt(row['Employee Name'] ?? row['name']),
-      gender: oneOf(row['Gender'], ['MALE', 'FEMALE', 'OTHER']),
-      category: this.normCategory(row['Category']),
-      categorySelection: this.normCategory(row['Category(Selection)']),
-      postType: this.normPostType(row['Type']),
-      employmentStatus: oneOf(row['Employment Status'], ['ACTIVE', 'RETIRED', 'RESIGNED', 'TERMINATED', 'SUSPENDED']),
+      gender: strict(row['Gender'], r => oneOf(r, ['MALE', 'FEMALE', 'OTHER']), 'Gender', 'MALE/FEMALE/OTHER'),
+      category: strict(row['Category'], r => this.normCategory(r), 'Category', 'UR/SC/ST/BC-A/BC-B/EWS/PWD'),
+      categorySelection: strict(row['Category(Selection)'], r => this.normCategory(r), 'Category(Selection)', 'UR/SC/ST/BC-A/BC-B/EWS/PWD'),
+      postType: strict(row['Type'], r => this.normPostType(r), 'Type', 'Budgeted/SFS/Self Financed/Contractual'),
+      employmentStatus: strict(row['Employment Status'], r => oneOf(r, ['ACTIVE', 'RETIRED', 'RESIGNED', 'TERMINATED', 'SUSPENDED']), 'Employment Status', 'Active/Retired/Resigned/Terminated/Suspended'),
       subject,
       designationAppointed: appt.rank,
       designationPresent: pres.rank,
@@ -246,6 +258,7 @@ export class EmployeesService {
       mobileNumber: txt(row['Mobile Number'] ?? row['mobileNumber']),
       email: txt(row['Email Address'] ?? row['email']),
       deptName: txt(row['Department'] ?? row['department']),
+      _invalids: invalids,
     };
   }
 
@@ -284,6 +297,15 @@ export class EmployeesService {
       const rowNum = i + 2;
       try {
         const parsed = this.parseRowData(row);
+
+        // Reject a row that carries an unrecognised category/gender/type/status value
+        // rather than silently importing it with a wrong default. The message names the
+        // exact bad value so the uploader can fix the sheet and re-upload.
+        if (parsed._invalids.length) {
+          results.failed++;
+          results.errors.push(`Row ${rowNum}: ${parsed._invalids.join('; ')}`);
+          continue;
+        }
 
         // Resolve the department only when a name is provided (auto-create within limits).
         let departmentId: string | undefined;
