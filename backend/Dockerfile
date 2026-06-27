@@ -20,10 +20,11 @@ RUN mkdir -p ./uploads && chown node:node ./uploads
 
 USER node
 EXPOSE 4000
-# NOTE: --accept-data-loss is REQUIRED by this project's enum-migration pattern, not optional.
-# prisma/migrate-categories.js converts the category enum columns to TEXT (remapping values)
-# and drops the old enum; this db push then recreates them as the `Category` enum. Prisma
-# reports that text->enum conversion as "data loss" even though the values are preserved, so
-# without the flag db push aborts and the container never starts. Do NOT remove this flag
-# unless you first replace db push with proper Prisma migrations (`prisma migrate deploy`).
-CMD ["sh", "-c", "node prisma/migrate-categories.js; npx prisma db push --skip-generate --accept-data-loss && node dist/src/main"]
+# Schema sync on boot. The `category`/`categorySelection` columns are already the `Category`
+# enum and match schema.prisma, so this db push is a no-op for them — no --accept-data-loss
+# needed. (It was previously preceded by `node prisma/migrate-categories.js`, a ONE-TIME
+# old->new enum migration. That script ran on EVERY boot, forcing an enum->TEXT->enum
+# round-trip whose db push step reset every row's category to the `UR` default — silently
+# wiping all category data on each deploy. The migration is long complete; the script is kept
+# in prisma/ for reference only and must NOT be re-added to the boot command.)
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/main"]
