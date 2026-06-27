@@ -411,6 +411,7 @@ export class EmployeesService {
           universityId: true,
           departmentId: true,
           university: { select: { name: true } },
+          department: { select: { name: true } },
           subject: true,
           designationPresent: true,
           category: true,
@@ -461,6 +462,21 @@ export class EmployeesService {
       const desig = e.designationPresent || 'Other';
       if (!h.subs.get(subj)!.has(desig)) h.subs.get(subj)!.set(desig, new Map());
       const ptMap = h.subs.get(subj)!.get(desig)!;
+      ptMap.set(e.postType, (ptMap.get(e.postType) || 0) + 1);
+    }
+
+    // 2b. Hierarchy per university grouped by DEPARTMENT (used only by the sunburst). Because the
+    // departments table is a controlled list, rolled-up institutes like IIHS / UIET show as a
+    // single department instead of fragmenting across many free-text subject values.
+    const hdMap = new Map<string, { name: string; subs: Map<string, Map<string, Map<string, number>>> }>();
+    for (const e of employees) {
+      if (!hdMap.has(e.universityId)) hdMap.set(e.universityId, { name: e.university.name, subs: new Map() });
+      const h = hdMap.get(e.universityId)!;
+      const dept = e.department?.name || 'Other';
+      if (!h.subs.has(dept)) h.subs.set(dept, new Map());
+      const desig = e.designationPresent || 'Other';
+      if (!h.subs.get(dept)!.has(desig)) h.subs.get(dept)!.set(desig, new Map());
+      const ptMap = h.subs.get(dept)!.get(desig)!;
       ptMap.set(e.postType, (ptMap.get(e.postType) || 0) + 1);
     }
 
@@ -559,6 +575,17 @@ export class EmployeesService {
         universityName: name,
         children: [...subs.entries()].map(([subj, desigs]) => ({
           name: subj,
+          children: [...desigs.entries()].map(([desig, pts]) => ({
+            name: desig,
+            children: [...pts.entries()].map(([pt, count]) => ({ name: pt, value: count })),
+          })),
+        })),
+      })),
+      hierarchyByDept: [...hdMap.entries()].map(([id, { name, subs }]) => ({
+        universityId: id,
+        universityName: name,
+        children: [...subs.entries()].map(([dept, desigs]) => ({
+          name: dept,
           children: [...desigs.entries()].map(([desig, pts]) => ({
             name: desig,
             children: [...pts.entries()].map(([pt, count]) => ({ name: pt, value: count })),

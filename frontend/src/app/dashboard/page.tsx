@@ -61,6 +61,7 @@ interface ChartData {
   stats: { universityCount: number; employeeCount: number; sanctionedPosts: number; filledPosts: number; subjectCount: number; vacantSeats: number; designationCount: number };
   designationByUniversity: Record<string, any>[];
   hierarchy: { universityId: string; universityName: string; children: HierarchyNode[] }[];
+  hierarchyByDept?: { universityId: string; universityName: string; children: HierarchyNode[] }[];
   categoryDesignation: Record<string, any>[];
   postTypeDesignation: Record<string, any>[];
   genderDesignation: { gender: string; total: number; designations: { name: string; value: number }[] }[];
@@ -147,6 +148,19 @@ function normalizeChartData(d: ChartData): ChartData {
           for (const pt of desig.children) pm.set(pt.name, (pm.get(pt.name) || 0) + pt.value);
         }
         return { name: subj.name, children: [...dm.entries()].map(([name, pm]) => ({ name, children: [...pm.entries()].map(([ptn, value]) => ({ name: ptn, value })) })) };
+      }),
+    })),
+    hierarchyByDept: (d.hierarchyByDept || []).map(uni => ({
+      ...uni,
+      children: uni.children.map(dept => {
+        const dm = new Map<string, Map<string, number>>();
+        for (const desig of dept.children) {
+          const ck = canonRank(desig.name);
+          if (!dm.has(ck)) dm.set(ck, new Map());
+          const pm = dm.get(ck)!;
+          for (const pt of desig.children) pm.set(pt.name, (pm.get(pt.name) || 0) + pt.value);
+        }
+        return { name: dept.name, children: [...dm.entries()].map(([name, pm]) => ({ name, children: [...pm.entries()].map(([ptn, value]) => ({ name: ptn, value })) })) };
       }),
     })),
     sanctionVsPresent: (d.sanctionVsPresent || []).map(r => foldPrefixed(r, ['subject'])),
@@ -441,6 +455,40 @@ export default function DashboardPage() {
     return uni?.children || [];
   }, [data, isAllUni, selectedUni, allSubjectsMerged]);
 
+  // Department-grouped equivalent of allSubjectsMerged, used ONLY by the sunburst so rolled-up
+  // institutes (IIHS, UIET) appear as single departments instead of fragmenting by free-text subject.
+  const allDeptsMerged = useMemo(() => {
+    if (!data?.hierarchyByDept) return [] as HierarchyNode[];
+    const map = new Map<string, HierarchyNode>();
+    data.hierarchyByDept.forEach((uni) => {
+      uni.children.forEach((dept) => {
+        const existing = map.get(dept.name);
+        if (!existing) {
+          map.set(dept.name, { name: dept.name, children: dept.children.map((d) => ({ name: d.name, children: d.children.map((pt) => ({ ...pt })) })) });
+        } else {
+          dept.children.forEach((desig) => {
+            const ed = existing.children.find((d) => d.name === desig.name);
+            if (!ed) existing.children.push({ name: desig.name, children: desig.children.map((pt) => ({ ...pt })) });
+            else desig.children.forEach((pt) => {
+              const ep = ed.children.find((p) => p.name === pt.name);
+              if (!ep) ed.children.push({ ...pt }); else ep.value += pt.value;
+            });
+          });
+        }
+      });
+    });
+    return [...map.values()];
+  }, [data]);
+
+  // The sunburst's subject ring source: departments. Falls back to subjects if the backend
+  // hasn't shipped hierarchyByDept yet (so the chart never goes blank during a rollout).
+  const activeDepts = useMemo(() => {
+    if (!data?.hierarchyByDept) return activeSubjects;
+    if (isAllUni) return allDeptsMerged.length ? allDeptsMerged : activeSubjects;
+    const uni = data.hierarchyByDept.find((h) => h.universityId === selectedUni);
+    return uni?.children ?? activeSubjects;
+  }, [data, isAllUni, selectedUni, allDeptsMerged, activeSubjects]);
+
   const selectedUniName = useMemo(() => {
     if (isAllUni) return 'All Universities';
     return data?.hierarchy.find((h) => h.universityId === selectedUni)?.universityName || '';
@@ -560,8 +608,7 @@ export default function DashboardPage() {
   const SUNBURST_TOP_SUBJECTS = 12;
 
   const sunburstEchartsData = useMemo(() => {
-    let subjects = [...activeSubjects];
-    if (subjectFilter) subjects = subjects.filter(s => s.name === subjectFilter);
+    let subjects = [...activeDepts];
     if (!subjects.length) return [];
     const subjTotal = (s: any) => s.children.reduce((sum: number, d: any) => sum + d.children.reduce((s2: number, pt: any) => s2 + pt.value, 0), 0);
     subjects.sort((a, b) => subjTotal(b) - subjTotal(a));
@@ -571,7 +618,7 @@ export default function DashboardPage() {
     // post-type breakdown so drilling into "Other" still works). Skipped when the user has
     // filtered to one subject.
     let display: any[] = subjects;
-    if (!subjectFilter && subjects.length > SUNBURST_TOP_SUBJECTS + 1) {
+    if (subjects.length > SUNBURST_TOP_SUBJECTS + 1) {
       const top = subjects.slice(0, SUNBURST_TOP_SUBJECTS);
       const rest = subjects.slice(SUNBURST_TOP_SUBJECTS);
       const dMap = new Map<string, Map<string, number>>();
@@ -603,7 +650,7 @@ export default function DashboardPage() {
         })),
       })),
     }];
-  }, [activeSubjects, subjectFilter, selectedUniName]);
+  }, [activeDepts, selectedUniName]);
 
   const sunburstOption = useMemo(() => ({
     tooltip: {
