@@ -11,7 +11,7 @@ export class UsersService {
     const exists = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (exists) throw new ConflictException('Email already exists');
 
-    const hashed = await bcrypt.hash(dto.password, 10);
+    const hashed = await bcrypt.hash(dto.password, 12);
     return this.prisma.user.create({
       data: { ...dto, password: hashed },
       select: { id: true, email: true, name: true, role: true, universityId: true },
@@ -33,7 +33,7 @@ export class UsersService {
   }
 
   async update(id: string, data: UpdateUserDto) {
-    if (data.password) data.password = await bcrypt.hash(data.password, 10);
+    if (data.password) data.password = await bcrypt.hash(data.password, 12);
     return this.prisma.user.update({
       where: { id },
       data,

@@ -83,8 +83,12 @@ export class EmployeesService {
     const { search, ...rest } = filters;
     const where: Prisma.EmployeeWhereInput = {};
 
+    // Tenant scope: a UNIVERSITY_ADMIN is pinned to their own university and CANNOT
+    // widen it via a ?universityId= query param (that would be a cross-tenant IDOR).
+    // Only when there is no enforced scope (SUPER_ADMIN / STATE_USER) may the caller
+    // filter by an arbitrary universityId.
     if (userUniversityId) where.universityId = userUniversityId;
-    if (rest.universityId) where.universityId = rest.universityId;
+    else if (rest.universityId) where.universityId = rest.universityId;
     if (rest.departmentId) where.departmentId = rest.departmentId;
     if (rest.department) where.department = { is: { name: { equals: rest.department, mode: 'insensitive' } } };
     if (rest.employeeId) where.employeeId = { contains: rest.employeeId, mode: 'insensitive' };

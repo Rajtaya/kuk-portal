@@ -193,6 +193,7 @@ export class EmployeesController {
   ) {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
+    if (!file) throw new BadRequestException('A spreadsheet file is required');
 
     validateFileSignature(file.buffer, file.mimetype, 'spreadsheet');
 

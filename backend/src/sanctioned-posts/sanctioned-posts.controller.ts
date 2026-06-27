@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Put, Delete, Param, Body, Query,
-  UseGuards, UseInterceptors, UploadedFile, ForbiddenException,
+  UseGuards, UseInterceptors, UploadedFile, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
@@ -69,6 +69,7 @@ export class SanctionedPostsController {
   ) {
     const uniId = user.role === Role.UNIVERSITY_ADMIN ? user.universityId : universityId;
     if (!uniId) return { success: 0, failed: 0, errors: ['University is required'], total: 0 };
+    if (!file) throw new BadRequestException('A spreadsheet file is required');
 
     validateFileSignature(file.buffer, file.mimetype, 'spreadsheet');
 
